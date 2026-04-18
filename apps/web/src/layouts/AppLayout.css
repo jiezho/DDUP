@@ -1,0 +1,30 @@
+.ddup-layout {
+  min-height: 100vh;
+  background: #fff;
+}
+
+.ddup-content {
+  padding: 12px;
+  padding-bottom: 72px;
+}
+
+.ddup-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ddup-footer .ant-menu {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ddup-footer .ant-menu-item {
+  flex: 1;
+  justify-content: center;
+}
+
