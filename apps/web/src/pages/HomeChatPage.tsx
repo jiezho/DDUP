@@ -12,6 +12,7 @@ export default function HomeChatPage() {
   const [apiStatus, setApiStatus] = useState<string>("unknown");
   const [spaces, setSpaces] = useState<SpaceItem[]>([]);
   const [spaceId, setSpaceId] = useState<string>(() => localStorage.getItem("ddup.spaceId") || "");
+  const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("ddup.sessionId") || "");
   const userId = "dev-user";
 
   useEffect(() => {
@@ -49,8 +50,76 @@ export default function HomeChatPage() {
   const send = () => {
     const text = input.trim();
     if (!text) return;
-    setMsgs((prev) => [...prev, { role: "user", text }, { role: "assistant", text: "已收到（占位响应）。" }]);
+    setMsgs((prev) => [...prev, { role: "user", text }, { role: "assistant", text: "…" }]);
     setInput("");
+
+    const run = async () => {
+      let sid = sessionId;
+      const headers: Record<string, string> = { "Content-Type": "application/json", "X-User-Id": userId };
+      if (spaceId) headers["X-Space-Id"] = spaceId;
+
+      if (!sid) {
+        const r = await fetch("/api/chat/sessions", { method: "POST", headers, body: JSON.stringify({ title: "" }) });
+        if (!r.ok) throw new Error("create session failed");
+        const json = (await r.json()) as { id: string };
+        sid = json.id;
+        setSessionId(sid);
+        localStorage.setItem("ddup.sessionId", sid);
+      }
+
+      const resp = await fetch(`/api/chat/sessions/${sid}/stream`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text })
+      });
+      if (!resp.ok || !resp.body) throw new Error("stream failed");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let assistantText = "";
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          const eventLine = lines.find((l) => l.startsWith("event:"));
+          const dataLine = lines.find((l) => l.startsWith("data:"));
+          if (!eventLine || !dataLine) continue;
+
+          const event = eventLine.replace("event:", "").trim();
+          const raw = dataLine.replace("data:", "").trim();
+          if (event === "message.delta") {
+            try {
+              const payload = JSON.parse(raw) as { delta?: string };
+              assistantText += payload.delta || "";
+              setMsgs((prev) => {
+                const next = [...prev];
+                const idx = next.map((m) => m.role).lastIndexOf("assistant");
+                if (idx >= 0) next[idx] = { role: "assistant", text: assistantText };
+                return next;
+              });
+            } catch {
+              continue;
+            }
+          }
+        }
+      }
+    };
+
+    run().catch(() => {
+      setMsgs((prev) => {
+        const next = [...prev];
+        const idx = next.map((m) => m.role).lastIndexOf("assistant");
+        if (idx >= 0) next[idx] = { role: "assistant", text: "请求失败（请检查后端是否启动）" };
+        return next;
+      });
+    });
   };
 
   return (
