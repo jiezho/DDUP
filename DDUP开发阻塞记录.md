@@ -19,3 +19,11 @@
 - 临时绕过：改为手工创建 `apps/web` 的最小 Vite+React 工程文件，再运行 `npm install`（若网络仍不通则先提交代码骨架，待网络恢复后再补依赖安装与测试）。
 - 根因假设：网络访问 npm registry 受限或缓存/代理配置异常。
 - 下一步：必要时配置 npm registry/代理，或准备离线依赖镜像源。
+
+### 3. Docker daemon 未运行导致无法启动 PostgreSQL
+
+- 现象：执行 `docker compose up -d` 报 `docker daemon is not running`，无法连接 `//./pipe/docker_engine`。
+- 影响：无法通过 `infra/docker-compose.yml` 启动本地 PostgreSQL（pgsql）。
+- 临时绕过：后端使用 SQLite 作为开发运行数据库（仅用于本地跑通前后端联调），通过 `apps/api/.env` 设置 `DATABASE_URL=sqlite+pysqlite:///./ddup.db`。
+- 根因假设：本机 Docker Desktop/daemon 未启动或被权限策略限制。
+- 下一步：启动 Docker Desktop 后重试；恢复到 PostgreSQL 以贴近目标架构。
