@@ -1,0 +1,1 @@
+{"root":["./src/app.test.tsx","./src/app.tsx","./src/main.tsx","./src/layouts/applayout.tsx","./src/pages/assistantpage.tsx","./src/pages/homechatpage.test.tsx","./src/pages/homechatpage.tsx","./src/pages/learningpage.tsx","./src/pages/mepage.tsx","./src/pages/resourcespage.tsx"],"errors":true,"version":"5.9.3"}
