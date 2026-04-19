@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: ../apps/api
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ENVIRONMENT: ${ENVIRONMENT:-prod}
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  web:
+    build:
+      context: ../apps/web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
