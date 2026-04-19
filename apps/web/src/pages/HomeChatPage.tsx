@@ -1,19 +1,38 @@
-import { Button, Card, Input, Select, Space, Typography } from "antd";
+import { Button, Card, Input, Select, Space, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 
-type Msg = { role: "user" | "assistant"; text: string };
+type Msg = { id?: string; role: "user" | "assistant"; text: string };
 type SpaceItem = { id: string; name: string; type: string };
+type ChatCard = { type: string; data: Record<string, unknown> };
 
 export default function HomeChatPage() {
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "assistant", text: "DDUP：请输入问题，我会调用系统能力返回结果卡（MVP 阶段先做基础链路）。" }
   ]);
+  const [cardsByMessageId, setCardsByMessageId] = useState<Record<string, ChatCard[]>>({});
   const [apiStatus, setApiStatus] = useState<string>("unknown");
   const [spaces, setSpaces] = useState<SpaceItem[]>([]);
   const [spaceId, setSpaceId] = useState<string>(() => localStorage.getItem("ddup.spaceId") || "");
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("ddup.sessionId") || "");
   const userId = "dev-user";
+
+  const buildHeaders = (withJson: boolean): Record<string, string> => {
+    const headers: Record<string, string> = { "X-User-Id": userId };
+    if (spaceId) headers["X-Space-Id"] = spaceId;
+    if (withJson) headers["Content-Type"] = "application/json";
+    return headers;
+  };
+
+  const executeAction = (type: string, payload: unknown) => {
+    const t = type.trim();
+    if (!t) return;
+    fetch("/api/actions/execute", {
+      method: "POST",
+      headers: buildHeaders(true),
+      body: JSON.stringify({ type: t, payload: payload || {} })
+    }).catch(() => null);
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -50,13 +69,13 @@ export default function HomeChatPage() {
   const send = () => {
     const text = input.trim();
     if (!text) return;
-    setMsgs((prev) => [...prev, { role: "user", text }, { role: "assistant", text: "…" }]);
+    const tempAssistantKey = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setMsgs((prev) => [...prev, { role: "user", text }, { id: tempAssistantKey, role: "assistant", text: "…" }]);
     setInput("");
 
     const run = async () => {
       let sid = sessionId;
-      const headers: Record<string, string> = { "Content-Type": "application/json", "X-User-Id": userId };
-      if (spaceId) headers["X-Space-Id"] = spaceId;
+      const headers = buildHeaders(true);
 
       if (!sid) {
         const r = await fetch("/api/chat/sessions", { method: "POST", headers, body: JSON.stringify({ title: "" }) });
@@ -78,6 +97,7 @@ export default function HomeChatPage() {
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
       let assistantText = "";
+      let assistantMessageId: string | null = null;
 
       for (;;) {
         const { value, done } = await reader.read();
@@ -96,13 +116,32 @@ export default function HomeChatPage() {
           const raw = dataLine.replace("data:", "").trim();
           if (event === "message.delta") {
             try {
-              const payload = JSON.parse(raw) as { delta?: string };
+              const payload = JSON.parse(raw) as { messageId?: string; delta?: string };
+              const messageId = payload.messageId;
+              if (!assistantMessageId && messageId) {
+                assistantMessageId = messageId;
+                setMsgs((prev) =>
+                  prev.map((m) => (m.id === tempAssistantKey ? { ...m, id: assistantMessageId || m.id } : m))
+                );
+              }
               assistantText += payload.delta || "";
               setMsgs((prev) => {
                 const next = [...prev];
                 const idx = next.map((m) => m.role).lastIndexOf("assistant");
-                if (idx >= 0) next[idx] = { role: "assistant", text: assistantText };
+                if (idx >= 0) next[idx] = { ...next[idx], text: assistantText };
                 return next;
+              });
+            } catch {
+              continue;
+            }
+          }
+          if (event === "card.add") {
+            try {
+              const payload = JSON.parse(raw) as { messageId?: string; card?: ChatCard };
+              if (!payload.messageId || !payload.card) continue;
+              setCardsByMessageId((prev) => {
+                const existing = prev[payload.messageId || ""] || [];
+                return { ...prev, [payload.messageId || ""]: [...existing, payload.card as ChatCard] };
               });
             } catch {
               continue;
@@ -116,7 +155,7 @@ export default function HomeChatPage() {
       setMsgs((prev) => {
         const next = [...prev];
         const idx = next.map((m) => m.role).lastIndexOf("assistant");
-        if (idx >= 0) next[idx] = { role: "assistant", text: "请求失败（请检查后端是否启动）" };
+        if (idx >= 0) next[idx] = { ...next[idx], text: "请求失败（请检查后端是否启动）" };
         return next;
       });
     });
@@ -146,6 +185,45 @@ export default function HomeChatPage() {
             <Card key={idx} size="small" style={{ background: m.role === "user" ? "#f6ffed" : "#fafafa" }}>
               <Typography.Text strong>{m.role === "user" ? "你" : "AI"}：</Typography.Text>{" "}
               <Typography.Text>{m.text}</Typography.Text>
+              {m.id && cardsByMessageId[m.id]?.length ? (
+                <Space direction="vertical" style={{ width: "100%", marginTop: 8 }} size={8}>
+                  {cardsByMessageId[m.id].map((c, cidx) => (
+                    <Card key={cidx} size="small">
+                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                        <Tag>{c.type}</Tag>
+                      </Space>
+                      {"summary" in c.data ? (
+                        <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0 }}>
+                          {String(c.data.summary)}
+                        </Typography.Paragraph>
+                      ) : (
+                        <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0 }}>
+                          {JSON.stringify(c.data)}
+                        </Typography.Paragraph>
+                      )}
+                      {"actions" in c.data && Array.isArray(c.data.actions) ? (
+                        <Space style={{ marginTop: 8 }} wrap>
+                          {(c.data.actions as Array<{ type?: string; label?: string; payload?: unknown }>).map(
+                            (a, aidx) => (
+                              <Button
+                                key={aidx}
+                                size="small"
+                                onClick={() => {
+                                  const type = String(a.type || "");
+                                  if (!type) return;
+                                  executeAction(type, a.payload || {});
+                                }}
+                              >
+                                {a.label || a.type}
+                              </Button>
+                            )
+                          )}
+                        </Space>
+                      ) : null}
+                    </Card>
+                  ))}
+                </Space>
+              ) : null}
             </Card>
           ))}
         </Space>
