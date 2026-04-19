@@ -51,3 +51,11 @@
 - 临时绕过：git 操作强制使用 HTTP/1.1，并增加重试（已更新 tools/remote_setup_204.sh）；如仍失败，需评估企业网络策略/代理或改用内网镜像仓库。
 - 根因假设：网络质量/中间设备对 TLS 或 HTTP/2 连接有干扰。
 - 下一步：确认发布机对 GitHub 的稳定访问路径（直连/代理/内网镜像），固化为标准发布方案。
+
+### 7. 发布机访问 Docker Hub 超时导致镜像拉取失败
+
+- 现象：在 192.168.102.204 构建/拉取基础镜像（python/node/nginx）时报 `i/o timeout`，无法连接 `registry-1.docker.io:443`。
+- 影响：无法构建并启动 docker compose（API/Web）。
+- 临时绕过：配置 Docker registry mirror（当前使用 DaoCloud：`https://docker.m.daocloud.io`），重启 docker 后重试。
+- 根因假设：网络策略或链路质量导致 Docker Hub 访问不稳定。
+- 下一步：如有企业内网镜像源，建议替换为内网 mirror 并纳入发布机基线。
