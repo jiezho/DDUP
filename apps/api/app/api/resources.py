@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import or_
 
 from app.api.deps import audit, get_current_space, get_current_user_id
 from app.db.session import get_db
@@ -57,11 +58,24 @@ def create_feed_source(
 
 @router.get("/feeds/items", response_model=list[FeedItemOut])
 def list_feed_items(
+    saved_only: bool | None = None,
+    unread_only: bool | None = None,
+    q: str | None = None,
+    limit: int = 100,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user_id),
     space: Space = Depends(get_current_space),
 ) -> list[FeedItemOut]:
-    stmt = select(FeedItem).where(FeedItem.space_id == space.id, FeedItem.user_id == user_id).order_by(FeedItem.created_at.desc())
+    stmt = select(FeedItem).where(FeedItem.space_id == space.id, FeedItem.user_id == user_id)
+    if saved_only is True:
+        stmt = stmt.where(FeedItem.is_saved == True)
+    if unread_only is True:
+        stmt = stmt.where(FeedItem.is_read == False)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(or_(FeedItem.title.ilike(like), FeedItem.summary.ilike(like)))
+
+    stmt = stmt.order_by(FeedItem.created_at.desc()).limit(min(max(limit, 1), 200))
     items = list(db.scalars(stmt).all())
     return [FeedItemOut(id=i.id, title=i.title, summary=i.summary, link=i.link, is_read=i.is_read, is_saved=i.is_saved) for i in items]
 
@@ -136,10 +150,56 @@ class FileOut(BaseModel):
 
 @router.get("/files", response_model=list[FileOut])
 def list_files(
+    q: str | None = None,
+    type: str | None = None,
+    limit: int = 200,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user_id),
     space: Space = Depends(get_current_space),
 ) -> list[FileOut]:
-    stmt = select(FileItem).where(FileItem.space_id == space.id, FileItem.user_id == user_id).order_by(FileItem.created_at.desc())
+    stmt = select(FileItem).where(FileItem.space_id == space.id, FileItem.user_id == user_id)
+    if type and type.strip():
+        stmt = stmt.where(FileItem.type == type.strip())
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(or_(FileItem.name.ilike(like), FileItem.path.ilike(like)))
+
+    stmt = stmt.order_by(FileItem.created_at.desc()).limit(min(max(limit, 1), 500))
     items = list(db.scalars(stmt).all())
     return [FileOut(id=i.id, name=i.name, type=i.type) for i in items]
+
+
+class FileDetailOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    type: str
+    path: str
+    preview_text: str = ""
+
+
+@router.get("/files/{file_id}", response_model=FileDetailOut)
+def get_file_detail(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> FileDetailOut:
+    item = db.get(FileItem, file_id)
+    if not item or item.space_id != space.id or item.user_id != user_id:
+        raise HTTPException(404, "file not found")
+
+    preview_text = ""
+    try:
+        p = item.path
+        if p and len(p) <= 1000:
+            import os
+
+            if os.path.isfile(p):
+                size = os.path.getsize(p)
+                if size <= 200_000 and item.type.lower() in {"txt", "md", "log", "json", "csv"}:
+                    with open(p, "r", encoding="utf-8", errors="replace") as f:
+                        preview_text = f.read(6000)
+    except Exception:
+        preview_text = ""
+
+    return FileDetailOut(id=item.id, name=item.name, type=item.type, path=item.path, preview_text=preview_text)

@@ -3,6 +3,7 @@ import { BrowserRouter } from "react-router-dom";
 import { afterEach, vi } from "vitest";
 
 import HomeChatPage from "./HomeChatPage";
+import { DisplayModeProvider } from "../contexts/displayMode";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -32,12 +33,21 @@ test("renders space selector", async () => {
         json: async () => [{ id: "s1", name: "个人空间", type: "personal" }]
       } as unknown as Response;
     }
+    if (u.endsWith("/api/dashboard/summary")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ todo_open: 0, review_due: 0, saved_unread: 0, file_pending: 0, items: [] })
+      } as unknown as Response;
+    }
     return { ok: true, status: 200, json: async () => ({}) } as unknown as Response;
   }) as unknown as typeof fetch);
 
   render(
     <BrowserRouter>
-      <HomeChatPage />
+      <DisplayModeProvider>
+        <HomeChatPage />
+      </DisplayModeProvider>
     </BrowserRouter>
   );
 
@@ -83,6 +93,13 @@ test("can capture card to wiki", async () => {
           json: async () => [{ id: "s1", name: "个人空间", type: "personal" }]
         } as unknown as Response;
       }
+      if (u.endsWith("/api/dashboard/summary")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ todo_open: 0, review_due: 0, saved_unread: 0, file_pending: 0, items: [] })
+        } as unknown as Response;
+      }
       if (u.endsWith("/api/chat/sessions")) {
         return { ok: true, status: 200, json: async () => ({ id: "sid" }) } as unknown as Response;
       }
@@ -120,7 +137,9 @@ test("can capture card to wiki", async () => {
 
   render(
     <BrowserRouter>
-      <HomeChatPage />
+      <DisplayModeProvider>
+        <HomeChatPage />
+      </DisplayModeProvider>
     </BrowserRouter>
   );
 
