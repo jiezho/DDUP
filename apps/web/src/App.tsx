@@ -21,12 +21,12 @@ function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
           ? {
               algorithm: theme.defaultAlgorithm,
               token: {
-                colorPrimary: "#3B82F6",
-                colorBgBase: "#f6efe7",
-                colorBgContainer: "rgba(255,255,255,0.72)",
-                colorBorderSecondary: "rgba(15, 23, 42, 0.10)",
-                colorTextBase: "#0f172a",
-                borderRadius: 16,
+                colorPrimary: "#1677ff",
+                colorBgLayout: "#f0f2f5",
+                colorBgContainer: "#ffffff",
+                colorBorderSecondary: "rgba(5, 5, 5, 0.10)",
+                colorTextBase: "#111827",
+                borderRadius: 10,
                 fontFamily:
                   "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Liberation Sans, sans-serif"
               }

@@ -1,12 +1,15 @@
-import { Layout, Menu, Segmented, Space, Typography } from "antd";
+import { Avatar, Breadcrumb, Button, Layout, Menu, Segmented, Space, Typography } from "antd";
+import type { MenuProps } from "antd";
 import {
   ApartmentOutlined,
   HomeOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   ProfileOutlined,
   ReadOutlined,
   UnorderedListOutlined
 } from "@ant-design/icons";
-import { PropsWithChildren, useMemo } from "react";
+import { PropsWithChildren, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useDisplayMode } from "../contexts/displayMode";
@@ -74,17 +77,37 @@ export default function AppLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
 
   const { displayMode, resolvedMode, setDisplayMode } = useDisplayMode();
+  const [collapsed, setCollapsed] = useState(false);
 
   const selectedKeys = useMemo(() => [routeToKey(location.pathname)], [location.pathname]);
   const selectedKey = selectedKeys[0];
 
-  const menuItems = useMemo(
+  const menuItems = useMemo<MenuProps["items"]>(
     () => [
-      { key: "home", icon: <HomeOutlined />, label: "首页" },
-      { key: "learning", icon: <ReadOutlined />, label: "学习" },
-      { key: "assistant", icon: <UnorderedListOutlined />, label: "助手" },
-      { key: "resources", icon: <ApartmentOutlined />, label: "资源" },
-      { key: "me", icon: <ProfileOutlined />, label: "我的" }
+      {
+        type: "group" as const,
+        label: "工作台",
+        key: "g-workbench",
+        children: [
+          { key: "home", icon: <HomeOutlined />, label: "首页" },
+          { key: "resources", icon: <ApartmentOutlined />, label: "资源" }
+        ]
+      },
+      {
+        type: "group" as const,
+        label: "成长",
+        key: "g-growth",
+        children: [
+          { key: "learning", icon: <ReadOutlined />, label: "学习" },
+          { key: "assistant", icon: <UnorderedListOutlined />, label: "助手" }
+        ]
+      },
+      {
+        type: "group" as const,
+        label: "系统",
+        key: "g-system",
+        children: [{ key: "me", icon: <ProfileOutlined />, label: "我的" }]
+      }
     ],
     []
   );
@@ -102,10 +125,18 @@ export default function AppLayout({ children }: PropsWithChildren) {
   if (resolvedMode === "pc") {
     return (
       <Layout className="ddup-shell ddup-shell--pc">
-        <Sider width={240} className="ddup-sider" theme="light">
+        <Sider
+          width={240}
+          collapsedWidth={72}
+          collapsible
+          collapsed={collapsed}
+          trigger={null}
+          className="ddup-sider"
+          theme="dark"
+        >
           <div className="ddup-brand">
             <div className="ddup-brand-dot" />
-            <div className="ddup-brand-text">DDUP</div>
+            {!collapsed ? <div className="ddup-brand-text">DDUP</div> : null}
           </div>
           <Menu
             mode="inline"
@@ -116,14 +147,25 @@ export default function AppLayout({ children }: PropsWithChildren) {
         </Sider>
         <Layout className="ddup-main">
           <Header className="ddup-topbar">
-            <div className="ddup-topbar-inner">
-              <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                <Space size={10} align="center">
-                  <Typography.Text className="ddup-topbar-title">{keyToTitle(selectedKey)}</Typography.Text>
-                  <Typography.Text type="secondary" className="ddup-topbar-sub">
-                    {displayMode === "auto" ? "自动" : displayMode === "pc" ? "PC" : "H5"}
-                  </Typography.Text>
-                </Space>
+            <Space style={{ width: "100%", justifyContent: "space-between" }}>
+              <Space size={12} align="center">
+                <Button
+                  type="text"
+                  className="ddup-collapse-btn"
+                  icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                  onClick={() => setCollapsed((v) => !v)}
+                />
+                <Breadcrumb
+                  items={[
+                    { title: "DDUP" },
+                    { title: keyToTitle(selectedKey) }
+                  ]}
+                />
+              </Space>
+              <Space size={12} align="center">
+                <Typography.Text type="secondary" className="ddup-topbar-sub">
+                  {displayMode === "auto" ? "自动" : displayMode === "pc" ? "PC" : "H5"}
+                </Typography.Text>
                 <Segmented
                   size="small"
                   value={displayMode}
@@ -134,13 +176,14 @@ export default function AppLayout({ children }: PropsWithChildren) {
                   ]}
                   onChange={(v) => setDisplayMode(v as typeof displayMode)}
                 />
+                <Avatar size="small">U</Avatar>
               </Space>
-            </div>
+            </Space>
           </Header>
           <Content className="ddup-content ddup-content--pc">
             <div className="ddup-content-inner">
-              <div className="ddup-hero">
-                <Typography.Title level={2} style={{ margin: 0 }}>
+              <div className="ddup-page-header">
+                <Typography.Title level={3} style={{ margin: 0 }}>
                   {keyToTitle(selectedKey)}
                 </Typography.Title>
                 <Typography.Text type="secondary">{keyToSubtitle(selectedKey)}</Typography.Text>

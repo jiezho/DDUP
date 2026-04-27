@@ -27,7 +27,7 @@ describe("AppLayout responsive shells", () => {
       );
     });
 
-    expect(screen.getByText("DDUP")).toBeInTheDocument();
+    expect(screen.getAllByText("DDUP").length).toBeGreaterThan(0);
     expect(screen.queryByText("首页")).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe("AppLayout responsive shells", () => {
       );
     });
 
-    expect(screen.getByText("DDUP")).toBeInTheDocument();
+    expect(screen.getAllByText("DDUP").length).toBeGreaterThan(0);
 
     await act(async () => {
       setWidth(390);
