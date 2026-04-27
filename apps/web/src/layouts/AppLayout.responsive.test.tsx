@@ -43,7 +43,7 @@ describe("AppLayout responsive shells", () => {
       );
     });
 
-    expect(screen.getByText("首页")).toBeInTheDocument();
+    expect(screen.getAllByText("对话").length).toBeGreaterThan(0);
     expect(screen.queryByText("DDUP")).not.toBeInTheDocument();
   });
 

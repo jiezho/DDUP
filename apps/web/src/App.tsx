@@ -19,13 +19,14 @@ function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
       theme={
         isPc
           ? {
-              algorithm: theme.darkAlgorithm,
+              algorithm: theme.defaultAlgorithm,
               token: {
-                colorPrimary: "#5B8CFF",
-                colorBgBase: "#0B1220",
-                colorBgContainer: "rgba(255,255,255,0.06)",
-                colorBorderSecondary: "rgba(255,255,255,0.14)",
-                borderRadius: 12,
+                colorPrimary: "#3B82F6",
+                colorBgBase: "#f6efe7",
+                colorBgContainer: "rgba(255,255,255,0.72)",
+                colorBorderSecondary: "rgba(15, 23, 42, 0.10)",
+                colorTextBase: "#0f172a",
+                borderRadius: 16,
                 fontFamily:
                   "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Liberation Sans, sans-serif"
               }
@@ -63,4 +64,3 @@ export default function App() {
     </DisplayModeProvider>
   );
 }
-

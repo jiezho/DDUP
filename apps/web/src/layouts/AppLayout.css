@@ -28,7 +28,7 @@
 }
 
 .ddup-footer .ant-menu-item {
-  width: 20%;
+  width: calc(100% / var(--ddup-footer-items, 5));
   text-align: center;
 }
 
@@ -37,7 +37,9 @@
 }
 
 .ddup-sider {
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--ddup-border);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
 }
 
 .ddup-brand {
@@ -51,14 +53,14 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #5b8cff 0%, #52c41a 100%);
-  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.12);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(16, 185, 129, 1) 100%);
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.14);
 }
 
 .ddup-brand-text {
   font-weight: 700;
   letter-spacing: 0.4px;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--ddup-text);
 }
 
 .ddup-main {
@@ -69,19 +71,27 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 56px;
-  padding: 0 16px;
+  height: 72px;
+  padding: 12px 18px;
   display: flex;
   align-items: center;
-  background: rgba(11, 18, 32, 0.72);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.ddup-topbar-inner {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--ddup-border);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(10px);
 }
 
 .ddup-topbar-title {
   font-size: 16px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--ddup-text);
 }
 
 .ddup-topbar-sub {
@@ -97,3 +107,12 @@
   margin: 0 auto;
 }
 
+.ddup-hero {
+  padding: 18px 18px 16px 18px;
+  border-radius: var(--ddup-radius-card);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--ddup-border);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  margin-bottom: 12px;
+}

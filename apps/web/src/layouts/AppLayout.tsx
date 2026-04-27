@@ -54,6 +54,21 @@ const keyToTitle = (key: NavKey): string => {
   }
 };
 
+const keyToSubtitle = (key: NavKey): string => {
+  switch (key) {
+    case "learning":
+      return "术语库、复习队列与学习路径的最小闭环。";
+    case "assistant":
+      return "待办、习惯与灵感收件箱。";
+    case "resources":
+      return "资讯、图谱、文件与知识库检索。";
+    case "me":
+      return "统计复盘、模板产出与外部集成。";
+    default:
+      return "流式对话 + 结果卡；支持写入 Obsidian Wiki 暂存区。";
+  }
+};
+
 export default function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,10 +89,20 @@ export default function AppLayout({ children }: PropsWithChildren) {
     []
   );
 
+  const menuItemsH5 = useMemo(
+    () => [
+      { key: "home", icon: <HomeOutlined />, label: "对话" },
+      { key: "learning", icon: <ReadOutlined />, label: "学习" },
+      { key: "assistant", icon: <UnorderedListOutlined />, label: "助手" },
+      { key: "me", icon: <ProfileOutlined />, label: "我的" }
+    ],
+    []
+  );
+
   if (resolvedMode === "pc") {
     return (
       <Layout className="ddup-shell ddup-shell--pc">
-        <Sider width={240} className="ddup-sider" theme="dark">
+        <Sider width={240} className="ddup-sider" theme="light">
           <div className="ddup-brand">
             <div className="ddup-brand-dot" />
             <div className="ddup-brand-text">DDUP</div>
@@ -91,27 +116,37 @@ export default function AppLayout({ children }: PropsWithChildren) {
         </Sider>
         <Layout className="ddup-main">
           <Header className="ddup-topbar">
-            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-              <Space size={10} align="center">
-                <Typography.Text className="ddup-topbar-title">{keyToTitle(selectedKey)}</Typography.Text>
-                <Typography.Text type="secondary" className="ddup-topbar-sub">
-                  {displayMode === "auto" ? "自动" : displayMode === "pc" ? "PC" : "H5"}
-                </Typography.Text>
+            <div className="ddup-topbar-inner">
+              <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                <Space size={10} align="center">
+                  <Typography.Text className="ddup-topbar-title">{keyToTitle(selectedKey)}</Typography.Text>
+                  <Typography.Text type="secondary" className="ddup-topbar-sub">
+                    {displayMode === "auto" ? "自动" : displayMode === "pc" ? "PC" : "H5"}
+                  </Typography.Text>
+                </Space>
+                <Segmented
+                  size="small"
+                  value={displayMode}
+                  options={[
+                    { label: "自动", value: "auto" },
+                    { label: "PC", value: "pc" },
+                    { label: "H5", value: "h5" }
+                  ]}
+                  onChange={(v) => setDisplayMode(v as typeof displayMode)}
+                />
               </Space>
-              <Segmented
-                size="small"
-                value={displayMode}
-                options={[
-                  { label: "自动", value: "auto" },
-                  { label: "PC", value: "pc" },
-                  { label: "H5", value: "h5" }
-                ]}
-                onChange={(v) => setDisplayMode(v as typeof displayMode)}
-              />
-            </Space>
+            </div>
           </Header>
           <Content className="ddup-content ddup-content--pc">
-            <div className="ddup-content-inner">{children}</div>
+            <div className="ddup-content-inner">
+              <div className="ddup-hero">
+                <Typography.Title level={2} style={{ margin: 0 }}>
+                  {keyToTitle(selectedKey)}
+                </Typography.Title>
+                <Typography.Text type="secondary">{keyToSubtitle(selectedKey)}</Typography.Text>
+              </div>
+              {children}
+            </div>
           </Content>
         </Layout>
       </Layout>
@@ -121,16 +156,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
   return (
     <Layout className="ddup-shell ddup-shell--h5">
       <Content className="ddup-content ddup-content--h5">{children}</Content>
-      <Footer className="ddup-footer">
+      <Footer className="ddup-footer" style={{ ["--ddup-footer-items" as never]: menuItemsH5.length } as never}>
         <Menu
           mode="horizontal"
           disabledOverflow
           selectedKeys={selectedKeys}
           onClick={(e) => navigate(keyToRoute(e.key as NavKey))}
-          items={menuItems}
+          items={menuItemsH5}
         />
       </Footer>
     </Layout>
   );
 }
-
