@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     ddup_wiki_vault_path: str = ""
     ddup_wiki_raw_dir: str = "_raw"
 
+    hermes_api_base: str = ""
+    hermes_api_key: str = ""
+    hermes_model: str = "hermes-agent"
+
 
 settings = Settings()
 

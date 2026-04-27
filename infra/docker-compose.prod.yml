@@ -8,6 +8,9 @@ services:
       DDUP_WIKI_ENABLED: ${DDUP_WIKI_ENABLED:-true}
       DDUP_WIKI_VAULT_PATH: ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
       DDUP_WIKI_RAW_DIR: ${DDUP_WIKI_RAW_DIR:-_raw}
+      HERMES_API_BASE: ${HERMES_API_BASE:-}
+      HERMES_API_KEY: ${HERMES_API_KEY:-}
+      HERMES_MODEL: ${HERMES_MODEL:-hermes-agent}
     volumes:
       - ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}:${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
     ports:

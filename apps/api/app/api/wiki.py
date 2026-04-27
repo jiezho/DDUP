@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+import httpx
 
 from app.api.deps import get_current_space, get_current_user_id
 from app.core.config import settings
@@ -69,3 +70,68 @@ def get_wiki_status(_user_id: str = Depends(get_current_user_id), _space: Space 
         manifest_updated_at=manifest_updated,
         log_updated_at=log_updated,
     )
+
+
+class WikiQueryIn(BaseModel):
+    query: str
+
+
+class WikiQueryOut(BaseModel):
+    answer: str
+
+
+@router.post("/query", response_model=WikiQueryOut)
+async def wiki_query(
+    body: WikiQueryIn,
+    _user_id: str = Depends(get_current_user_id),
+    _space: Space = Depends(get_current_space),
+) -> WikiQueryOut:
+    if not settings.ddup_wiki_enabled:
+        raise HTTPException(status_code=400, detail="wiki not enabled")
+
+    hermes_base = (settings.hermes_api_base or "").strip().rstrip("/")
+    if not hermes_base:
+        raise HTTPException(status_code=503, detail="hermes api not configured")
+
+    query = (body.query or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="query is required")
+
+    hermes_model = (settings.hermes_model or "hermes-agent").strip() or "hermes-agent"
+    hermes_key = (settings.hermes_api_key or "").strip()
+    url = f"{hermes_base}/chat/completions"
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if hermes_key:
+        headers["Authorization"] = f"Bearer {hermes_key}"
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "你是 DDUP 的知识库助手。请优先使用 Obsidian Wiki 的能力回答。"
+                "回答要求：1）先给结论；2）再给要点；3）如有依据，列出相关页面/关键词。"
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"请运行 /wiki-query 来检索 vault，并回答：{query}",
+        },
+    ]
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
+            resp = await client.post(url, headers=headers, json={"model": hermes_model, "messages": messages, "stream": False})
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"hermes request failed: {str(e)}")
+
+    try:
+        answer = data["choices"][0]["message"]["content"]
+    except Exception:
+        raise HTTPException(status_code=502, detail="invalid hermes response")
+
+    if not isinstance(answer, str):
+        raise HTTPException(status_code=502, detail="invalid hermes response")
+
+    return WikiQueryOut(answer=answer.strip())

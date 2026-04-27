@@ -17,6 +17,9 @@ export default function ResourcesPage() {
   const [entityType, setEntityType] = useState("");
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [wikiQuery, setWikiQuery] = useState("");
+  const [wikiAnswer, setWikiAnswer] = useState("");
+  const [wikiLoading, setWikiLoading] = useState(false);
 
   const refreshAll = async () => {
     setLoading(true);
@@ -70,6 +73,20 @@ export default function ResourcesPage() {
     setEntities((prev) => [created, ...prev]);
     setEntityName("");
     setEntityType("");
+  };
+
+  const runWikiQuery = async () => {
+    const q = wikiQuery.trim();
+    if (!q) return;
+    setWikiLoading(true);
+    try {
+      const resp = await apiPost<{ answer: string }>("/api/wiki/query", { query: q });
+      setWikiAnswer(resp.answer || "");
+    } catch (e) {
+      setWikiAnswer((e as Error).message || "查询失败");
+    } finally {
+      setWikiLoading(false);
+    }
   };
 
   return (
@@ -186,6 +203,32 @@ export default function ResourcesPage() {
                   )}
                 />
               </Card>
+            )
+          },
+          {
+            key: "wiki",
+            label: "Wiki 检索",
+            children: (
+              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                <Card title="知识库查询（Hermes + Obsidian Wiki）" size="small">
+                  <Space.Compact style={{ width: "100%" }}>
+                    <Input
+                      value={wikiQuery}
+                      onChange={(e) => setWikiQuery(e.target.value)}
+                      placeholder="输入问题，例如：DDUP 的 Wiki 写入链路是什么？"
+                      onPressEnter={() => runWikiQuery().catch(() => null)}
+                    />
+                    <Button type="primary" loading={wikiLoading} onClick={() => runWikiQuery().catch(() => null)} disabled={!wikiQuery.trim()}>
+                      查询
+                    </Button>
+                  </Space.Compact>
+                </Card>
+                <Card title="回答" size="small" loading={wikiLoading}>
+                  <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+                    {wikiAnswer || "暂无结果"}
+                  </Typography.Paragraph>
+                </Card>
+              </Space>
             )
           }
         ]}
