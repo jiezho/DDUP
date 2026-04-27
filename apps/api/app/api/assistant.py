@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import audit, get_current_space, get_current_user_id
 from app.db.session import get_db
-from app.models.assistant import HabitItem, TodoItem
+from app.models.assistant import HabitItem, TodoItem, IdeaItem
 from app.models.space import Space
 
 
@@ -36,6 +36,17 @@ class HabitOut(BaseModel):
 class CreateHabitIn(BaseModel):
     name: str
     cadence: str = "daily"
+
+
+class IdeaOut(BaseModel):
+    id: uuid.UUID
+    content: str
+    tags: str | None
+
+
+class CreateIdeaIn(BaseModel):
+    content: str
+    tags: str | None = None
 
 
 @router.get("/todos", response_model=list[TodoOut])
@@ -140,6 +151,44 @@ def create_habit(
         payload={"name": item.name, "cadence": item.cadence},
     )
     return HabitOut(id=item.id, name=item.name, cadence=item.cadence, streak=item.streak, last_checkin=item.last_checkin)
+
+
+@router.get("/ideas", response_model=list[IdeaOut])
+def list_ideas(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> list[IdeaOut]:
+    stmt = (
+        select(IdeaItem)
+        .where(IdeaItem.space_id == space.id, IdeaItem.user_id == user_id)
+        .order_by(IdeaItem.created_at.desc())
+    )
+    items = list(db.scalars(stmt).all())
+    return [IdeaOut(id=i.id, content=i.content, tags=i.tags) for i in items]
+
+
+@router.post("/ideas", response_model=IdeaOut)
+def create_idea(
+    body: CreateIdeaIn,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> IdeaOut:
+    item = IdeaItem(space_id=space.id, user_id=user_id, content=body.content, tags=body.tags)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    audit(
+        "assistant.idea.create",
+        db,
+        space.id,
+        user_id,
+        resource_type="idea_item",
+        resource_id=str(item.id),
+        payload={"content": item.content[:50]},
+    )
+    return IdeaOut(id=item.id, content=item.content, tags=item.tags)
 
 
 @router.post("/habits/{habit_id}/checkin", response_model=HabitOut)

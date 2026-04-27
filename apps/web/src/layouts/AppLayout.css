@@ -1,11 +1,14 @@
-.ddup-layout {
+.ddup-shell {
   min-height: 100vh;
-  background: #fff;
+  background: transparent;
 }
 
 .ddup-content {
   padding: 12px;
-  padding-bottom: 72px;
+}
+
+.ddup-content--h5 {
+  padding-bottom: 76px;
 }
 
 .ddup-footer {
@@ -14,17 +17,83 @@
   right: 0;
   bottom: 0;
   padding: 0;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--ddup-border);
+  background: var(--ddup-footer-bg);
+  backdrop-filter: blur(10px);
 }
 
 .ddup-footer .ant-menu {
-  display: flex;
-  justify-content: space-between;
+  background: transparent;
+  border: none;
 }
 
 .ddup-footer .ant-menu-item {
-  flex: 1;
-  justify-content: center;
+  width: 20%;
+  text-align: center;
+}
+
+.ddup-shell--pc {
+  min-height: 100vh;
+}
+
+.ddup-sider {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ddup-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 12px 16px;
+}
+
+.ddup-brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5b8cff 0%, #52c41a 100%);
+  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.12);
+}
+
+.ddup-brand-text {
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ddup-main {
+  background: transparent;
+}
+
+.ddup-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 56px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  background: rgba(11, 18, 32, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.ddup-topbar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ddup-topbar-sub {
+  font-size: 12px;
+}
+
+.ddup-content--pc {
+  padding: 18px;
+}
+
+.ddup-content-inner {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 

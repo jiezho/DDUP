@@ -1,11 +1,109 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
     "Liberation Sans", sans-serif;
+
+  --ddup-radius-card: 16px;
+  --ddup-radius-control: 12px;
+  --ddup-shadow-card: 0 12px 30px rgba(0, 0, 0, 0.18);
+  --ddup-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
+}
+
+html[data-ddup-mode="pc"] {
+  color-scheme: dark;
+  --ddup-bg: #0b1220;
+  --ddup-bg-2: #0a1a2e;
+  --ddup-surface: rgba(255, 255, 255, 0.06);
+  --ddup-surface-2: rgba(255, 255, 255, 0.08);
+  --ddup-border: rgba(255, 255, 255, 0.14);
+  --ddup-text: rgba(255, 255, 255, 0.92);
+  --ddup-text-2: rgba(255, 255, 255, 0.68);
+  --ddup-footer-bg: rgba(11, 18, 32, 0.86);
+}
+
+html[data-ddup-mode="h5"] {
+  color-scheme: light;
+  --ddup-bg: #f7f8fb;
+  --ddup-bg-2: #eef1f7;
+  --ddup-surface: #ffffff;
+  --ddup-surface-2: #ffffff;
+  --ddup-border: rgba(17, 24, 39, 0.08);
+  --ddup-text: #111827;
+  --ddup-text-2: #6b7280;
+  --ddup-footer-bg: rgba(255, 255, 255, 0.92);
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(1000px 500px at 30% -10%, rgba(91, 140, 255, 0.24), transparent 60%),
+    radial-gradient(900px 520px at 80% 10%, rgba(82, 196, 26, 0.16), transparent 55%),
+    linear-gradient(180deg, var(--ddup-bg) 0%, var(--ddup-bg-2) 100%);
+  color: var(--ddup-text);
+}
+
+.ant-card {
+  border-radius: var(--ddup-radius-card);
+  border-color: var(--ddup-border);
+  box-shadow: none;
+  transition: transform 160ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease), border-color 160ms var(--ddup-ease);
+}
+
+html[data-ddup-mode="pc"] .ant-card {
+  background: var(--ddup-surface);
+}
+
+html[data-ddup-mode="h5"] .ant-card {
+  background: var(--ddup-surface);
+}
+
+.ant-card:hover {
+  border-color: rgba(91, 140, 255, 0.32);
+  box-shadow: var(--ddup-shadow-card);
+  transform: translateY(-1px);
+}
+
+.ant-btn {
+  border-radius: var(--ddup-radius-control);
+  transition: transform 120ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease);
+}
+
+.ant-btn:active {
+  transform: translateY(1px);
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-input-textarea {
+  border-radius: var(--ddup-radius-control) !important;
+}
+
+.ddup-msg {
+  overflow: hidden;
+}
+
+html[data-ddup-mode="pc"] .ddup-msg--user {
+  background: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.22);
+}
+
+html[data-ddup-mode="pc"] .ddup-msg--assistant {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+html[data-ddup-mode="h5"] .ddup-msg--user {
+  background: #f6ffed;
+  border-color: rgba(82, 196, 26, 0.22);
+}
+
+html[data-ddup-mode="h5"] .ddup-msg--assistant {
+  background: #fafafa;
 }
 

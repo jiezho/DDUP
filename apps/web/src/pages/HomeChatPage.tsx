@@ -1,4 +1,4 @@
-import { Button, Card, Input, Select, Space, Tag, Typography } from "antd";
+import { Button, Card, Input, Select, Space, Tag, Typography, message } from "antd";
 import { useEffect, useState } from "react";
 
 type Msg = { id?: string; role: "user" | "assistant"; text: string };
@@ -24,14 +24,32 @@ export default function HomeChatPage() {
     return headers;
   };
 
-  const executeAction = (type: string, payload: unknown) => {
+  const executeAction = async (type: string, payload: unknown) => {
     const t = type.trim();
     if (!t) return;
-    fetch("/api/actions/execute", {
+    const resp = await fetch("/api/actions/execute", {
       method: "POST",
       headers: buildHeaders(true),
       body: JSON.stringify({ type: t, payload: payload || {} })
-    }).catch(() => null);
+    });
+    if (!resp.ok) throw new Error(`action failed: ${resp.status}`);
+  };
+
+  const captureCardToWiki = async (msg: Msg, card: ChatCard) => {
+    const title = typeof card.data.title === "string" && card.data.title.trim() ? card.data.title.trim() : `DDUP ${card.type}`;
+    const summary = "summary" in card.data ? String(card.data.summary) : JSON.stringify(card.data);
+    const content = `# ${title}\n\n${summary}\n\n---\n\n来源：DDUP 对话\nspace_id: ${spaceId || ""}\nsession_id: ${sessionId || ""}\nmessage_id: ${msg.id || ""}\n`;
+    const tags = ["ddup", `card/${card.type}`];
+    const sources = [`ddup:chat_session:${sessionId || ""}`, `ddup:chat_message:${msg.id || ""}`].filter((s) => !s.endsWith(":"));
+
+    await executeAction("wiki.capture_raw", {
+      title,
+      kind: card.type,
+      content,
+      tags,
+      sources,
+      visibility: "internal"
+    });
   };
 
   useEffect(() => {
@@ -182,7 +200,7 @@ export default function HomeChatPage() {
       <Card title="对话" size="small">
         <Space direction="vertical" style={{ width: "100%" }} size={8}>
           {msgs.map((m, idx) => (
-            <Card key={idx} size="small" style={{ background: m.role === "user" ? "#f6ffed" : "#fafafa" }}>
+            <Card key={idx} size="small" className={m.role === "user" ? "ddup-msg ddup-msg--user" : "ddup-msg ddup-msg--assistant"}>
               <Typography.Text strong>{m.role === "user" ? "你" : "AI"}：</Typography.Text>{" "}
               <Typography.Text>{m.text}</Typography.Text>
               {m.id && cardsByMessageId[m.id]?.length ? (
@@ -191,6 +209,17 @@ export default function HomeChatPage() {
                     <Card key={cidx} size="small">
                       <Space style={{ width: "100%", justifyContent: "space-between" }}>
                         <Tag>{c.type}</Tag>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            if (m.role !== "assistant") return;
+                            captureCardToWiki(m, c)
+                              .then(() => message.success("已写入 Wiki 暂存区"))
+                              .catch((e: unknown) => message.error((e as Error).message || "写入失败"));
+                          }}
+                        >
+                          写入 Wiki
+                        </Button>
                       </Space>
                       {"summary" in c.data ? (
                         <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0 }}>
@@ -211,7 +240,7 @@ export default function HomeChatPage() {
                                 onClick={() => {
                                   const type = String(a.type || "");
                                   if (!type) return;
-                                  executeAction(type, a.payload || {});
+                                  executeAction(type, a.payload || {}).catch(() => null);
                                 }}
                               >
                                 {a.label || a.type}

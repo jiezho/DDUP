@@ -10,8 +10,12 @@ export default function AssistantPage() {
     []
   );
   const [habitName, setHabitName] = useState("");
+  const [ideas, setIdeas] = useState<{ id: string; content: string; tags: string | null }[]>([]);
+  const [ideaContent, setIdeaContent] = useState("");
+  const [ideaTags, setIdeaTags] = useState("");
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [loadingHabits, setLoadingHabits] = useState(false);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
 
   const refreshTodos = async () => {
     setLoadingTodos(true);
@@ -35,9 +39,20 @@ export default function AssistantPage() {
     }
   };
 
+  const refreshIdeas = async () => {
+    setLoadingIdeas(true);
+    try {
+      const list = await apiGet<{ id: string; content: string; tags: string | null }[]>("/api/assistant/ideas");
+      setIdeas(list);
+    } finally {
+      setLoadingIdeas(false);
+    }
+  };
+
   useEffect(() => {
     refreshTodos().catch(() => null);
     refreshHabits().catch(() => null);
+    refreshIdeas().catch(() => null);
   }, []);
 
   const addTodo = async () => {
@@ -72,13 +87,25 @@ export default function AssistantPage() {
     setHabits((prev) => prev.map((x) => (x.id === id ? updated : x)));
   };
 
+  const addIdea = async () => {
+    const c = ideaContent.trim();
+    if (!c) return;
+    const created = await apiPost<{ id: string; content: string; tags: string | null }>("/api/assistant/ideas", {
+      content: c,
+      tags: ideaTags.trim() || null
+    });
+    setIdeas((prev) => [created, ...prev]);
+    setIdeaContent("");
+    setIdeaTags("");
+  };
+
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
       <Card size="small">
         <Typography.Title level={4} style={{ marginBottom: 0 }}>
           助手
         </Typography.Title>
-        <Typography.Text type="secondary">MVP：待办与习惯，先打通“列表/新增/状态更新/审计”。</Typography.Text>
+        <Typography.Text type="secondary">待办、习惯与灵感收件箱。</Typography.Text>
       </Card>
 
       <Card size="small">
@@ -87,7 +114,7 @@ export default function AssistantPage() {
           items={[
             {
               key: "todos",
-              label: "待办",
+              label: "待办清单",
               children: (
                 <Space direction="vertical" style={{ width: "100%" }} size={12}>
                   <Space.Compact style={{ width: "100%" }}>
@@ -163,6 +190,60 @@ export default function AssistantPage() {
                             </Space>
                           }
                           description={h.last_checkin ? `上次打卡：${h.last_checkin}` : "尚未打卡"}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </Space>
+              )
+            },
+            {
+              key: "ideas",
+              label: "灵感收件箱",
+              children: (
+                <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                  <Space direction="vertical" style={{ width: "100%" }}>
+                    <Input.TextArea
+                      value={ideaContent}
+                      onChange={(e) => setIdeaContent(e.target.value)}
+                      placeholder="快速记录灵感…"
+                      autoSize={{ minRows: 2, maxRows: 4 }}
+                    />
+                    <Space.Compact style={{ width: "100%" }}>
+                      <Input
+                        value={ideaTags}
+                        onChange={(e) => setIdeaTags(e.target.value)}
+                        placeholder="标签（逗号分隔，可选）"
+                      />
+                      <Button type="primary" onClick={() => addIdea().catch(() => null)} disabled={!ideaContent.trim()}>
+                        添加
+                      </Button>
+                    </Space.Compact>
+                  </Space>
+                  <Button size="small" onClick={() => refreshIdeas().catch(() => null)}>
+                    刷新
+                  </Button>
+                  <List
+                    loading={loadingIdeas}
+                    dataSource={ideas}
+                    locale={{ emptyText: "暂无灵感" }}
+                    renderItem={(i) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          title={
+                            <Typography.Paragraph ellipsis={{ rows: 2, expandable: true, symbol: "展开" }} style={{ marginBottom: 0 }}>
+                              {i.content}
+                            </Typography.Paragraph>
+                          }
+                          description={
+                            i.tags ? (
+                              <Space style={{ marginTop: 8 }}>
+                                {i.tags.split(",").map((tag, idx) => (
+                                  <Tag key={idx}>{tag.trim()}</Tag>
+                                ))}
+                              </Space>
+                            ) : null
+                          }
                         />
                       </List.Item>
                     )}

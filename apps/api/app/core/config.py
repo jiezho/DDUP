@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     environment: str = "dev"
     database_url: str = "postgresql+psycopg://ddup:ddup@localhost:5432/ddup"
 
+    ddup_wiki_enabled: bool = False
+    ddup_wiki_vault_path: str = ""
+    ddup_wiki_raw_dir: str = "_raw"
+
 
 settings = Settings()
 

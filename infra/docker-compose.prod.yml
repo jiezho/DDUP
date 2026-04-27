@@ -5,6 +5,11 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       ENVIRONMENT: ${ENVIRONMENT:-prod}
+      DDUP_WIKI_ENABLED: ${DDUP_WIKI_ENABLED:-true}
+      DDUP_WIKI_VAULT_PATH: ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
+      DDUP_WIKI_RAW_DIR: ${DDUP_WIKI_RAW_DIR:-_raw}
+    volumes:
+      - ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}:${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
     ports:
       - "8000:8000"
     extra_hosts:

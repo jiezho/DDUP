@@ -51,6 +51,7 @@ flowchart TB
   subgraph Data[数据层]
     PG[(PostgreSQL)]
     OBJ[(对象存储 可选)]
+    Wiki[(Obsidian Vault / Wiki)]
   end
 
   subgraph Ext[外部系统]
@@ -78,6 +79,7 @@ flowchart TB
   Search --> PG
   Integrations --> PG
   Files --> OBJ
+  Tools --> Wiki
   Integrations --> Feishu
   Integrations --> WeChat
 ```
@@ -85,6 +87,17 @@ flowchart TB
 说明（对齐参考方案的可复用思想）：
 - 参考方案强调“配置驱动（SOUL/Skills/Wiki）+ 可回溯 + 权限审计 + 可观测”。本项目保留相同的能力结构，但采用“单平台服务 + 受控的 Agent Runtime”实现，先满足 MVP。
 - 对话采用 SSE 流式返回；对话输出以“结构化结果卡 + 引用列表”的形式返回，前端渲染为简报卡/分析卡/术语卡/引用卡/工具卡（与原型一致）。
+
+### 2.3 知识编译层（Obsidian Wiki / Vault）
+
+为满足“长期可复用、可追溯、可浏览”的知识沉淀需求，引入 Obsidian Vault 作为 Wiki 层：
+
+- **定位**：非结构化知识的长期存储与浏览层（Markdown + `[[wikilinks]]` + frontmatter + provenance）。
+- **写入方式**：由 Hermes 运行的技能集（obsidian-wiki）定期编译；DDUP 只负责把“待编译素材”写入 Vault 的 `_raw/`（或触发 Hermes 执行）。
+- **增量机制**：通过 `.manifest.json` 记录来源与增量；通过项目 git delta 提取本次新增知识（避免全量重算）。
+- **安全**：引入 `visibility/public|internal|pii` 标签规范；对外查询/导出使用过滤模式。
+
+推荐与落地细节见 [ObsidianWiki与Hermes集成方案.md](file:///e:/BaiduSyncdisk/%E6%B6%A6%E7%94%B5/2026.04/DDUP/docs/ObsidianWiki%E4%B8%8EHermes%E9%9B%86%E6%88%90%E6%96%B9%E6%A1%88.md)。
 
 #### 2.1.2 功能架构图（模块视角）
 

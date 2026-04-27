@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, Integer, Float, Date, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -17,5 +17,12 @@ class LearningTerm(Base):
     definition: Mapped[str] = mapped_column(String, nullable=False, default="")
     source: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     mastered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    
+    # Spaced repetition fields
+    next_review_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    interval: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ease_factor: Mapped[float] = mapped_column(Float, nullable=False, default=2.5)
+    repetitions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

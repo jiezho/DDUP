@@ -391,6 +391,43 @@
 **提交**
 - `feat(templates): materials and runs`
 
+### 功能块 F12：Obsidian Wiki（知识编译层）+ Hermes 定时维护
+
+**目标**
+- 引入“LLM Wiki”模式：把对话/复盘/论文笔记/技术决策等沉淀为 Obsidian Vault（Markdown + wikilinks）。
+- Hermes 负责定时运行 ingest/update/lint/export，保持知识库持续更新与可追溯。
+- DDUP 保持业务功能不变，新增“写入 Wiki 暂存区”的动作与入口。
+
+**后端任务**
+- 新增配置：Wiki Vault 根路径（例如 `DDUP_WIKI_VAULT_PATH`）与写入开关（按空间权限控制）。
+- actions：
+  - `action.type = wiki.capture_raw`：把“对话结果卡/复盘卡/论文笔记”等写入 Vault `_raw/` 目录（Markdown + frontmatter + sources）。
+  - `action.type = wiki.export_graph`（可选）：触发 `wiki-export` 后，把导出产物写入 DDUP 可读取目录或入库。
+- 审计：对 Wiki 写入/导出写审计日志（谁、空间、写入的文件名/摘要、来源）。
+
+**前端任务**
+- 对话页结果卡新增按钮：`写入 Wiki`（调用 `actions/execute` → `wiki.capture_raw`）。
+- 我的/设置页新增入口：
+  - Wiki 状态（展示最近一次 ingest 时间、待处理 raw 数量、最近错误摘要）。
+  - Wiki 打开方式（外链到 Obsidian Publish/本地链接占位，或后续嵌入只读浏览器）。
+
+**运维任务（生产）**
+- 在服务器创建 Vault：`/opt/ddup/wiki-vault`，权限归属 `hermes:hermes`。
+- 在 Hermes 上安装 obsidian-wiki skills（复制/软链 `.skills/*` 到 `~/.hermes/skills/`），并写入 `~/.obsidian-wiki/config`：
+  - `OBSIDIAN_VAULT_PATH=/opt/ddup/wiki-vault`
+  - `OBSIDIAN_WIKI_REPO=/opt/hermes/obsidian-wiki`
+- 配置 Hermes 定时任务：每小时运行 `wiki-update`、`wiki-ingest`、`cross-linker`、`wiki-lint`。
+
+**测试**
+- 后端：`wiki.capture_raw` 写入成功/权限拒绝/审计写入测试。
+- 前端：结果卡按钮触发 action 的组件测试。
+
+**完成定义**
+- 用户在 DDUP 对话页点击“写入 Wiki”，服务器 Vault `_raw/` 中出现对应 Markdown 文件；Hermes 定时任务能将其编译为正式页面并更新 `index.md/.manifest.json/log.md`。
+
+**提交**
+- `feat(wiki): obsidian vault capture actions and hermes wiki pipeline`
+
 ## 4. 任务分配建议（按角色）
 
 ### 4.1 后端（FastAPI/PG）
@@ -426,4 +463,3 @@
 - git：
   - `git status` 干净
   - 有明确的本地提交（commit message 含 scope）
-

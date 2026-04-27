@@ -16,6 +16,7 @@ dist/
 .vite/
 *.tsbuildinfo
 .tmp/
+*.tgz
 
 # Env
 .env
@@ -33,4 +34,5 @@ id_ed25519*
 Thumbs.db
 .idea/
 .vscode/
+.trae/
 

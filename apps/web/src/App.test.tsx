@@ -9,6 +9,6 @@ test("renders home route", () => {
       <App />
     </BrowserRouter>
   );
-  expect(screen.getByText("对话")).toBeInTheDocument();
+  expect(screen.getAllByText("对话").length).toBeGreaterThan(0);
 });
 
