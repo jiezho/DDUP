@@ -27,3 +27,19 @@ export async function apiPost<T>(url: string, body: unknown): Promise<T> {
   return (await resp.json()) as T;
 }
 
+export async function apiPatch<T>(url: string, body: unknown): Promise<T> {
+  const resp = await fetch(url, {
+    method: "PATCH",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error(`PATCH ${url} failed: ${resp.status}`);
+  return (await resp.json()) as T;
+}
+
+export async function apiDelete<T>(url: string): Promise<T> {
+  const resp = await fetch(url, { method: "DELETE", headers: buildHeaders() });
+  if (!resp.ok) throw new Error(`DELETE ${url} failed: ${resp.status}`);
+  return (await resp.json()) as T;
+}
+

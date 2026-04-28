@@ -1,7 +1,6 @@
-import { Button, Card, Space, Statistic, Tabs, Typography, Row, Col, List, Tag, Segmented } from "antd";
+import { Button, Card, Space, Statistic, Tabs, Typography, Row, Col, List, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { apiGet } from "../lib/api";
-import { useDisplayMode } from "../contexts/displayMode";
 
 type DashboardStats = {
   todos_total: number;
@@ -26,7 +25,6 @@ export default function MePage() {
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [wiki, setWiki] = useState<WikiStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const { displayMode, resolvedMode, setDisplayMode } = useDisplayMode();
 
   const refresh = async () => {
     setLoading(true);
@@ -52,29 +50,6 @@ export default function MePage() {
 
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
-      <Card size="small">
-        <Space style={{ width: "100%", justifyContent: "space-between" }} align="start" wrap>
-          <Space direction="vertical" size={2}>
-            <Typography.Title level={4} style={{ marginBottom: 0 }}>
-              我的
-            </Typography.Title>
-            <Typography.Text type="secondary">统计复盘、模板产出与外部集成。</Typography.Text>
-          </Space>
-          <Space direction="vertical" size={4}>
-            <Typography.Text type="secondary">显示模式：{resolvedMode === "pc" ? "PC" : "H5"}</Typography.Text>
-            <Segmented
-              value={displayMode}
-              options={[
-                { label: "自动", value: "auto" },
-                { label: "PC", value: "pc" },
-                { label: "H5", value: "h5" }
-              ]}
-              onChange={(v) => setDisplayMode(v as typeof displayMode)}
-            />
-          </Space>
-        </Space>
-      </Card>
-
       <Tabs
         defaultActiveKey="dashboard"
         items={[

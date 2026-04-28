@@ -132,7 +132,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
           collapsed={collapsed}
           trigger={null}
           className="ddup-sider"
-          theme="dark"
+          theme="light"
         >
           <div className="ddup-brand">
             <div className="ddup-brand-dot" />

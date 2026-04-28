@@ -37,7 +37,8 @@
 }
 
 .ddup-sider {
-  border-right: none;
+  background: var(--ddup-surface);
+  border-right: 1px solid var(--ddup-border);
 }
 
 .ddup-brand {
@@ -58,7 +59,7 @@
 .ddup-brand-text {
   font-weight: 700;
   letter-spacing: 0.4px;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--ddup-text);
 }
 
 .ddup-main {

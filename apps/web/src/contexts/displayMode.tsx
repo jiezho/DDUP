@@ -2,6 +2,7 @@ import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useSt
 
 export type DisplayMode = "auto" | "pc" | "h5";
 export type ResolvedMode = "pc" | "h5";
+export type Breakpoint = "mobile" | "tablet" | "desktop";
 
 type DisplayModeContextValue = {
   displayMode: DisplayMode;
@@ -23,6 +24,12 @@ const resolveMode = (displayMode: DisplayMode, width: number): ResolvedMode => {
   return width >= 1024 ? "pc" : "h5";
 };
 
+const resolveBreakpoint = (width: number): Breakpoint => {
+  if (width < 768) return "mobile";
+  if (width < 1200) return "tablet";
+  return "desktop";
+};
+
 export function DisplayModeProvider({ children }: PropsWithChildren) {
   const [displayMode, setDisplayModeState] = useState<DisplayMode>(() => parseStoredMode(localStorage.getItem(STORAGE_KEY)));
   const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
@@ -38,11 +45,13 @@ export function DisplayModeProvider({ children }: PropsWithChildren) {
   }, []);
 
   const resolvedMode = useMemo(() => resolveMode(displayMode, viewportWidth), [displayMode, viewportWidth]);
+  const breakpoint = useMemo(() => resolveBreakpoint(viewportWidth), [viewportWidth]);
 
   useEffect(() => {
     document.documentElement.dataset.ddupMode = resolvedMode;
     document.documentElement.dataset.ddupDisplayMode = displayMode;
-  }, [displayMode, resolvedMode]);
+    document.documentElement.dataset.ddupBp = breakpoint;
+  }, [displayMode, resolvedMode, breakpoint]);
 
   const value = useMemo<DisplayModeContextValue>(
     () => ({
@@ -61,4 +70,3 @@ export function useDisplayMode(): DisplayModeContextValue {
   if (!ctx) throw new Error("useDisplayMode must be used within DisplayModeProvider");
   return ctx;
 }
-

@@ -44,9 +44,24 @@ class IdeaOut(BaseModel):
     tags: str | None
 
 
+class IdeaDetailOut(BaseModel):
+    id: uuid.UUID
+    content: str
+    tags: str | None
+
+
 class CreateIdeaIn(BaseModel):
     content: str
     tags: str | None = None
+
+
+class UpdateIdeaIn(BaseModel):
+    content: str | None = None
+    tags: str | None = None
+
+
+class DeleteOut(BaseModel):
+    ok: bool
 
 
 @router.get("/todos", response_model=list[TodoOut])
@@ -189,6 +204,76 @@ def create_idea(
         payload={"content": item.content[:50]},
     )
     return IdeaOut(id=item.id, content=item.content, tags=item.tags)
+
+
+@router.get("/ideas/{idea_id}", response_model=IdeaDetailOut)
+def get_idea(
+    idea_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> IdeaDetailOut:
+    item = db.get(IdeaItem, idea_id)
+    if not item or item.space_id != space.id or item.user_id != user_id:
+        raise HTTPException(status_code=404, detail="idea not found")
+    return IdeaDetailOut(id=item.id, content=item.content, tags=item.tags)
+
+
+@router.patch("/ideas/{idea_id}", response_model=IdeaOut)
+def update_idea(
+    idea_id: uuid.UUID,
+    body: UpdateIdeaIn,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> IdeaOut:
+    item = db.get(IdeaItem, idea_id)
+    if not item or item.space_id != space.id or item.user_id != user_id:
+        raise HTTPException(status_code=404, detail="idea not found")
+
+    changes = body.model_dump(exclude_unset=True)
+    if "content" in changes:
+        item.content = str(changes["content"] or "")
+    if "tags" in changes:
+        item.tags = changes["tags"]
+
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    audit(
+        "assistant.idea.update",
+        db,
+        space.id,
+        user_id,
+        resource_type="idea_item",
+        resource_id=str(item.id),
+        payload={"changed": sorted(list(changes.keys()))},
+    )
+    return IdeaOut(id=item.id, content=item.content, tags=item.tags)
+
+
+@router.delete("/ideas/{idea_id}", response_model=DeleteOut)
+def delete_idea(
+    idea_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+    space: Space = Depends(get_current_space),
+) -> DeleteOut:
+    item = db.get(IdeaItem, idea_id)
+    if not item or item.space_id != space.id or item.user_id != user_id:
+        raise HTTPException(status_code=404, detail="idea not found")
+    db.delete(item)
+    db.commit()
+    audit(
+        "assistant.idea.delete",
+        db,
+        space.id,
+        user_id,
+        resource_type="idea_item",
+        resource_id=str(item.id),
+        payload={"content": item.content[:50]},
+    )
+    return DeleteOut(ok=True)
 
 
 @router.post("/habits/{habit_id}/checkin", response_model=HabitOut)

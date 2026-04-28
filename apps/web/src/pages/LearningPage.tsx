@@ -62,13 +62,6 @@ export default function LearningPage() {
 
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
-      <Card size="small">
-        <Typography.Title level={4} style={{ marginBottom: 0 }}>
-          学习
-        </Typography.Title>
-        <Typography.Text type="secondary">术语库与卡片复习。</Typography.Text>
-      </Card>
-
       <Tabs
         defaultActiveKey="review"
         items={[

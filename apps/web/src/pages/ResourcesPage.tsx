@@ -151,13 +151,6 @@ export default function ResourcesPage() {
 
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
-      <Card size="small">
-        <Typography.Title level={4} style={{ marginBottom: 0 }}>
-          资源
-        </Typography.Title>
-        <Typography.Text type="secondary">资讯、知识图谱与文件论文。</Typography.Text>
-      </Card>
-
       <Tabs
         activeKey={activeTab}
         onChange={(k) => {

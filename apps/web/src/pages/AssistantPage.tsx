@@ -1,7 +1,7 @@
-import { Button, Card, Input, List, Space, Tabs, Tag, Typography } from "antd";
+import { Button, Card, Drawer, Input, List, Space, Tabs, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 
-import { apiGet, apiPost } from "../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 
 export default function AssistantPage() {
   const [todos, setTodos] = useState<{ id: string; text: string; done: boolean }[]>([]);
@@ -16,6 +16,13 @@ export default function AssistantPage() {
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [loadingHabits, setLoadingHabits] = useState(false);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
+  const [ideaDrawerOpen, setIdeaDrawerOpen] = useState(false);
+  const [activeIdeaId, setActiveIdeaId] = useState<string | null>(null);
+  const [activeIdeaContent, setActiveIdeaContent] = useState("");
+  const [activeIdeaTags, setActiveIdeaTags] = useState("");
+  const [loadingIdeaDetail, setLoadingIdeaDetail] = useState(false);
+  const [savingIdeaDetail, setSavingIdeaDetail] = useState(false);
+  const [deletingIdea, setDeletingIdea] = useState(false);
 
   const refreshTodos = async () => {
     setLoadingTodos(true);
@@ -99,15 +106,59 @@ export default function AssistantPage() {
     setIdeaTags("");
   };
 
+  const openIdea = async (id: string) => {
+    setIdeaDrawerOpen(true);
+    setActiveIdeaId(id);
+    setLoadingIdeaDetail(true);
+    try {
+      const detail = await apiGet<{ id: string; content: string; tags: string | null }>(`/api/assistant/ideas/${id}`);
+      setActiveIdeaContent(detail.content || "");
+      setActiveIdeaTags(detail.tags || "");
+    } finally {
+      setLoadingIdeaDetail(false);
+    }
+  };
+
+  const closeIdea = () => {
+    setIdeaDrawerOpen(false);
+    setActiveIdeaId(null);
+    setActiveIdeaContent("");
+    setActiveIdeaTags("");
+  };
+
+  const saveIdea = async () => {
+    if (!activeIdeaId) return;
+    const content = activeIdeaContent.trim();
+    if (!content) return;
+    setSavingIdeaDetail(true);
+    try {
+      const updated = await apiPatch<{ id: string; content: string; tags: string | null }>(`/api/assistant/ideas/${activeIdeaId}`, {
+        content,
+        tags: activeIdeaTags.trim() || null
+      });
+      setIdeas((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      setActiveIdeaContent(updated.content || "");
+      setActiveIdeaTags(updated.tags || "");
+    } finally {
+      setSavingIdeaDetail(false);
+    }
+  };
+
+  const deleteIdea = async () => {
+    if (!activeIdeaId) return;
+    if (!window.confirm("确认删除这条灵感？")) return;
+    setDeletingIdea(true);
+    try {
+      await apiDelete<{ ok: boolean }>(`/api/assistant/ideas/${activeIdeaId}`);
+      setIdeas((prev) => prev.filter((x) => x.id !== activeIdeaId));
+      closeIdea();
+    } finally {
+      setDeletingIdea(false);
+    }
+  };
+
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
-      <Card size="small">
-        <Typography.Title level={4} style={{ marginBottom: 0 }}>
-          助手
-        </Typography.Title>
-        <Typography.Text type="secondary">待办、习惯与灵感收件箱。</Typography.Text>
-      </Card>
-
       <Card size="small">
         <Tabs
           defaultActiveKey="todos"
@@ -228,7 +279,7 @@ export default function AssistantPage() {
                     dataSource={ideas}
                     locale={{ emptyText: "暂无灵感" }}
                     renderItem={(i) => (
-                      <List.Item>
+                      <List.Item style={{ cursor: "pointer" }} onClick={() => openIdea(i.id).catch(() => null)}>
                         <List.Item.Meta
                           title={
                             <Typography.Paragraph ellipsis={{ rows: 2, expandable: true, symbol: "展开" }} style={{ marginBottom: 0 }}>
@@ -254,6 +305,52 @@ export default function AssistantPage() {
           ]}
         />
       </Card>
+      <Drawer
+        title="灵感详情"
+        open={ideaDrawerOpen}
+        onClose={closeIdea}
+        width={520}
+        extra={
+          <Space>
+            <Button onClick={() => closeIdea()} disabled={savingIdeaDetail || deletingIdea}>
+              关闭
+            </Button>
+            <Button danger onClick={() => deleteIdea().catch(() => null)} loading={deletingIdea} disabled={!activeIdeaId}>
+              删除
+            </Button>
+            <Button type="primary" onClick={() => saveIdea().catch(() => null)} loading={savingIdeaDetail} disabled={!activeIdeaContent.trim()}>
+              保存
+            </Button>
+          </Space>
+        }
+      >
+        <Space direction="vertical" style={{ width: "100%" }} size={12}>
+          <Input.TextArea
+            value={activeIdeaContent}
+            onChange={(e) => setActiveIdeaContent(e.target.value)}
+            autoSize={{ minRows: 6, maxRows: 12 }}
+            placeholder={loadingIdeaDetail ? "加载中…" : "内容"}
+            disabled={loadingIdeaDetail || !activeIdeaId}
+          />
+          <Input
+            value={activeIdeaTags}
+            onChange={(e) => setActiveIdeaTags(e.target.value)}
+            placeholder="标签（逗号分隔，可选）"
+            disabled={loadingIdeaDetail || !activeIdeaId}
+          />
+          {activeIdeaTags.trim() ? (
+            <Space wrap>
+              {activeIdeaTags
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .map((tag, idx) => (
+                  <Tag key={`${tag}-${idx}`}>{tag}</Tag>
+                ))}
+            </Space>
+          ) : null}
+        </Space>
+      </Drawer>
     </Space>
   );
 }

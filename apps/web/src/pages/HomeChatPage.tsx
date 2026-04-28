@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDisplayMode } from "../contexts/displayMode";
 import { apiGet, apiPost, buildHeaders } from "../lib/api";
+import { UIButton, UITextField } from "../ui";
 
 type Msg = { id?: string; role: "user" | "assistant"; text: string };
 type SpaceItem = { id: string; name: string; type: string };
@@ -18,7 +19,6 @@ export default function HomeChatPage() {
     { role: "assistant", text: "DDUP：请输入问题，我会调用系统能力返回结果卡（MVP 阶段先做基础链路）。" }
   ]);
   const [cardsByMessageId, setCardsByMessageId] = useState<Record<string, ChatCard[]>>({});
-  const [apiStatus, setApiStatus] = useState<string>("unknown");
   const [spaces, setSpaces] = useState<SpaceItem[]>([]);
   const [spaceId, setSpaceId] = useState<string>(() => localStorage.getItem("ddup.spaceId") || "");
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("ddup.sessionId") || "");
@@ -57,20 +57,6 @@ export default function HomeChatPage() {
       visibility: "internal"
     });
   };
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const resp = await fetch("/healthz");
-        if (!resp.ok) throw new Error("bad status");
-        const json = (await resp.json()) as { status?: string };
-        setApiStatus(json.status ?? "ok");
-      } catch {
-        setApiStatus("unreachable");
-      }
-    };
-    run();
-  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -221,25 +207,28 @@ export default function HomeChatPage() {
 
   return (
     <Space direction="vertical" style={{ width: "100%" }} size={12}>
-      <Card size="small">
-        <Space style={{ width: "100%", justifyContent: "space-between" }}>
-          <Typography.Text type={apiStatus === "ok" ? "success" : "secondary"}>API: {apiStatus}</Typography.Text>
-          <Select
-            size="small"
-            value={spaceId || undefined}
-            style={{ minWidth: 160 }}
-            placeholder="选择空间"
-            options={spaces.map((s) => ({ value: s.id, label: `${s.name}（${s.type}）` }))}
-            onChange={(v) => {
-              setSpaceId(v);
-              localStorage.setItem("ddup.spaceId", v);
-            }}
-          />
-        </Space>
-      </Card>
       {canShowWorkbench ? (
         <Card size="small" title="工作台" loading={summaryLoading}>
           <Space direction="vertical" style={{ width: "100%" }} size={12}>
+            <Space style={{ width: "100%", justifyContent: "space-between" }} wrap>
+              <Space wrap>
+                <Tag>空间</Tag>
+                <Select
+                  size="small"
+                  value={spaceId || undefined}
+                  style={{ minWidth: 220 }}
+                  placeholder="选择空间"
+                  options={spaces.map((s) => ({ value: s.id, label: `${s.name}（${s.type}）` }))}
+                  onChange={(v) => {
+                    setSpaceId(v);
+                    localStorage.setItem("ddup.spaceId", v);
+                  }}
+                />
+              </Space>
+              <Button size="small" onClick={() => refreshSummary().catch(() => null)}>
+                刷新
+              </Button>
+            </Space>
             <Space wrap>
               <Badge count={summary?.todo_open ?? 0} showZero>
                 <Button onClick={() => navigate("/assistant")}>待办</Button>
@@ -253,9 +242,6 @@ export default function HomeChatPage() {
               <Badge count={summary?.file_pending ?? 0} showZero>
                 <Button onClick={() => navigate("/resources?tab=files")}>待归档</Button>
               </Badge>
-              <Button size="small" onClick={() => refreshSummary().catch(() => null)}>
-                刷新
-              </Button>
             </Space>
             <Divider style={{ margin: "4px 0" }} />
             <Space wrap>
@@ -304,7 +290,23 @@ export default function HomeChatPage() {
           </Space>
         </Card>
       ) : null}
-      <Card title="对话" size="small">
+      <Card
+        title="对话"
+        size="small"
+        extra={
+          <Select
+            size="small"
+            value={spaceId || undefined}
+            style={{ minWidth: 220 }}
+            placeholder="选择空间"
+            options={spaces.map((s) => ({ value: s.id, label: `${s.name}（${s.type}）` }))}
+            onChange={(v) => {
+              setSpaceId(v);
+              localStorage.setItem("ddup.spaceId", v);
+            }}
+          />
+        }
+      >
         <Space direction="vertical" style={{ width: "100%" }} size={8}>
           {msgs.map((m, idx) => (
             <Card key={idx} size="small" className={m.role === "user" ? "ddup-msg ddup-msg--user" : "ddup-msg ddup-msg--assistant"}>
@@ -379,15 +381,15 @@ export default function HomeChatPage() {
       </Card>
       <Card size="small">
         <Space.Compact style={{ width: "100%" }}>
-          <Input
+          <UITextField
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onPressEnter={send}
             placeholder="给我……"
           />
-          <Button type="primary" onClick={send}>
+          <UIButton tone="primary" onClick={send}>
             发送
-          </Button>
+          </UIButton>
         </Space.Compact>
       </Card>
       <Modal

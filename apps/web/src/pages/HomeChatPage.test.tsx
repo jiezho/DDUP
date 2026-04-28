@@ -19,13 +19,6 @@ test("renders space selector", async () => {
           : url instanceof Request
             ? url.url
             : String(url);
-    if (u.endsWith("/healthz")) {
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ status: "ok" })
-      } as unknown as Response;
-    }
     if (u.endsWith("/api/spaces")) {
       return {
         ok: true,
@@ -51,9 +44,7 @@ test("renders space selector", async () => {
     </BrowserRouter>
   );
 
-  await waitFor(() => expect(screen.getByText(/API:\s*ok/)).toBeInTheDocument());
-
-  const combo = screen.getByRole("combobox");
+  const combo = screen.getAllByRole("combobox")[0];
   fireEvent.mouseDown(combo);
   expect(await screen.findByRole("option", { name: "个人空间（personal）" })).toBeInTheDocument();
 });
@@ -83,9 +74,6 @@ test("can capture card to wiki", async () => {
         calls.push({ url: u });
       }
 
-      if (u.endsWith("/healthz")) {
-        return { ok: true, status: 200, json: async () => ({ status: "ok" }) } as unknown as Response;
-      }
       if (u.endsWith("/api/spaces")) {
         return {
           ok: true,

@@ -195,6 +195,15 @@ def execute_action(
         db.add(item)
         db.commit()
         db.refresh(item)
+        audit(
+            "assistant.idea.create",
+            db,
+            space.id,
+            user_id,
+            resource_type="idea_item",
+            resource_id=str(item.id),
+            payload={"content": item.content[:50], "via": "action"},
+        )
         return {"status": "ok", "action_id": action_id, "result": {"idea_id": str(item.id)}}
 
     if body.type == "graph.entity.create":

@@ -14,6 +14,22 @@ function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
   const { resolvedMode } = useDisplayMode();
   const isPc = resolvedMode === "pc";
 
+  const baseToken = {
+    colorPrimary: "#1b7f5a",
+    colorInfo: "#1b7f5a",
+    colorSuccess: "#16a34a",
+    colorWarning: "#d97706",
+    colorError: "#dc2626",
+    colorBgLayout: "#f7f3e8",
+    colorBgContainer: "#ffffff",
+    colorBorderSecondary: "rgba(15, 23, 42, 0.12)",
+    colorTextBase: "#0f172a",
+    colorTextSecondary: "rgba(15, 23, 42, 0.70)",
+    borderRadius: 12,
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Liberation Sans, sans-serif"
+  } as const;
+
   return (
     <ConfigProvider
       theme={
@@ -21,22 +37,15 @@ function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
           ? {
               algorithm: theme.defaultAlgorithm,
               token: {
-                colorPrimary: "#1677ff",
-                colorBgLayout: "#f0f2f5",
-                colorBgContainer: "#ffffff",
-                colorBorderSecondary: "rgba(5, 5, 5, 0.10)",
-                colorTextBase: "#111827",
-                borderRadius: 10,
-                fontFamily:
-                  "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Liberation Sans, sans-serif"
+                ...baseToken,
+                borderRadius: 12
               }
             }
           : {
               token: {
-                colorPrimary: "#5B8CFF",
-                borderRadius: 12,
-                fontFamily:
-                  "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Liberation Sans, sans-serif"
+                ...baseToken,
+                colorBgLayout: "#f8fafc",
+                borderRadius: 14
               }
             }
       }

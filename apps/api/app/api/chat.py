@@ -110,7 +110,11 @@ async def stream_message(
         hermes_key = (settings.hermes_api_key or "").strip()
 
         if not hermes_base:
-            assistant_text = f"已收到：{body.text}"
+            assistant_text = (
+                "（Mock）Hermes 未配置，当前未调用 Hermes 生成对话。\n"
+                "请在 apps/api/.env 或环境变量中设置：HERMES_API_BASE=http://<hermes-host>:8642/v1（可选 HERMES_API_KEY、HERMES_MODEL）。\n"
+                f"已收到：{body.text}"
+            )
             assistant_msg.text = assistant_text
             db.add(assistant_msg)
             db.commit()
@@ -227,4 +231,3 @@ async def stream_message(
         yield _sse("done", {"status": "ok"})
 
     return StreamingResponse(gen(), media_type="text/event-stream")
-
