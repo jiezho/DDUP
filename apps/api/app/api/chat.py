@@ -140,7 +140,9 @@ async def stream_message(
                 ),
             }
         ]
-        messages.extend([{"role": m.role, "content": m.text} for m in history if m.role in ("user", "assistant") and m.text is not None])
+        for m in history:
+            if m.role in ("user", "assistant") and m.text is not None:
+                messages.append({"role": m.role, "content": m.text})
 
         url = f"{hermes_base}/chat/completions"
         headers: dict[str, str] = {"Content-Type": "application/json"}
@@ -158,63 +160,33 @@ async def stream_message(
                 ) as resp:
                     resp.raise_for_status()
 
-                    event_name: str | None = None
-                    data_parts: list[str] = []
-
                     async for line in resp.aiter_lines():
-                        if line is None:
+                        if not line:
                             continue
-                        if line == "":
-                            if not data_parts:
-                                event_name = None
-                                continue
-                            data_str = "\n".join(data_parts).strip()
-                            data_parts = []
-                            ev = (event_name or "").strip() or None
-                            event_name = None
-
+                        
+                        line = line.strip()
+                        if line.startswith("data: "):
+                            data_str = line[6:]
                             if data_str == "[DONE]":
                                 break
+                                
                             try:
                                 payload = json.loads(data_str)
                             except json.JSONDecodeError:
                                 continue
-
-                            if ev == "hermes.tool.progress":
-                                summary = ""
-                                if isinstance(payload, dict):
-                                    tool = payload.get("tool") or payload.get("name") or "tool"
-                                    status = payload.get("status") or payload.get("phase") or ""
-                                    summary = f"{tool} {status}".strip()
-                                if summary:
-                                    yield _sse(
-                                        "card.add",
-                                        {"messageId": assistant_message_id, "card": {"type": "tool", "data": {"summary": summary}}},
-                                    )
-                                continue
-
-                            if not isinstance(payload, dict):
-                                continue
+                                
                             choices = payload.get("choices")
-                            if not isinstance(choices, list) or not choices:
+                            if not choices or not isinstance(choices, list):
                                 continue
-                            delta = choices[0].get("delta") if isinstance(choices[0], dict) else None
-                            if not isinstance(delta, dict):
-                                continue
+                                
+                            delta = choices[0].get("delta", {})
                             piece = delta.get("content")
-                            if isinstance(piece, str) and piece:
+                            if piece:
                                 assistant_text += piece
                                 yield _sse("message.delta", {"messageId": assistant_message_id, "delta": piece})
-                            continue
 
-                        if line.startswith("event:"):
-                            event_name = line.replace("event:", "", 1).strip()
-                            continue
-                        if line.startswith("data:"):
-                            data_parts.append(line.replace("data:", "", 1).strip())
-                            continue
-
-        except Exception:
+        except Exception as e:
+            print(f"Hermes Stream Error: {e}")
             assistant_text = assistant_text or "Hermes 调用失败（请检查 Hermes API Server 是否可达且密钥正确）。"
             yield _sse("message.delta", {"messageId": assistant_message_id, "delta": assistant_text})
 

@@ -18,11 +18,28 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  web:
+  pc:
     build:
-      context: ../apps/web
+      context: ..
+      dockerfile: apps/pc/Dockerfile
     depends_on:
       - api
+
+  mobile:
+    build:
+      context: ..
+      dockerfile: apps/mobile/Dockerfile
+    depends_on:
+      - api
+
+  gateway:
+    image: nginx:alpine
     ports:
       - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - pc
+      - mobile
+      - api
 

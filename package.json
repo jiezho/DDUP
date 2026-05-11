@@ -1,0 +1,8 @@
+{
+  "name": "ddup-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
