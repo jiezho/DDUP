@@ -1,0 +1,170 @@
+{
+  "version": "2.0.0",
+  "instances": [
+    {
+      "id": "hermes-main",
+      "name": "Hermes 主智能体",
+      "deployment": {
+        "type": "docker",
+        "host": "localhost (WSL2)",
+        "data_path": "/opt/data/",
+        "hermes_version": "v0.13.0"
+      },
+      "capabilities": {
+        "model": "glm-5.1-fp8",
+        "context_window": 131000,
+        "platforms": ["feishu", "telegram", "discord"],
+        "toolsets": ["browser", "terminal", "file", "web", "code_execution", "delegate_task", "cronjob", "memory", "skills", "session_search", "vision", "image_gen", "tts", "feishu", "todo", "patch"],
+        "skills_count": 93,
+        "skill_hub_available": 2065,
+        "max_subagents": 3
+      },
+      "specialization": ["general", "development", "mlops", "creative", "devops"],
+      "sub_agents": [
+        {"name": "Claude Code", "type": "external", "trigger": "delegate_task"},
+        {"name": "Codex", "type": "external", "trigger": "delegate_task"},
+        {"name": "OpenCode", "type": "external", "trigger": "delegate_task"}
+      ],
+      "cron_jobs": [
+        {"name": "版本更新检测", "schedule": "0 9 * * *", "output_target": "local"},
+        {"name": "功能清单自动更新", "schedule": "0 10 * * *", "output_target": "feishu_doc:RGQxdZnv7oPlJgxBv3icDma9nvd"}
+      ],
+      "data_assets": {
+        "feishu_docs": ["RGQxdZnv7oPlJgxBv3icDma9nvd", "S789dzIZvolmWaxUanycqRpCnBk", "QaKGdj0dfoJ6KDxtZgWcAapCngx"]
+      },
+      "network_reachability": {
+        "arxiv": true,
+        "github": true,
+        "semantic_scholar": true,
+        "docker_hub": true,
+        "google": false,
+        "huggingface": false
+      },
+      "published_skills": [],
+      "status": "active",
+      "registered_at": "2026-05-11"
+    },
+    {
+      "id": "hermes-research",
+      "name": "Hermes 科研智能体",
+      "deployment": {
+        "type": "server",
+        "host": "feishu-platform",
+        "data_path": "~/.hermes/",
+        "hermes_version": "v0.13.0"
+      },
+      "capabilities": {
+        "model": "glm-5.1-fp8",
+        "context_window": 131000,
+        "platforms": ["feishu"],
+        "toolsets": ["terminal", "file", "web", "vision", "image_gen", "cronjob", "delegate_task", "memory", "session_search", "feishu_doc", "feishu_drive", "skills"],
+        "skills_count": 110,
+        "max_subagents": 3
+      },
+      "specialization": ["academic_research", "paper_retrieval", "report_writing", "industry_analysis", "embodied_intelligence"],
+      "sub_agents": [
+        {"name": "Paper Scout", "type": "cron", "trigger": "0 8 * * *", "output_target": "feishu_push"},
+        {"name": "Code Hunter", "type": "cron", "trigger": "0 9 * * *", "output_target": "feishu_push"},
+        {"name": "Dataset Scout", "type": "cron", "trigger": "0 12 * * 6", "output_target": "feishu_doc:K0aedIntSoW3GpxB3ZkcI"},
+        {"name": "全景文档更新", "type": "cron", "trigger": "0 11 * * 1", "output_target": "feishu_doc:Ut7Ld9SO1oU5OixVpcMcXgQ8nde"}
+      ],
+      "cron_jobs": [
+        {"name": "Paper Scout", "schedule": "0 8 * * *", "output_target": "feishu_push + shared-library"},
+        {"name": "Code Hunter", "schedule": "0 9 * * *", "output_target": "feishu_push + shared-library"},
+        {"name": "全景文档检测", "schedule": "0 10 * * *", "output_target": "local"},
+        {"name": "全景文档更新", "schedule": "0 11 * * 1", "output_target": "feishu_doc"},
+        {"name": "Dataset Scout", "schedule": "0 12 * * 6", "output_target": "feishu_doc + shared-library"}
+      ],
+      "data_assets": {
+        "feishu_docs_count": 11,
+        "total_blocks": 3121,
+        "cited_papers": 150,
+        "sensor_categories": 11,
+        "key_docs": [
+          {"name": "华润电力具身智能巡检战略研究报告", "doc_id": "Q3kXdzlS5ojGbOx1Qqqc2P4rnwc", "blocks": 338},
+          {"name": "发电行业巡检任务全面调研报告", "doc_id": "YnDPdZ7T8oTsXGxDzVach88Cneb", "blocks": 456},
+          {"name": "具身智能巡检博士课题方案(综合版)", "doc_id": "QntHdsn3woTX9jxjantc8iNsnGh", "blocks": 542},
+          {"name": "机器人传感器行业综合调研报告", "doc_id": "UPOydYKLso59HgxSrAvcNRu1nrb", "blocks": 438}
+        ]
+      },
+      "network_reachability": {
+        "arxiv": true,
+        "semantic_scholar": true,
+        "github": true,
+        "bing": true,
+        "google": false,
+        "huggingface": false
+      },
+      "published_skills": ["scientific-research-agent", "feishu-doc-writer", "arxiv-paper-scout", "open-source-scout"],
+      "status": "active",
+      "registered_at": "2026-05-11"
+    },
+    {
+      "id": "hermes-devops",
+      "name": "Hermes DevOps 智能体",
+      "deployment": {
+        "type": "lxc",
+        "host": "zhoujie-devops",
+        "data_path": "~/.hermes/",
+        "hermes_version": "v2.1"
+      },
+      "capabilities": {
+        "model": "glm-5.1-fp8",
+        "context_window": 131000,
+        "platforms": ["feishu", "weixin"],
+        "toolsets": ["terminal", "file", "web", "vision", "image_gen", "cronjob", "delegate_task", "memory", "session_search", "feishu_doc", "feishu_drive", "skills"],
+        "skills_count": 100,
+        "max_subagents": 3
+      },
+      "specialization": ["news_aggregation", "inspiration_management", "terminology", "content_extraction", "multi_agent_routing"],
+      "sub_agents": [
+        {"name": "灵感管理器", "type": "interceptor", "trigger": "keyword:灵感", "output_target": "feishu_bitable:VQq9bJLquamyYvsAefucWUYonDg"},
+        {"name": "新闻术语推送", "type": "cron", "trigger": "0 7 * * *", "output_target": "feishu_card + bitable"},
+        {"name": "28源新闻聚合器", "type": "on_demand", "trigger": "delegate_task", "output_target": "feishu_card + bitable"},
+        {"name": "灵感信号检测", "type": "on_demand", "trigger": "delegate_task", "output_target": "bitable"}
+      ],
+      "cron_jobs": [
+        {"name": "新闻术语推送", "schedule": "0 7 * * *", "output_target": "feishu + shared-library", "job_id": "252f25a22da9"},
+        {"name": "灵感深度整理", "schedule": "0 2 * * *", "output_target": "feishu_bitable"}
+      ],
+      "data_assets": {
+        "feishu_bitables": [
+          {"name": "灵感记录", "app_token": "VQq9bJLquamyYvsAefucWUYonDg", "table_id": "tblXsQGwgUwBOW9s"},
+          {"name": "每日新闻汇总", "app_token": "Utm9bLdgyap198s1gluc4KqinKf", "table_id": "tblqQbDcNjSUdsLg"},
+          {"name": "每日术语", "app_token": "Utm9bLdgyap198s1gluc4KqinKf", "table_id": "tblHmFGcvK5nwTFV"}
+        ],
+        "feishu_docs": [
+          {"name": "术语大纲", "doc_id": "MZPwdxUlgokaMZxpFpmceLvdnFb", "terms": 186},
+          {"name": "术语汇总", "doc_id": "V91OdM5ogoeh4mx2PIvcXnRMnhb"},
+          {"name": "任务总结日志", "doc_id": "DZAFdX0qGoQHv6xFKveclqfSnte"}
+        ],
+        "news_sources_count": 28,
+        "terminology_total": 186,
+        "terminology_pushed": 55
+      },
+      "network_reachability": {
+        "arxiv": true,
+        "github": true,
+        "duckduckgo": true,
+        "google": false,
+        "huggingface": false
+      },
+      "published_skills": ["inspiration-manager", "news-terminology-push", "news-aggregator", "inspiration-signal", "douyin-video-extract", "wechat-article-extract"],
+      "status": "active",
+      "registered_at": "2026-05-11"
+    }
+  ],
+  "expansion_guide": {
+    "steps_to_add_instance": [
+      "1. 在 instances[] 数组中追加新实例的 JSON 条目",
+      "2. 创建 agents/{instance-id}/ 私有目录（含 SOUL.md）",
+      "3. shared-library/outputs/{instance-id}/ 按需创建",
+      "4. shared-library/memory-ext/{instance-id}/ 按需创建",
+      "5. shared-library/wiki/_raw/{instance-id}/ 按需创建",
+      "6. 在实例本地安装 shared-library-client 技能",
+      "7. 执行注册验证：hermes run 'verify shared-library access'"
+    ],
+    "required_fields": ["id", "name", "deployment", "capabilities", "specialization", "status"],
+    "optional_fields": ["sub_agents", "cron_jobs", "data_assets", "network_reachability", "published_skills"]
+  }
+}

@@ -29,6 +29,9 @@ dist/
 # SSH keys
 id_ed25519*
 
+# Binary artifacts
+tools/minio-linux-amd64
+
 # OS/IDE
 .DS_Store
 Thumbs.db
