@@ -1,0 +1,8 @@
+{
+  "instance_id": "hermes-research",
+  "scope": "self",
+  "key": "飞书API补充经验",
+  "content": "飞书API补充: (1) batch_delete_block可用; (2) bullet/ordered_list/callout块API创建返回400，用text+前缀替代; (3) 写入端点POST /docx/v1/documents/{doc_id}/blocks/{root_id}/children; (4) 每批10个block写入稳定，已验证542块; (5) arXiv API需https+curl -sL -k跟随重定向; (6) 旧博士课题文档DawEdhslUoh73SxnWvzcQWhGnJe，新综合版QntHdsn3woTX9jxjantc8iNsnGh",
+  "timestamp": "2026-05-11T13:33:50.970897",
+  "migrated_from": "built-in-memory"
+}

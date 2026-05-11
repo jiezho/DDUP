@@ -1,0 +1,8 @@
+{
+  "instance_id": "hermes-research",
+  "scope": "self",
+  "key": "可研报告分析完成",
+  "content": "飞书/file/类型文件通过drive/v1/files/{token} API下载获取内容(需用户先授权文件权限)。已完成可研报告分析: 飞书文档 U7jDdmmydoqnPXxNF6yc4GZInPf。",
+  "timestamp": "2026-05-11T13:33:50.970972",
+  "migrated_from": "built-in-memory"
+}
