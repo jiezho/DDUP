@@ -42,7 +42,14 @@
       },
       "published_skills": [],
       "status": "active",
-      "registered_at": "2026-05-11"
+      "registered_at": "2026-05-11",
+      "memory_ext": {
+        "enabled": true,
+        "status": "ready",
+        "files_count": 1,
+        "files": ["project-contexts.md"],
+        "memory_saturation": "89%"
+      }
     },
     {
       "id": "hermes-research",
@@ -97,7 +104,14 @@
       },
       "published_skills": ["scientific-research-agent", "feishu-doc-writer", "arxiv-paper-scout", "open-source-scout"],
       "status": "active",
-      "registered_at": "2026-05-11"
+      "registered_at": "2026-05-11",
+      "memory_ext": {
+        "enabled": true,
+        "status": "ready",
+        "files_count": 4,
+        "files": ["paper-index.md", "feishu-docs-index.md", "domain-knowledge.md", "cron-jobs-config.md"],
+        "memory_saturation": "99%"
+      }
     },
     {
       "id": "hermes-devops",
@@ -151,7 +165,14 @@
       },
       "published_skills": ["inspiration-manager", "news-terminology-push", "news-aggregator", "inspiration-signal", "douyin-video-extract", "wechat-article-extract"],
       "status": "active",
-      "registered_at": "2026-05-11"
+      "registered_at": "2026-05-11",
+      "memory_ext": {
+        "enabled": true,
+        "status": "ready",
+        "files_count": 3,
+        "files": ["bitable-connections.md", "news-sources.md", "terminology-corpus.md"],
+        "memory_saturation": "high"
+      }
     }
   ],
   "expansion_guide": {
