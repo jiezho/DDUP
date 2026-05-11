@@ -13,7 +13,8 @@
 
 ## 部署信息
 - 环境：Docker 容器 (WSL2)
-- 存储：/opt/data/ (1TB ext4 独立分区)
+- 存储：/opt/data/ (1TB ext4 独立分区，本地应用数据)
+- 共享库：E:\BaiduSyncdisk\DDUP → WSL2 /mnt/e/BaiduSyncdisk/DDUP → Docker /opt/ddup (读写，百度云盘自动同步)
 - 配置：D:盘挂载 /root/.hermes
 - Python：/opt/hermes/.venv + ~/research-env
 - 版本：Hermes v0.13.0

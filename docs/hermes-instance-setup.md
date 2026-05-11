@@ -27,11 +27,11 @@ echo "当前实例：$HERMES_INSTANCE_ID"
 
 ```bash
 # 选择本地存放路径（各实例根据自身环境调整）
-# hermes-main (Docker): /opt/data/DDUP
+# hermes-main (Docker): /opt/ddup（volume 映射到 E:\BaiduSyncdisk\DDUP，百度云盘同步）
 # hermes-research (服务器): ~/DDUP 或 ~/.hermes/DDUP
 # hermes-devops (LXC): ~/DDUP 或 /opt/ddup
 
-export DDUP_PATH="/opt/data/DDUP"  # 请根据实际环境修改
+export DDUP_PATH="/opt/ddup"  # 请根据实际环境修改
 
 mkdir -p $(dirname $DDUP_PATH)
 cd $(dirname $DDUP_PATH)
@@ -47,7 +47,7 @@ git config user.name "Hermes $HERMES_INSTANCE_ID"
 ### 情况 B：已克隆，需要更新到最新
 
 ```bash
-export DDUP_PATH="/opt/data/DDUP"  # 请根据实际环境修改
+export DDUP_PATH="/opt/ddup"  # 请根据实际环境修改
 cd $DDUP_PATH
 
 git pull origin master
@@ -209,12 +209,16 @@ ls -la $SELF_DIR/
 
 ```bash
 # 典型配置
-export DDUP_PATH="/opt/data/DDUP"
+export DDUP_PATH="/opt/ddup"
 export HERMES_INSTANCE_ID="hermes-main"
 
-# Docker compose 中持久化 env 的推荐方式：
-# 在 docker-compose.yml 的 environment 段添加上述变量
-# 或在容器内的 /root/.bashrc 中 export
+# Docker 启动时 volume 映射（必须，否则容器内无法访问 E 盘）：
+# docker run -v /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup ...
+# 或在 docker-compose.yml 中添加：
+# volumes:
+#   - /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw
+#
+# WSL2 中 E 盘已自动挂载到 /mnt/e/，如未挂载请检查 wsl.conf
 ```
 
 ### hermes-research (飞书平台/服务器)

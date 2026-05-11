@@ -4,6 +4,8 @@
 
 ### DDUP（AI 个人成长平台）
 - 代码仓库：jiezho/DDUP (GitHub)
+- 本地路径：E:\BaiduSyncdisk\DDUP（百度云盘自动同步）
+- Docker 内挂载：/mnt/e/BaiduSyncdisk/DDUP → /opt/ddup
 - 技术栈：Python + FastAPI + React
 - 部署：Docker / WSL2 / LXC
 - 关键路径：apps/api/, apps/web/, shared-library/
@@ -13,9 +15,11 @@
 - 当前用途：知识图谱构建（暂未深度使用）
 
 ## 环境配置备忘
-- Docker 容器运行于 WSL2，持久化在 /opt/data/ (1TB ext4)
+- Docker 容器运行于 WSL2
+- 应用数据持久化：/opt/data/ (1TB ext4)
+- 共享库存储：E:\BaiduSyncdisk\DDUP（百度云盘同步）→ WSL2 /mnt/e/BaiduSyncdisk/DDUP → Docker /opt/ddup
 - D: 盘挂载至 /root/.hermes（读写配置）
-- E: 盘挂载至 /host/e（只读）
+- E: 盘通过 volume 挂载至 /opt/ddup（读写，百度云盘同步）
 - Python 环境：系统环境 /opt/hermes/.venv；用户环境 ~/research-env
 
 ## 子 Agent 可用列表

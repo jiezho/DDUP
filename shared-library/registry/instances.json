@@ -8,6 +8,9 @@
         "type": "docker",
         "host": "localhost (WSL2)",
         "data_path": "/opt/data/",
+        "shared_library_path": "E:\\BaiduSyncdisk\\DDUP",
+        "shared_library_mount": "/mnt/e/BaiduSyncdisk/DDUP → /opt/ddup",
+        "sync_backend": "baidu_cloud_disk",
         "hermes_version": "v0.13.0"
       },
       "capabilities": {
