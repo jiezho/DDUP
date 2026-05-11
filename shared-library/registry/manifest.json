@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-05-11T00:00:00Z",
+  "skills": [
+    {
+      "id": "shared.wiki-write",
+      "name": "Wiki Write",
+      "description": "将 Agent 产出写入 Obsidian Vault _raw/ 目录，支持 frontmatter 与增量追踪",
+      "owner_agent": "shared",
+      "visibility": "shared",
+      "tags": ["wiki", "write", "knowledge"],
+      "dependencies": [],
+      "activation_conditions": {
+        "requires_env": ["OBSIDIAN_VAULT_PATH"]
+      },
+      "version": "1.0.0",
+      "path": "shared/wiki-write/"
+    },
+    {
+      "id": "shared.storage-upload",
+      "name": "Storage Upload",
+      "description": "上传大文件到云端对象存储（MinIO），返回 storage_ref",
+      "owner_agent": "shared",
+      "visibility": "shared",
+      "tags": ["storage", "upload", "file"],
+      "dependencies": ["minio"],
+      "activation_conditions": {
+        "requires_env": ["STORAGE_ENDPOINT", "STORAGE_ACCESS_KEY", "STORAGE_SECRET_KEY"]
+      },
+      "version": "1.0.0",
+      "path": "shared/storage-upload/"
+    },
+    {
+      "id": "shared.citation-attach",
+      "name": "Citation Attach",
+      "description": "为任何输出附加标准化的来源引用（URL/DOI/文件ID/对话引用）",
+      "owner_agent": "shared",
+      "visibility": "shared",
+      "tags": ["citation", "provenance", "reference"],
+      "dependencies": [],
+      "activation_conditions": {},
+      "version": "1.0.0",
+      "path": "shared/citation-attach/"
+    },
+    {
+      "id": "shared.cross-agent-query",
+      "name": "Cross Agent Query",
+      "description": "跨智能体查询共享成果库，支持关键词、标签、时间范围过滤",
+      "owner_agent": "shared",
+      "visibility": "shared",
+      "tags": ["query", "search", "cross-agent"],
+      "dependencies": [],
+      "activation_conditions": {
+        "requires_env": ["SHARED_LIBRARY_PATH"]
+      },
+      "version": "1.0.0",
+      "path": "shared/cross-agent-query/"
+    }
+  ]
+}

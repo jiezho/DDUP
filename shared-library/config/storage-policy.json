@@ -1,0 +1,51 @@
+{
+  "policies": {
+    "git_storage": {
+      "max_file_size_bytes": 1048576,
+      "allowed_types": ["md", "json", "yaml", "yml", "txt", "csv", "py", "sh"],
+      "description": "小于 1MB 的文本文件直接存 Git 仓库"
+    },
+    "cloud_storage": {
+      "min_file_size_bytes": 1048576,
+      "preferred_types": ["pdf", "png", "jpg", "jpeg", "mp4", "mp3", "docx", "xlsx", "pptx"],
+      "backend": "minio",
+      "bucket": "ddup-shared-library",
+      "endpoint": "http://192.168.102.204:9000",
+      "description": "大文件和二进制文件存云端对象存储（MinIO）"
+    },
+    "baidu_sync": {
+      "path": "BaiduSyncdisk/润电/DDUP-Storage/",
+      "sync_direction": "cloud_to_local",
+      "description": "百度网盘同步盘作为本地备份与离线访问"
+    },
+    "local_cache": {
+      "path": "/tmp/ddup-cache/",
+      "ttl_days": 7,
+      "auto_cleanup": true,
+      "description": "本地缓存 7 天后自动清理"
+    }
+  },
+  "routing_rules": [
+    {
+      "condition": "file_size < 1MB AND file_type in [md, json, yaml, txt]",
+      "target": "git_storage",
+      "action": "commit_directly"
+    },
+    {
+      "condition": "file_type in [pdf, docx, xlsx, png, jpg, mp4]",
+      "target": "cloud_storage",
+      "action": "upload_and_index"
+    },
+    {
+      "condition": "file_type == pdf AND category == paper",
+      "target": "cloud_storage",
+      "action": "upload_and_extract_metadata"
+    }
+  ],
+  "git_lfs_tracking": [
+    "*.pdf",
+    "*.docx",
+    "*.xlsx",
+    "*.pptx"
+  ]
+}

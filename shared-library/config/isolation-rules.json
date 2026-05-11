@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "memory_access": {
+      "policy": "strict_isolation",
+      "description": "每个 Agent 只能读写自身的 memory.db，不允许跨 Agent 访问",
+      "cross_agent_read": false,
+      "cross_agent_write": false
+    },
+    "skills_loading": {
+      "priority_order": ["private", "domain", "shared"],
+      "conflict_resolution": "higher_priority_wins",
+      "activation_check": true,
+      "description": "技能按优先级加载：私有 > 领域共享 > 全局共享"
+    },
+    "output_writing": {
+      "policy": "own_namespace",
+      "description": "Agent 只能写入以自身 agent_id 为 namespace 的成果目录",
+      "require_citations": true,
+      "require_agent_id": true,
+      "allowed_visibility": ["public", "internal", "private"]
+    },
+    "wiki_writing": {
+      "policy": "own_raw_subdir",
+      "description": "Agent 只能写入 _raw/{own_agent_id}/ 目录，正式页面为只读",
+      "formal_pages_readonly": true,
+      "raw_subdir_template": "_raw/{agent_id}/"
+    },
+    "storage_access": {
+      "read": "all_agents",
+      "write": "own_agent_only",
+      "require_source_declaration": true,
+      "description": "所有 Agent 可读共享存储，但只能写入自己名下的文件"
+    }
+  },
+  "enforcement": {
+    "level": "strict",
+    "audit_violations": true,
+    "block_on_violation": true
+  }
+}
