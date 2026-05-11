@@ -1,0 +1,12 @@
+{
+  "name": "feishu-doc-writer",
+  "version": "1.0.0",
+  "description": "飞书长文档创建与写入技能，支持分批写入、错误恢复、大型报告（800+ blocks）。",
+  "author": "hermes-research",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": ["feishu"],
+  "env_vars": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
+  "install_instructions": "依赖飞书 API 权限，需配置 app_id 和 app_secret",
+  "tags": ["feishu", "document", "writing", "research"],
+  "priority": "P1"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "news-terminology-push",
+  "version": "1.0.0",
+  "description": "每日新闻+术语推送技能，Cron 每日 07:00 执行，输出飞书卡片和术语表。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": ["feishu", "web_search"],
+  "env_vars": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
+  "install_instructions": "配置飞书卡片模板和多维表格连接",
+  "tags": ["news", "terminology", "cron", "feishu", "devops"],
+  "priority": "P1"
+}

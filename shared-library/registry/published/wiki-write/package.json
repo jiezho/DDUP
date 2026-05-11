@@ -1,0 +1,12 @@
+{
+  "name": "wiki-write",
+  "version": "1.0.0",
+  "description": "Wiki 原始素材写入技能，将知识产出写入 _raw/ 等待编译器处理。",
+  "author": "ddup-shared-library",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": ["DDUP_PATH", "HERMES_INSTANCE_ID"],
+  "install_instructions": "将本目录复制到 skills/ 中",
+  "tags": ["wiki", "knowledge", "shared-library"],
+  "priority": "P1"
+}
