@@ -1,0 +1,46 @@
+name: Deploy DDUP (PC & Mobile)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build PC and Mobile
+        run: |
+          npm run build --workspace=apps/pc
+          npm run build --workspace=apps/mobile
+
+      - name: Copy to Server via SCP
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "apps/pc/dist/,apps/mobile/dist/,infra/docker-compose.prod.yml,infra/nginx/nginx.conf"
+          target: "/opt/ddup"
+
+      - name: Restart Docker Compose
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/ddup/infra
+            docker-compose -f docker-compose.prod.yml build pc mobile gateway
+            docker-compose -f docker-compose.prod.yml up -d pc mobile gateway

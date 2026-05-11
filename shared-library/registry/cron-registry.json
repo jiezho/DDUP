@@ -1,0 +1,76 @@
+{
+  "version": "2.0.0",
+  "jobs": [
+    {
+      "id": "paper-scout-daily",
+      "owner": "hermes-research",
+      "schedule": "0 8 * * *",
+      "description": "每日 arXiv 论文检索与摘要推送",
+      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/paper-scout/"],
+      "archive_format": "YYYY-MM-DD.json",
+      "exclusive": true,
+      "status": "active"
+    },
+    {
+      "id": "code-hunter-daily",
+      "owner": "hermes-research",
+      "schedule": "0 9 * * *",
+      "description": "每日 GitHub/HuggingFace 开源项目扫描",
+      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/code-hunter/"],
+      "archive_format": "YYYY-MM-DD.json",
+      "exclusive": true,
+      "status": "active"
+    },
+    {
+      "id": "dataset-scout-weekly",
+      "owner": "hermes-research",
+      "schedule": "0 12 * * 6",
+      "description": "每周六数据集检索周报",
+      "output_targets": ["feishu_doc:K0aedIntSoW3GpxB3ZkcI", "shared-library/outputs/hermes-research/cron-archives/dataset-scout/"],
+      "archive_format": "YYYY-WW.json",
+      "exclusive": true,
+      "status": "active"
+    },
+    {
+      "id": "news-terminology-daily",
+      "owner": "hermes-devops",
+      "schedule": "0 7 * * *",
+      "description": "每日新闻与术语推送",
+      "hermes_job_id": "252f25a22da9",
+      "output_targets": ["feishu_card", "bitable:Utm9bLdgyap198s1gluc4KqinKf", "shared-library/outputs/hermes-devops/cron-archives/news-terminology/"],
+      "archive_format": "YYYY-MM-DD.json",
+      "exclusive": true,
+      "status": "active"
+    },
+    {
+      "id": "inspiration-deep-dive",
+      "owner": "hermes-devops",
+      "schedule": "0 2 * * *",
+      "description": "灵感深度整理（关联搜索+关键词提取）",
+      "output_targets": ["feishu_bitable:VQq9bJLquamyYvsAefucWUYonDg"],
+      "exclusive": true,
+      "status": "active"
+    },
+    {
+      "id": "version-check-daily",
+      "owner": "hermes-main",
+      "schedule": "0 9 * * *",
+      "description": "Hermes 版本更新检测",
+      "output_targets": ["local"],
+      "exclusive": false,
+      "status": "active"
+    },
+    {
+      "id": "feature-doc-update",
+      "owner": "hermes-main",
+      "schedule": "0 10 * * *",
+      "description": "功能清单自动更新到飞书",
+      "output_targets": ["feishu_doc:RGQxdZnv7oPlJgxBv3icDma9nvd"],
+      "exclusive": true,
+      "status": "active"
+    }
+  ],
+  "conflict_resolution": "owner_priority",
+  "duplicate_detection": true,
+  "notes": "Cron 时间均为 UTC。飞书推送目标为中国时间。"
+}

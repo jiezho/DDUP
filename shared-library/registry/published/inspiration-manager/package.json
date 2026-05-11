@@ -1,0 +1,12 @@
+{
+  "name": "inspiration-manager",
+  "version": "1.0.0",
+  "description": "灵感记录管理技能，关键词拦截触发，自动分类、关联研究、飞书多维表格存储。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": ["feishu"],
+  "env_vars": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
+  "install_instructions": "配置飞书多维表格 app_token 和 table_id",
+  "tags": ["inspiration", "feishu", "bitable", "devops"],
+  "priority": "P1"
+}

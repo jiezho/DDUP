@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "policies": {
+    "size_threshold": {
+      "git_max_bytes": 1048576,
+      "description": "小于 1MB 的文本文件存 Git，大于 1MB 存 MinIO"
+    },
+    "file_type_routing": {
+      "git": ["md", "json", "yaml", "yml", "txt", "csv", "py", "sh"],
+      "minio": ["pdf", "docx", "xlsx", "pptx", "png", "jpg", "jpeg", "mp4", "mp3", "zip", "tar.gz"]
+    },
+    "minio": {
+      "endpoint": "http://192.168.102.204:9000",
+      "bucket": "ddup-shared-library",
+      "namespace_pattern": "{instance_id}/{category}/{YYYY-MM}/",
+      "retention_days": 365
+    },
+    "baidu_sync": {
+      "path": "BaiduSyncdisk/DDUP/",
+      "sync_direction": "bidirectional",
+      "description": "百度网盘同步盘作为本地备份与离线访问，hermes-main 通过 E:\\BaiduSyncdisk\\DDUP 挂载"
+    },
+    "local_cache": {
+      "path": "/tmp/ddup-cache/",
+      "ttl_days": 7,
+      "auto_cleanup": true,
+      "description": "本地缓存 7 天后自动清理"
+    }
+  },
+  "routing_rules": [
+    {
+      "condition": "file_size < 1MB AND file_type in git",
+      "target": "git",
+      "action": "commit_directly"
+    },
+    {
+      "condition": "file_size >= 1MB OR file_type in minio",
+      "target": "minio",
+      "action": "upload_and_index"
+    }
+  ],
+  "git_lfs_tracking": [
+    "*.pdf",
+    "*.docx",
+    "*.xlsx",
+    "*.pptx"
+  ]
+}

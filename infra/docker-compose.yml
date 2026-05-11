@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ddup
+      POSTGRES_USER: ddup
+      POSTGRES_PASSWORD: ddup
+    ports:
+      - "5432:5432"
+    volumes:
+      - ddup_pg:/var/lib/postgresql/data
+
+volumes:
+  ddup_pg:
+

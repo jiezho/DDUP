@@ -1,0 +1,12 @@
+{
+  "name": "news-aggregator",
+  "version": "1.0.0",
+  "description": "28+ 源新闻聚合技能，覆盖 HN、GitHub Trending、36Kr、微博等，输出飞书卡片+多维表格。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": ["feishu", "web_search"],
+  "env_vars": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
+  "install_instructions": "配置新闻源列表和飞书推送目标",
+  "tags": ["news", "aggregation", "feishu", "devops"],
+  "priority": "P1"
+}

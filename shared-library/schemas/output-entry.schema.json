@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OutputEntry",
+  "description": "共享库成果条目的数据结构定义",
+  "type": "object",
+  "required": ["id", "title", "agent_id", "output_type", "content", "created_at"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "全局唯一标识（agent_id-时间戳-随机后缀）"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "成果标题"
+    },
+    "agent_id": {
+      "type": "string",
+      "enum": ["paper-search", "news-collect", "inspiration", "term-recommend"],
+      "description": "产出该成果的智能体标识"
+    },
+    "output_type": {
+      "type": "string",
+      "description": "成果类型（由各 Agent 定义）"
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown 格式的正文内容"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "标签列表"
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_type", "source_ref"],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": ["url", "paper_doi", "file_id", "conversation"],
+            "description": "引用来源类型"
+          },
+          "source_ref": {
+            "type": "string",
+            "description": "具体引用标识（URL/DOI/文件ID/对话ID）"
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "引用片段摘录"
+          }
+        }
+      },
+      "description": "来源引用列表"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": { "type": "string" },
+          "content_type": { "type": "string" },
+          "storage_ref": {
+            "type": "string",
+            "description": "云盘存储路径（s3://bucket/key 或 local://path）"
+          },
+          "size_bytes": { "type": "integer" }
+        }
+      },
+      "description": "附件列表（大文件走云盘存储）"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "internal", "private"],
+      "default": "internal",
+      "description": "可见性级别"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间（ISO 8601）"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "扩展元数据（按需使用）"
+    }
+  }
+}

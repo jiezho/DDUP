@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "rules": {
+    "memory_builtin": {
+      "policy": "strict_isolation",
+      "description": "Hermes 内置 Memory (2200字符) 完全隔离，不可跨实例访问",
+      "cross_instance_read": false,
+      "cross_instance_write": false
+    },
+    "memory_ext": {
+      "policy": "namespace_isolation_with_shared",
+      "description": "扩展记忆按实例隔离，shared/ 子目录跨实例可读",
+      "own_namespace_rw": true,
+      "shared_namespace_rw": true,
+      "other_namespace_read_summary": true,
+      "other_namespace_read_full": false,
+      "other_namespace_write": false
+    },
+    "skills_private": {
+      "policy": "strict_isolation",
+      "description": "agents/{id}/private-skills/ 完全隔离",
+      "cross_instance_access": false
+    },
+    "skills_published": {
+      "policy": "read_all_install_all",
+      "description": "registry/published/ 所有实例可读取和安装",
+      "publish_requires": "owner_only",
+      "install_requires": "any_instance"
+    },
+    "outputs": {
+      "policy": "write_own_read_all",
+      "description": "各实例只能写入自身 outputs/{id}/，所有实例可读取任何产出",
+      "require_citations": true,
+      "require_instance_id": true
+    },
+    "wiki_raw": {
+      "policy": "own_subdir_only",
+      "description": "各实例只能写入 wiki/_raw/{own_id}/，编译后的 compiled/ 为只读",
+      "formal_pages_readonly": true
+    },
+    "minio_storage": {
+      "policy": "namespace_isolation",
+      "description": "MinIO 按实例 namespace 隔离写入，shared/ 跨实例可读",
+      "own_namespace_rw": true,
+      "shared_namespace_rw": true,
+      "other_namespace_read": true,
+      "other_namespace_write": false
+    },
+    "cron_registry": {
+      "policy": "exclusive_ownership",
+      "description": "Cron 任务归属唯一实例，其他实例不可篡改",
+      "duplicate_detection": true
+    }
+  },
+  "enforcement": {
+    "level": "strict",
+    "audit_violations": true,
+    "block_on_violation": true,
+    "violation_notification": "feishu_push"
+  }
+}

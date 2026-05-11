@@ -1,69 +1,57 @@
----
-name: memory-ext-client
-description: Extended memory client for DDUP shared library - offload low-frequency memories to MinIO/GitHub, share knowledge across Hermes instances
-version: 1.0.0
-metadata:
-  hermes:
-    tags: [memory, shared-library, minio, ddup]
-    category: devops
----
-
 # Memory Extension Client
 
-Offload low-frequency memories to the DDUP shared library (MinIO + GitHub), share knowledge across Hermes instances.
+## 何时使用
+当你的内置 Memory 接近饱和（利用率 > 80%），或需要查阅跨实例共享知识时调用本技能。
 
-## Prerequisites
+## 背景
+Hermes 内置 Memory 容量仅约 2200 字符。hermes-research 已达 99%，hermes-main 达 89%。
+Memory 扩展层（memory-ext/）作为"外溢缓存"，将低频/长尾记忆沉淀到文件系统，
+通过本技能按需检索，解决容量瓶颈。
 
-- Environment variables: DDUP_PATH, HERMES_INSTANCE_ID, MINIO_ENDPOINT, MINIO_BUCKET, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
-- Python package: minio (pip install minio)
-- Git access to DDUP repository
+## 命令
 
-## Commands
+### 存入扩展记忆
+```
+memory-ext save --scope {self|shared} --key "简短标识" --content "要保存的知识"
+```
+- scope=self → 写入 `memory-ext/{自身instance-id}/`（仅自身可读写）
+- scope=shared → 写入 `memory-ext/shared/`（所有实例可读写）
 
-### Status Check
-```bash
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py status
+### 查询扩展记忆
+```
+memory-ext query --scope {self|shared|all} --keywords "关键词1,关键词2"
+```
+- scope=all → 检索所有实例目录（其他实例返回摘要，不超过500字符）
+
+### 迁移低频记忆
+```
+memory-ext migrate --from-memory "要迁出的记忆条目前缀"
+```
+- 返回操作指引，需人工确认后从内置 Memory 中移除对应条目以释放空间
+
+## 文件格式规范
+每个 .md 文件为一个知识单元：
+- 首行 `# 标题` 为知识主题
+- 正文为内容，支持 Markdown
+- 追加更新时自动附加时间戳分隔线
+
+## 三层记忆策略
+| 层级 | 位置 | 内容 | 访问方式 |
+|------|------|------|----------|
+| 热记忆 | 内置 Memory (~2200字符) | 最高频事实、当前项目、关键配置 | Hermes 原生 |
+| 温记忆 | memory-ext/{自身}/ | 领域知识、索引、踩坑记录 | memory-ext-client |
+| 冷记忆 | memory-ext/shared/ | 跨实例共享的环境事实、网络可达性 | memory-ext-client |
+
+## 示例
+```
+# 当内置 Memory 中有"已调研论文列表"但占用空间较大时：
+memory-ext save --scope self --key "已处理论文索引" --content "arXiv:2401.001|Transformer Survey|2026-05"
+
+# 然后在内置 Memory 中删除该条目，释放约 50-100 字符空间
+# 需要时查询：
+memory-ext query --scope self --keywords "论文,arXiv"
 ```
 
-### Save Memory
-```bash
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py save --scope self --key "topic" --content "content text"
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py save --scope shared --key "topic" --content "content text"
-```
-
-### Query Memory
-```bash
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py query --scope self --keyword "keyword"
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py query --scope shared --keyword "keyword"
-```
-
-### Migrate Low-Frequency Memories
-```bash
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py migrate
-```
-
-### Sync to Git
-```bash
-python ~/.hermes/skills/memory-ext-client/scripts/memory_ext.py sync
-```
-
-## Scopes
-
-- **self**: Private to this Hermes instance (stored in memory-ext/{instance_id}/)
-- **shared**: Shared across all instances (stored in shared-index.json)
-
-## Architecture
-
-```
-MinIO (binary/large files)
-  ddup-shared-library/
-      hermes-research/   # self-scope memories (JSON)
-      shared/            # shared-scope memories (JSON)
-
-GitHub DDUP repo (structured text)
-  shared-library/
-      memory-ext/hermes-research/  # self-scope memory exports
-      knowledge/                   # LLM Wiki pages
-      assets/                      # papers/datasets/reports/templates
-      config/                      # shared configuration
-```
+## 环境依赖
+- DDUP_PATH：指向 DDUP 仓库根目录
+- HERMES_INSTANCE_ID：当前实例标识（如 hermes-research）

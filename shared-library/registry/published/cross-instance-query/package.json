@@ -1,0 +1,12 @@
+{
+  "name": "cross-instance-query",
+  "version": "1.0.0",
+  "description": "跨实例知识查询技能，支持搜索 outputs、memory-ext、wiki、cron-archive 四个数据源。",
+  "author": "ddup-shared-library",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": ["DDUP_PATH", "HERMES_INSTANCE_ID"],
+  "install_instructions": "将本目录复制到 skills/ 中",
+  "tags": ["query", "search", "shared-library", "cross-instance"],
+  "priority": "P1"
+}

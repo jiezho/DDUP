@@ -1,0 +1,12 @@
+{
+  "name": "cron-archive",
+  "version": "1.0.0",
+  "description": "Cron 任务产出归档技能，实现推送+归档双写。支持大文件自动上传 MinIO。",
+  "author": "ddup-shared-library",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": ["minio"],
+  "env_vars": ["DDUP_PATH", "HERMES_INSTANCE_ID", "MINIO_ENDPOINT", "MINIO_BUCKET", "MINIO_ACCESS_KEY", "MINIO_SECRET_KEY"],
+  "install_instructions": "将本目录复制到 Hermes 实例的 skills/ 目录，安装 minio 依赖：pip install minio",
+  "tags": ["cron", "archive", "shared-library", "storage"],
+  "priority": "P0"
+}

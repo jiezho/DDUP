@@ -1,0 +1,44 @@
+{
+  "schedule": {
+    "wiki_ingest": {
+      "cron": "*/30 * * * *",
+      "description": "每30分钟处理 _raw/ 新素材，提升为正式页面",
+      "agent": "hermes-gateway",
+      "task": "wiki-ingest"
+    },
+    "wiki_update": {
+      "cron": "0 */1 * * *",
+      "description": "每1小时同步项目沉淀（基于 git delta）",
+      "agent": "hermes-gateway",
+      "task": "wiki-update"
+    },
+    "cross_linker": {
+      "cron": "0 */2 * * *",
+      "description": "每2小时自动补充交叉 wikilinks",
+      "agent": "hermes-gateway",
+      "task": "cross-linker"
+    },
+    "wiki_lint": {
+      "cron": "0 2 * * *",
+      "description": "每天凌晨2点执行健康检查",
+      "agent": "hermes-gateway",
+      "task": "wiki-lint"
+    },
+    "wiki_export": {
+      "cron": "0 6 * * *",
+      "description": "每天早6点导出 graph.json 供知识图谱导入",
+      "agent": "hermes-gateway",
+      "task": "wiki-export"
+    },
+    "git_auto_commit": {
+      "cron": "*/15 * * * *",
+      "description": "每15分钟自动提交 shared-library 变更",
+      "script": "tools/auto_commit_shared_library.sh"
+    },
+    "storage_cleanup": {
+      "cron": "0 3 * * *",
+      "description": "每天凌晨3点清理过期本地缓存",
+      "script": "tools/cleanup_local_cache.sh"
+    }
+  }
+}

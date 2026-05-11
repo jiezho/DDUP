@@ -1,0 +1,119 @@
+:root {
+  font-family: var(--ddup-font-sans);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html[data-ddup-mode="pc"] {
+  color-scheme: light;
+  --ddup-footer-bg: rgba(255, 255, 255, 0.88);
+}
+
+html[data-ddup-mode="h5"] {
+  color-scheme: light;
+  --ddup-footer-bg: rgba(255, 255, 255, 0.90);
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--ddup-bg-top) 0%, var(--ddup-bg-bottom) 100%);
+  color: var(--ddup-text-1);
+}
+
+.ant-typography,
+.ant-typography p,
+.ant-typography div {
+  color: inherit;
+}
+
+.ant-btn:focus-visible,
+.ant-input:focus-visible,
+.ant-input-affix-wrapper:focus-within,
+.ant-select-focused .ant-select-selector,
+.ant-input-number:focus-within,
+.ant-picker-focused {
+  box-shadow: var(--ddup-focus-ring) !important;
+}
+
+.ant-btn:focus-visible,
+.ant-input:focus-visible,
+.ant-input-affix-wrapper:focus-within,
+.ant-select-focused .ant-select-selector,
+.ant-input-number:focus-within,
+.ant-picker-focused {
+  outline: none !important;
+}
+
+.ant-card {
+  border-radius: var(--ddup-radius-3);
+  border-color: var(--ddup-border);
+  box-shadow: none;
+  transition: transform 160ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease), border-color 160ms var(--ddup-ease);
+}
+
+html[data-ddup-mode="pc"] .ant-card {
+  background: var(--ddup-surface-1);
+}
+
+html[data-ddup-mode="h5"] .ant-card {
+  background: var(--ddup-surface-1);
+}
+
+.ant-card:hover {
+  border-color: rgba(27, 127, 90, 0.35);
+  box-shadow: var(--ddup-shadow-2);
+  transform: translateY(-1px);
+}
+
+.ant-btn {
+  border-radius: var(--ddup-radius-2);
+  transition: transform 120ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease);
+}
+
+.ddup-ui-btn.ant-btn {
+  border-radius: var(--ddup-radius-pill);
+  font-weight: 600;
+}
+
+.ddup-ui-input.ant-input {
+  border-radius: var(--ddup-radius-2);
+}
+
+.ant-btn:active {
+  transform: translateY(1px);
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-input-textarea {
+  border-radius: var(--ddup-radius-2) !important;
+}
+
+.ddup-msg {
+  overflow: hidden;
+}
+
+html[data-ddup-mode="pc"] .ddup-msg--user {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.24);
+}
+
+html[data-ddup-mode="pc"] .ddup-msg--assistant {
+  background: var(--ddup-surface-2);
+  border-color: var(--ddup-border);
+}
+
+html[data-ddup-mode="h5"] .ddup-msg--user {
+  background: #f6ffed;
+  border-color: rgba(82, 196, 26, 0.22);
+}
+
+html[data-ddup-mode="h5"] .ddup-msg--assistant {
+  background: var(--ddup-surface-2);
+}
