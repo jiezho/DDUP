@@ -31,3 +31,20 @@
 ## 版本更新检测
 - Cron：每日 09:00 检测新版本
 - 更新方式：宿主机拉取新镜像 + 重建容器
+
+## Docker 启动命令
+```bash
+# 方式 1：docker-compose（推荐）
+cd /opt/ddup/infra
+docker compose -f docker-compose.hermes-main.yml up -d
+
+# 方式 2：docker run
+docker run \
+  -v hermes-data:/opt/data \
+  -v D:\:/root/.hermes \
+  -v /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw \
+  -e HERMES_INSTANCE_ID=hermes-main \
+  -e DDUP_PATH=/opt/ddup \
+  --name hermes-main \
+  -d hermes:latest
+```

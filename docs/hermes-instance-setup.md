@@ -212,14 +212,28 @@ ls -la $SELF_DIR/
 export DDUP_PATH="/opt/ddup"
 export HERMES_INSTANCE_ID="hermes-main"
 
-# Docker 启动时 volume 映射（必须，否则容器内无法访问 E 盘）：
-# docker run -v /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup ...
-# 或在 docker-compose.yml 中添加：
-# volumes:
-#   - /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw
-#
-# WSL2 中 E 盘已自动挂载到 /mnt/e/，如未挂载请检查 wsl.conf
+# 启动方式 1：使用项目内 docker-compose（推荐）
+cd $DDUP_PATH/infra
+docker compose -f docker-compose.hermes-main.yml up -d
+
+# 启动方式 2：直接 docker run
+docker run \
+  -v hermes-data:/opt/data \
+  -v D:\:/root/.hermes \
+  -v /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw \
+  -e HERMES_INSTANCE_ID=hermes-main \
+  -e DDUP_PATH=/opt/ddup \
+  -e MINIO_ENDPOINT=192.168.102.204:9000 \
+  -p 8080:8080 \
+  --name hermes-main \
+  -d hermes:latest
 ```
+
+**Volume 映射说明**：
+- `hermes-data:/opt/data` — 保留原有数据卷（会话历史、skills 缓存）
+- `D:\:/root/.hermes` — 保留 D 盘配置映射
+- `/mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw` — **新增**：百度云盘同步目录映射为可读写
+- WSL2 中 E 盘已自动挂载到 `/mnt/e/`，如未挂载请检查 `wsl.conf`
 
 ### hermes-research (飞书平台/服务器)
 

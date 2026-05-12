@@ -19,6 +19,24 @@
 - Python：/opt/hermes/.venv + ~/research-env
 - 版本：Hermes v0.13.0
 
+## Docker 启动方式
+```bash
+# 使用项目内 docker-compose 配置启动
+cd /opt/ddup/infra
+docker compose -f docker-compose.hermes-main.yml up -d
+
+# 或直接 docker run
+docker run \
+  -v hermes-data:/opt/data \
+  -v D:\:/root/.hermes \
+  -v /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw \
+  -e HERMES_INSTANCE_ID=hermes-main \
+  -e DDUP_PATH=/opt/ddup \
+  -p 8080:8080 \
+  --name hermes-main \
+  -d hermes:latest
+```
+
 ## 子智能体
 - Claude Code / Codex / OpenCode（编程委派）
 
