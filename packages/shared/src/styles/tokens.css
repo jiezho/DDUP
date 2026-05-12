@@ -1,33 +1,37 @@
 :root {
-  --ddup-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --ddup-font-sans: "Roboto", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   --ddup-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  --ddup-color-primary-600: #136447;
-  --ddup-color-primary-500: #1b7f5a;
-  --ddup-color-primary-100: rgba(27, 127, 90, 0.12);
+  --ddup-color-primary-700: #4f378b;
+  --ddup-color-primary-600: #5b3f99;
+  --ddup-color-primary-500: #6750a4;
+  --ddup-color-primary-200: #d0bcff;
+  --ddup-color-primary-100: #eaddff;
 
-  --ddup-color-info-500: #1677ff;
-  --ddup-color-success-500: #16a34a;
-  --ddup-color-warning-500: #d97706;
-  --ddup-color-danger-500: #dc2626;
+  --ddup-color-info-500: #6750a4;
+  --ddup-color-success-500: #4f6352;
+  --ddup-color-warning-500: #7a5c00;
+  --ddup-color-danger-500: #b3261e;
 
-  --ddup-color-neutral-950: #0f172a;
-  --ddup-color-neutral-800: #1f2937;
-  --ddup-color-neutral-600: #4b5563;
-  --ddup-color-neutral-400: #9ca3af;
-  --ddup-color-neutral-200: #e5e7eb;
-  --ddup-color-neutral-100: #f3f4f6;
-  --ddup-color-neutral-50: #f8fafc;
+  --ddup-color-neutral-950: #1d1b20;
+  --ddup-color-neutral-800: #313033;
+  --ddup-color-neutral-600: #49454f;
+  --ddup-color-neutral-400: #938f99;
+  --ddup-color-neutral-200: #e7e0ec;
+  --ddup-color-neutral-100: #f3edf7;
+  --ddup-color-neutral-50: #fef7ff;
 
-  --ddup-bg-top: #f7f3e8;
-  --ddup-bg-bottom: #eef3ec;
-  --ddup-surface-1: #ffffff;
-  --ddup-surface-2: rgba(255, 255, 255, 0.72);
-  --ddup-border: rgba(15, 23, 42, 0.12);
+  --ddup-bg-top: #f8f3fb;
+  --ddup-bg-bottom: #fdf7ff;
+  --ddup-surface-1: #fef7ff;
+  --ddup-surface-2: #f7f2fa;
+  --ddup-surface-3: #ece6f0;
+  --ddup-surface-4: rgba(254, 247, 255, 0.86);
+  --ddup-border: #d8d2de;
 
-  --ddup-text-1: var(--ddup-color-neutral-950);
-  --ddup-text-2: rgba(15, 23, 42, 0.70);
-  --ddup-text-3: rgba(15, 23, 42, 0.52);
+  --ddup-text-1: #1d1b20;
+  --ddup-text-2: #49454f;
+  --ddup-text-3: #79747e;
 
   --ddup-space-1: 4px;
   --ddup-space-2: 8px;
@@ -39,24 +43,24 @@
   --ddup-space-10: 40px;
   --ddup-space-12: 48px;
 
-  --ddup-radius-1: 8px;
-  --ddup-radius-2: 12px;
-  --ddup-radius-3: 16px;
+  --ddup-radius-1: 12px;
+  --ddup-radius-2: 18px;
+  --ddup-radius-3: 28px;
   --ddup-radius-pill: 999px;
 
-  --ddup-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.06);
-  --ddup-shadow-2: 0 6px 18px rgba(15, 23, 42, 0.10);
+  --ddup-shadow-1: 0 1px 3px rgba(29, 27, 32, 0.08), 0 4px 10px rgba(29, 27, 32, 0.04);
+  --ddup-shadow-2: 0 12px 32px rgba(29, 27, 32, 0.08);
 
   --ddup-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ddup-focus-ring: 0 0 0 3px rgba(27, 127, 90, 0.28);
+  --ddup-focus-ring: 0 0 0 4px rgba(103, 80, 164, 0.14);
 
   --ddup-bp-mobile: 768px;
   --ddup-bp-tablet: 1200px;
 }
 
 html[data-ddup-mode="h5"] {
-  --ddup-bg-top: #f8fafc;
-  --ddup-bg-bottom: #eef2ff;
-  --ddup-border: rgba(15, 23, 42, 0.10);
-  --ddup-surface-2: rgba(255, 255, 255, 0.82);
+  --ddup-bg-top: #fdf7ff;
+  --ddup-bg-bottom: #f7f2fa;
+  --ddup-border: #e1d9e7;
+  --ddup-surface-2: #f7f2fa;
 }

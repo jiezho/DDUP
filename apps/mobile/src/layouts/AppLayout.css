@@ -4,32 +4,37 @@
 }
 
 .ddup-content {
-  padding: 12px;
+  padding: 16px;
 }
 
 .ddup-content--h5 {
-  padding-bottom: 76px;
+  padding-bottom: 88px;
 }
 
 .ddup-footer {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
   padding: 0;
-  border-top: 1px solid var(--ddup-border);
+  border: 1px solid var(--ddup-border);
+  border-radius: 28px;
   background: var(--ddup-footer-bg);
-  backdrop-filter: blur(10px);
+  box-shadow: var(--ddup-shadow-2);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
 }
 
 .ddup-footer .ant-menu {
   background: transparent;
   border: none;
+  justify-content: space-around;
 }
 
 .ddup-footer .ant-menu-item {
   width: calc(100% / var(--ddup-footer-items, 5));
   text-align: center;
+  margin: 6px 0 !important;
 }
 
 .ddup-shell--pc {
@@ -37,29 +42,33 @@
 }
 
 .ddup-sider {
-  background: var(--ddup-surface);
-  border-right: 1px solid var(--ddup-border);
+  margin: 16px 0 16px 16px;
+  border: 1px solid var(--ddup-border);
+  border-radius: 32px;
+  background: var(--ddup-surface-4);
+  box-shadow: var(--ddup-shadow-1);
+  overflow: hidden;
 }
 
 .ddup-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 16px 12px 16px;
+  padding: 20px 18px 14px 18px;
 }
 
 .ddup-brand-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(22, 119, 255, 1) 0%, rgba(16, 185, 129, 1) 100%);
-  box-shadow: 0 0 0 6px rgba(22, 119, 255, 0.18);
+  background: linear-gradient(135deg, var(--ddup-color-primary-500) 0%, var(--ddup-color-primary-200) 100%);
+  box-shadow: 0 0 0 8px rgba(103, 80, 164, 0.14);
 }
 
 .ddup-brand-text {
   font-weight: 700;
-  letter-spacing: 0.4px;
-  color: var(--ddup-text);
+  letter-spacing: 0.02em;
+  color: var(--ddup-text-1);
 }
 
 .ddup-main {
@@ -68,14 +77,18 @@
 
 .ddup-topbar {
   position: sticky;
-  top: 0;
+  top: 16px;
   z-index: 10;
-  height: 56px;
-  padding: 0 16px;
+  height: 64px;
+  margin: 16px 16px 0 16px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  background: var(--ddup-surface);
-  border-bottom: 1px solid var(--ddup-border);
+  background: var(--ddup-surface-4);
+  border: 1px solid var(--ddup-border);
+  border-radius: 24px;
+  box-shadow: var(--ddup-shadow-1);
+  backdrop-filter: blur(16px);
 }
 
 .ddup-collapse-btn {
@@ -93,7 +106,7 @@
 }
 
 .ddup-content--pc {
-  padding: 16px;
+  padding: 20px 16px 16px 16px;
 }
 
 .ddup-content-inner {
@@ -102,6 +115,41 @@
 }
 
 .ddup-page-header {
-  padding: 8px 0 14px 0;
+  padding: 6px 4px 16px 4px;
   margin-bottom: 12px;
+}
+
+.ddup-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.ddup-sider .ant-menu {
+  padding: 6px 10px 14px 10px;
+}
+
+.ddup-sider .ant-menu-item-group-title {
+  padding-inline: 14px !important;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ddup-sider .ant-menu-item,
+.ddup-footer .ant-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ddup-topbar .ant-breadcrumb {
+  font-size: 13px;
+}
+
+.ddup-content .ant-card-head {
+  min-height: 54px;
+}
+
+.ddup-content .ant-card-head-title {
+  font-weight: 600;
 }

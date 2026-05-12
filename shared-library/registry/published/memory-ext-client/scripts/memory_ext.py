@@ -96,7 +96,10 @@ def query(scope: str, keywords: list, limit: int = 20) -> dict:
     if scope == "all":
         # 读取注册表获取其他实例
         try:
-            registry_path = DDUP_PATH / "shared-library" / "registry" / "instances.json"
+            registry_dir = DDUP_PATH / "shared-library" / "registry"
+            registry_path = registry_dir / "instances.local.json"
+            if not registry_path.exists():
+                registry_path = registry_dir / "instances.json"
             registry = json.loads(registry_path.read_text(encoding="utf-8"))
             for inst in registry.get("instances", []):
                 inst_id = inst["id"]

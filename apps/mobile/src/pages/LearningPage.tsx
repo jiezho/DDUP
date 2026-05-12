@@ -1,4 +1,4 @@
-import { Button, Card, Input, List, Space, Tag, Typography, Tabs } from "antd";
+import { Button, Card, Input, List, Space, Tag, Typography, Tabs, theme } from "antd";
 import { useEffect, useState } from "react";
 
 import { apiGet, apiPost } from "@ddup/shared/lib/api";
@@ -6,12 +6,27 @@ import { apiGet, apiPost } from "@ddup/shared/lib/api";
 type Term = { id: string; term: string; definition: string; source: string; mastered: boolean; next_review_date: string | null };
 
 export default function LearningPage() {
+  const { token } = theme.useToken();
   const [term, setTerm] = useState("");
   const [definition, setDefinition] = useState("");
   const [items, setItems] = useState<Term[]>([]);
   const [reviewItems, setReviewItems] = useState<Term[]>([]);
   const [loading, setLoading] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
+
+  const shellStyle = {
+    borderRadius: 28,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    boxShadow: "0 10px 24px rgba(29, 27, 32, 0.04)"
+  } as const;
+
+  const tonalStyle = {
+    borderRadius: 32,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: `linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorFillTertiary} 100%)`,
+    boxShadow: "0 12px 32px rgba(29, 27, 32, 0.05)"
+  } as const;
 
   const refresh = async () => {
     setLoading(true);
@@ -61,25 +76,42 @@ export default function LearningPage() {
   };
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }} size={12}>
+    <Space direction="vertical" style={{ width: "100%" }} size={16}>
+      <Card bordered={false} style={tonalStyle} bodyStyle={{ padding: 28 }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            学习中心
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 760 }}>
+            以复习为优先，再维护术语库。保持学习动作简短直接，让新增、复习、掌握三个阶段形成闭环。
+          </Typography.Paragraph>
+          <Space wrap>
+            <Typography.Text type="secondary">待复习 {reviewItems.length} 项</Typography.Text>
+            <Typography.Text type="secondary">术语总数 {items.length} 项</Typography.Text>
+          </Space>
+        </Space>
+      </Card>
       <Tabs
         defaultActiveKey="review"
+        tabBarStyle={{ marginBottom: 4 }}
         items={[
           {
             key: "review",
-            label: "卡片复习",
+            label: "复习",
             children: (
               <Card
                 title={
                   <Space>
                     <span>待复习队列</span>
-                    <Button size="small" onClick={() => refreshReview().catch(() => null)}>
+                    <Button size="small" type="text" onClick={() => refreshReview().catch(() => null)}>
                       刷新
                     </Button>
-                    <Tag color="blue">{reviewItems.length} 个术语</Tag>
+                    <Typography.Text type="secondary">{reviewItems.length} 个术语</Typography.Text>
                   </Space>
                 }
                 size="small"
+                bordered={false}
+                style={shellStyle}
               >
                 <List
                   loading={reviewLoading}
@@ -116,7 +148,7 @@ export default function LearningPage() {
             label: "术语库",
             children: (
               <Space direction="vertical" style={{ width: "100%" }} size={12}>
-                <Card title="新增术语" size="small">
+                <Card title="新增术语" size="small" bordered={false} style={shellStyle}>
                   <Space direction="vertical" style={{ width: "100%" }}>
                     <Input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="术语（例如：RAG）" />
                     <Input.TextArea
@@ -135,12 +167,14 @@ export default function LearningPage() {
                   title={
                     <Space>
                       <span>全部术语</span>
-                      <Button size="small" onClick={() => refresh().catch(() => null)}>
+                      <Button size="small" type="text" onClick={() => refresh().catch(() => null)}>
                         刷新
                       </Button>
                     </Space>
                   }
                   size="small"
+                  bordered={false}
+                  style={shellStyle}
                 >
                   <List
                     loading={loading}

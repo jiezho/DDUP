@@ -5,6 +5,7 @@ from app.api.assistant import router as assistant_router
 from app.api.audit import router as audit_router
 from app.api.chat import router as chat_router
 from app.api.dashboard import router as dashboard_router
+from app.api.hermes import router as hermes_router
 from app.api.learning import router as learning_router
 from app.api.me import router as me_router
 from app.api.resources import router as resources_router
@@ -23,3 +24,4 @@ api_router.include_router(assistant_router)
 api_router.include_router(resources_router)
 api_router.include_router(me_router)
 api_router.include_router(wiki_router)
+api_router.include_router(hermes_router)

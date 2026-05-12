@@ -10,18 +10,22 @@ body {
 
 html[data-ddup-mode="pc"] {
   color-scheme: light;
-  --ddup-footer-bg: rgba(255, 255, 255, 0.88);
+  --ddup-footer-bg: rgba(254, 247, 255, 0.92);
 }
 
 html[data-ddup-mode="h5"] {
   color-scheme: light;
-  --ddup-footer-bg: rgba(255, 255, 255, 0.90);
+  --ddup-footer-bg: rgba(254, 247, 255, 0.94);
 }
 
 body {
   min-height: 100vh;
   background: linear-gradient(180deg, var(--ddup-bg-top) 0%, var(--ddup-bg-bottom) 100%);
   color: var(--ddup-text-1);
+}
+
+#root {
+  min-height: 100vh;
 }
 
 .ant-typography,
@@ -51,7 +55,7 @@ body {
 .ant-card {
   border-radius: var(--ddup-radius-3);
   border-color: var(--ddup-border);
-  box-shadow: none;
+  box-shadow: var(--ddup-shadow-1);
   transition: transform 160ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease), border-color 160ms var(--ddup-ease);
 }
 
@@ -64,23 +68,47 @@ html[data-ddup-mode="h5"] .ant-card {
 }
 
 .ant-card:hover {
-  border-color: rgba(27, 127, 90, 0.35);
+  border-color: color-mix(in srgb, var(--ddup-color-primary-200) 70%, var(--ddup-border));
   box-shadow: var(--ddup-shadow-2);
-  transform: translateY(-1px);
 }
 
 .ant-btn {
   border-radius: var(--ddup-radius-2);
-  transition: transform 120ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease);
+  height: 42px;
+  padding-inline: 18px;
+  font-weight: 500;
+  transition: transform 120ms var(--ddup-ease), box-shadow 160ms var(--ddup-ease), background-color 160ms var(--ddup-ease), border-color 160ms var(--ddup-ease);
 }
 
 .ddup-ui-btn.ant-btn {
   border-radius: var(--ddup-radius-pill);
+  min-height: 42px;
   font-weight: 600;
+  box-shadow: none;
+}
+
+.ddup-ui-btn.ant-btn.ant-btn-default {
+  background: var(--ddup-surface-2);
+  border-color: transparent;
+}
+
+.ddup-ui-btn.ant-btn.ant-btn-primary {
+  background: var(--ddup-color-primary-500);
+}
+
+.ddup-ui-card.ant-card {
+  overflow: hidden;
+}
+
+.ddup-ui-table .ant-table-container,
+.ddup-ui-table .ant-table-thead > tr > th:first-child,
+.ddup-ui-table .ant-table-thead > tr > th:last-child {
+  border-radius: 0;
 }
 
 .ddup-ui-input.ant-input {
   border-radius: var(--ddup-radius-2);
+  min-height: 42px;
 }
 
 .ant-btn:active {
@@ -95,25 +123,97 @@ html[data-ddup-mode="h5"] .ant-card {
   border-radius: var(--ddup-radius-2) !important;
 }
 
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-input-number,
+.ant-picker {
+  background: var(--ddup-surface-1) !important;
+  border-color: var(--ddup-border) !important;
+  box-shadow: none !important;
+}
+
+.ant-tabs-nav::before {
+  border-bottom-color: var(--ddup-border) !important;
+}
+
+.ant-tabs-tab {
+  padding-inline: 4px;
+}
+
+.ant-tabs-tab-btn {
+  font-weight: 500;
+}
+
+.ant-menu {
+  background: transparent !important;
+}
+
+.ant-menu-item,
+.ant-menu-submenu-title {
+  min-height: 44px;
+  border-radius: 16px !important;
+}
+
+.ant-menu-item-selected::after,
+.ant-menu-horizontal > .ant-menu-item::after {
+  display: none !important;
+}
+
+.ant-breadcrumb {
+  color: var(--ddup-text-3);
+}
+
+.ant-table {
+  background: transparent;
+}
+
+.ant-table-thead > tr > th {
+  color: var(--ddup-text-2);
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: var(--ddup-border) !important;
+}
+
+.ant-segmented {
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.ant-statistic {
+  line-height: 1.1;
+}
+
+.ant-statistic-content {
+  letter-spacing: -0.02em;
+}
+
+.ant-alert {
+  border-radius: 20px;
+}
+
 .ddup-msg {
   overflow: hidden;
+  box-shadow: var(--ddup-shadow-1);
 }
 
 html[data-ddup-mode="pc"] .ddup-msg--user {
-  background: rgba(16, 185, 129, 0.10);
-  border-color: rgba(16, 185, 129, 0.24);
+  background: var(--ddup-color-primary-100);
+  border-color: var(--ddup-color-primary-200);
 }
 
 html[data-ddup-mode="pc"] .ddup-msg--assistant {
-  background: var(--ddup-surface-2);
+  background: var(--ddup-surface-1);
   border-color: var(--ddup-border);
 }
 
 html[data-ddup-mode="h5"] .ddup-msg--user {
-  background: #f6ffed;
-  border-color: rgba(82, 196, 26, 0.22);
+  background: var(--ddup-color-primary-100);
+  border-color: var(--ddup-color-primary-200);
 }
 
 html[data-ddup-mode="h5"] .ddup-msg--assistant {
-  background: var(--ddup-surface-2);
+  background: var(--ddup-surface-1);
 }

@@ -628,7 +628,7 @@ def presign(key: str, expires_days: int = 7):
 MINIO_ENDPOINT=192.168.102.204:9000
 MINIO_BUCKET=ddup-shared-library
 MINIO_ACCESS_KEY=ddup_admin
-MINIO_SECRET_KEY=ddup_shared_2026!
+MINIO_SECRET_KEY=REPLACE_WITH_STRONG_PASSWORD
 ```
 
 ### Step 3.3：创建 MinIO Bucket 命名空间
@@ -636,9 +636,10 @@ MINIO_SECRET_KEY=ddup_shared_2026!
 ```bash
 # 使用 mc 工具或 Python 脚本创建子目录结构
 python -c "
+import os
 from minio import Minio
-client = Minio('192.168.102.204:9000', access_key='ddup_admin', secret_key='ddup_shared_2026!', secure=False)
-bucket = 'ddup-shared-library'
+client = Minio(os.environ['MINIO_ENDPOINT'], access_key=os.environ['MINIO_ACCESS_KEY'], secret_key=os.environ['MINIO_SECRET_KEY'], secure=False)
+bucket = os.environ['MINIO_BUCKET']
 if not client.bucket_exists(bucket):
     client.make_bucket(bucket)
 # MinIO 没有真正的目录，对象前缀即为命名空间
@@ -1299,7 +1300,7 @@ HERMES_INSTANCE_ID=hermes-xxx              # 当前实例 ID
 MINIO_ENDPOINT=192.168.102.204:9000
 MINIO_BUCKET=ddup-shared-library
 MINIO_ACCESS_KEY=ddup_admin
-MINIO_SECRET_KEY=ddup_shared_2026!
+MINIO_SECRET_KEY=REPLACE_WITH_STRONG_PASSWORD
 
 # Wiki（可选，使用 wiki-write 技能时）
 OBSIDIAN_VAULT_PATH=/opt/ddup/wiki-vault
@@ -1316,7 +1317,7 @@ FEISHU_APP_SECRET=...
 python -c "import json; d=json.load(open('shared-library/registry/instances.json')); assert len(d['instances'])>=3; print('✓ 注册表正常')"
 
 # 检查 MinIO 连通性
-python -c "from minio import Minio; c=Minio('192.168.102.204:9000',access_key='ddup_admin',secret_key='ddup_shared_2026!',secure=False); print('✓ MinIO' if c.bucket_exists('ddup-shared-library') else '✗ Bucket不存在')"
+python -c "import os; from minio import Minio; c=Minio(os.environ['MINIO_ENDPOINT'],access_key=os.environ['MINIO_ACCESS_KEY'],secret_key=os.environ['MINIO_SECRET_KEY'],secure=False); print('✓ MinIO' if c.bucket_exists(os.environ['MINIO_BUCKET']) else '✗ Bucket不存在')"
 
 # 检查目录结构完整
 for d in agents/hermes-{main,research,devops} shared-library/memory-ext/{shared,hermes-main,hermes-research,hermes-devops} shared-library/outputs/{hermes-main,hermes-research,hermes-devops}; do [ -d "$d" ] && echo "✓ $d" || echo "✗ $d 缺失"; done

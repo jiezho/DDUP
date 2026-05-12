@@ -1,5 +1,5 @@
-import { Badge, Button, Card, Divider, Form, Input, List, Modal, Select, Space, Tag, Typography, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Badge, Button, Card, Divider, Form, Input, List, Modal, Select, Space, Tag, Typography, message, theme } from "antd";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDisplayMode } from "../contexts/displayMode";
 import { apiGet, apiPost, buildHeaders } from "../lib/api";
@@ -14,6 +14,7 @@ type DashboardSummary = { todo_open: number; review_due: number; saved_unread: n
 export default function HomeChatPage() {
   const navigate = useNavigate();
   const { resolvedMode } = useDisplayMode();
+  const { token } = theme.useToken();
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "assistant", text: "DDUP：请输入问题，我会调用系统能力返回结果卡（MVP 阶段先做基础链路）。" }
@@ -32,8 +33,23 @@ export default function HomeChatPage() {
   const [entityForm] = Form.useForm<{ name: string; type: string }>();
 
   const canShowWorkbench = resolvedMode === "pc";
+  const hasMessages = msgs.length > 1;
 
   const headersJson = useMemo(() => buildHeaders({ "Content-Type": "application/json" }), [spaceId]);
+
+  const shellStyle = {
+    borderRadius: 28,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    boxShadow: "0 10px 24px rgba(29, 27, 32, 0.04)"
+  } as const;
+
+  const tonalStyle = {
+    borderRadius: 32,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: `linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorFillTertiary} 100%)`,
+    boxShadow: "0 12px 32px rgba(29, 27, 32, 0.05)"
+  } as const;
 
   const executeAction = async (type: string, payload: unknown) => {
     const t = type.trim();
@@ -206,13 +222,55 @@ export default function HomeChatPage() {
   };
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }} size={12}>
+    <Space direction="vertical" style={{ width: "100%" }} size={16}>
+      <Card bordered={false} style={tonalStyle} bodyStyle={{ padding: 28 }}>
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Space wrap align="center" style={{ justifyContent: "space-between", width: "100%" }}>
+            <Space direction="vertical" size={4}>
+              <Typography.Title level={2} style={{ margin: 0 }}>
+                智能对话工作台
+              </Typography.Title>
+              <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 760 }}>
+                以对话为主入口，串联待办、学习、图谱和 Wiki 写入。界面保持聚焦，只保留最常用的上下文与动作。
+              </Typography.Paragraph>
+            </Space>
+            <Typography.Text type="secondary">
+              {spaceId ? `当前空间：${spaces.find((s) => s.id === spaceId)?.name || spaceId}` : "请选择空间"}
+            </Typography.Text>
+          </Space>
+          <Space wrap>
+            <Select
+              value={spaceId || undefined}
+              style={{ minWidth: 240 }}
+              placeholder="选择空间"
+              options={spaces.map((s) => ({ value: s.id, label: `${s.name}（${s.type}）` }))}
+              onChange={(v) => {
+                setSpaceId(v);
+                localStorage.setItem("ddup.spaceId", v);
+              }}
+            />
+            <UIButton tone="primary" onClick={send} disabled={!input.trim()}>
+              立即发送
+            </UIButton>
+            <Button type="text" onClick={() => refreshSummary().catch(() => null)} disabled={!spaceId}>
+              刷新工作台
+            </Button>
+          </Space>
+        </Space>
+      </Card>
       {canShowWorkbench ? (
-        <Card size="small" title="工作台" loading={summaryLoading}>
+        <Card
+          size="small"
+          title="今日工作台"
+          loading={summaryLoading}
+          bordered={false}
+          style={shellStyle}
+          extra={<Typography.Text type="secondary">多实例协同下的轻量入口</Typography.Text>}
+        >
           <Space direction="vertical" style={{ width: "100%" }} size={12}>
             <Space style={{ width: "100%", justifyContent: "space-between" }} wrap>
               <Space wrap>
-                <Tag>空间</Tag>
+                <Typography.Text type="secondary">空间切换</Typography.Text>
                 <Select
                   size="small"
                   value={spaceId || undefined}
@@ -225,29 +283,30 @@ export default function HomeChatPage() {
                   }}
                 />
               </Space>
-              <Button size="small" onClick={() => refreshSummary().catch(() => null)}>
+              <Button size="small" type="text" onClick={() => refreshSummary().catch(() => null)}>
                 刷新
               </Button>
             </Space>
             <Space wrap>
               <Badge count={summary?.todo_open ?? 0} showZero>
-                <Button onClick={() => navigate("/assistant")}>待办</Button>
+                <Button type="default" onClick={() => navigate("/assistant")}>待办</Button>
               </Badge>
               <Badge count={summary?.review_due ?? 0} showZero>
-                <Button onClick={() => navigate("/learning")}>待复习</Button>
+                <Button type="default" onClick={() => navigate("/learning")}>待复习</Button>
               </Badge>
               <Badge count={summary?.saved_unread ?? 0} showZero>
-                <Button onClick={() => navigate("/resources?tab=saved")}>稍后读</Button>
+                <Button type="default" onClick={() => navigate("/resources?tab=saved")}>稍后读</Button>
               </Badge>
               <Badge count={summary?.file_pending ?? 0} showZero>
-                <Button onClick={() => navigate("/resources?tab=files")}>待归档</Button>
+                <Button type="default" onClick={() => navigate("/resources?tab=files")}>待归档</Button>
               </Badge>
             </Space>
             <Divider style={{ margin: "4px 0" }} />
             <Space wrap>
-              <Button onClick={() => navigate("/resources")}>添加资讯源</Button>
-              <Button onClick={() => navigate("/assistant")}>快速记录灵感</Button>
+              <Button type="default" onClick={() => navigate("/resources")}>添加资讯源</Button>
+              <Button type="default" onClick={() => navigate("/assistant")}>快速记录灵感</Button>
               <Button
+                type="default"
                 onClick={() => {
                   message.info("计划模块即将上线");
                 }}
@@ -255,6 +314,7 @@ export default function HomeChatPage() {
                 创建计划
               </Button>
               <Button
+                type="default"
                 onClick={() => {
                   message.info("导入 PDF 即将上线");
                 }}
@@ -262,7 +322,7 @@ export default function HomeChatPage() {
                 扫描导入 PDF
               </Button>
             </Space>
-            <Card size="small" title="今日待处理">
+            <Card size="small" title="今日待处理" bordered={false} style={{ ...shellStyle, boxShadow: "none", background: token.colorFillTertiary }}>
               <List
                 size="small"
                 dataSource={summary?.items || []}
@@ -291,27 +351,29 @@ export default function HomeChatPage() {
         </Card>
       ) : null}
       <Card
-        title="对话"
+        title="会话面板"
         size="small"
+        bordered={false}
+        style={shellStyle}
         extra={
-          <Select
-            size="small"
-            value={spaceId || undefined}
-            style={{ minWidth: 220 }}
-            placeholder="选择空间"
-            options={spaces.map((s) => ({ value: s.id, label: `${s.name}（${s.type}）` }))}
-            onChange={(v) => {
-              setSpaceId(v);
-              localStorage.setItem("ddup.spaceId", v);
-            }}
-          />
+          <Typography.Text type="secondary">{hasMessages ? `${msgs.length - 1} 条消息` : "等待输入"}</Typography.Text>
         }
       >
         <Space direction="vertical" style={{ width: "100%" }} size={8}>
           {msgs.map((m, idx) => (
-            <Card key={idx} size="small" className={m.role === "user" ? "ddup-msg ddup-msg--user" : "ddup-msg ddup-msg--assistant"}>
-              <Typography.Text strong>{m.role === "user" ? "你" : "AI"}：</Typography.Text>{" "}
-              <Typography.Text>{m.text}</Typography.Text>
+            <Card
+              key={idx}
+              size="small"
+              className={m.role === "user" ? "ddup-msg ddup-msg--user" : "ddup-msg ddup-msg--assistant"}
+              bordered={false}
+            >
+              <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                <Space wrap align="center" style={{ justifyContent: "space-between", width: "100%" }}>
+                  <Typography.Text strong>{m.role === "user" ? "你" : "AI"}</Typography.Text>
+                  <Typography.Text type="secondary">{m.role === "user" ? "输入" : "输出"}</Typography.Text>
+                </Space>
+                <Typography.Text>{m.text}</Typography.Text>
+              </Space>
               {m.role === "assistant" && m.text && m.text !== "…" ? (
                 <Space style={{ marginTop: 8 }} wrap>
                   <Button size="small" onClick={() => openTodoFromText(m.text)}>
@@ -328,7 +390,7 @@ export default function HomeChatPage() {
               {m.id && cardsByMessageId[m.id]?.length ? (
                 <Space direction="vertical" style={{ width: "100%", marginTop: 8 }} size={8}>
                   {cardsByMessageId[m.id].map((c, cidx) => (
-                    <Card key={cidx} size="small">
+                    <Card key={cidx} size="small" bordered={false} style={{ background: token.colorBgContainer, border: `1px solid ${token.colorBorderSecondary}` }}>
                       <Space style={{ width: "100%", justifyContent: "space-between" }}>
                         <Tag>{c.type}</Tag>
                         <Button
@@ -379,18 +441,21 @@ export default function HomeChatPage() {
           ))}
         </Space>
       </Card>
-      <Card size="small">
-        <Space.Compact style={{ width: "100%" }}>
+      <Card size="small" bordered={false} style={shellStyle} bodyStyle={{ padding: 16 }}>
+        <Space direction="vertical" style={{ width: "100%" }} size={10}>
+          <Typography.Text type="secondary">输入问题、任务或资料需求，结果会以对话和结果卡的形式返回。</Typography.Text>
+          <Space.Compact style={{ width: "100%" }}>
           <UITextField
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
             onPressEnter={send}
-            placeholder="给我……"
+            placeholder="输入你的问题，例如：帮我整理今日待办并写入 Wiki"
           />
           <UIButton tone="primary" onClick={send}>
             发送
           </UIButton>
-        </Space.Compact>
+          </Space.Compact>
+        </Space>
       </Card>
       <Modal
         title="转为待办"

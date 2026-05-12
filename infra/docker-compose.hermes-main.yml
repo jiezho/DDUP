@@ -4,30 +4,25 @@
 
 services:
   hermes-main:
-    image: hermes:latest
+    image: nousresearch/hermes-agent:latest
     container_name: hermes-main
     restart: unless-stopped
+    command: ["gateway", "run", "-v"]
+
+    env_file:
+      - .env.hermes-main.example
 
     environment:
       # 实例标识
       HERMES_INSTANCE_ID: hermes-main
       # DDUP 共享库路径（容器内）
       DDUP_PATH: /opt/ddup
-      # MinIO 存储
-      MINIO_ENDPOINT: 192.168.102.204:9000
-      MINIO_BUCKET: ddup-shared-library
-      MINIO_ACCESS_KEY: ddup_admin
-      MINIO_SECRET_KEY: ddup_shared_2026!
       # Wiki 路径
       OBSIDIAN_VAULT_PATH: /opt/ddup/wiki-vault
 
     volumes:
-      # 原有数据卷（会话历史、skills 缓存等）
-      - hermes-data:/opt/data
-      # D 盘映射（配置、.hermes 目录）
-      - D:\:/root/.hermes
-      # E 盘百度云盘同步目录 → 容器内共享库（读写）
-      - /mnt/e/BaiduSyncdisk/DDUP:/opt/ddup:rw
+      - ${HERMES_DATA_HOST_PATH:-hermes-data}:/opt/data
+      - ${DDUP_HOST_PATH:-/mnt/e/BaiduSyncdisk/DDUP}:/opt/ddup:rw
 
     # 如需直接访问宿主机网络（如本地 MinIO、飞书 webhook 调试）
     # network_mode: host

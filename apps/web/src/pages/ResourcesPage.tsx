@@ -1,4 +1,4 @@
-import { Button, Card, Drawer, Input, List, Segmented, Select, Space, Tag, Typography, Tabs } from "antd";
+import { Button, Card, Drawer, Input, List, Segmented, Select, Space, Tag, Typography, Tabs, theme } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../lib/api";
@@ -14,6 +14,7 @@ export default function ResourcesPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { resolvedMode } = useDisplayMode();
+  const { token } = theme.useToken();
   const [sources, setSources] = useState<FeedSource[]>([]);
   const [sourceName, setSourceName] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -34,6 +35,20 @@ export default function ResourcesPage() {
   const [wikiQuery, setWikiQuery] = useState("");
   const [wikiAnswer, setWikiAnswer] = useState("");
   const [wikiLoading, setWikiLoading] = useState(false);
+
+  const shellStyle = {
+    borderRadius: 28,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    boxShadow: "0 10px 24px rgba(29, 27, 32, 0.04)"
+  } as const;
+
+  const tonalStyle = {
+    borderRadius: 32,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: `linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorFillTertiary} 100%)`,
+    boxShadow: "0 12px 32px rgba(29, 27, 32, 0.05)"
+  } as const;
 
   const initialTab = useMemo(() => {
     const t = new URLSearchParams(location.search).get("tab") || "";
@@ -150,9 +165,25 @@ export default function ResourcesPage() {
   };
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }} size={12}>
+    <Space direction="vertical" style={{ width: "100%" }} size={16}>
+      <Card bordered={false} style={tonalStyle} bodyStyle={{ padding: 28 }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            资源中心
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 780 }}>
+            将信息流、稍后读、知识图谱、文件检索与 Wiki 查询统一到一个资源界面。减少跳转成本，让检索与整理都更顺手。
+          </Typography.Paragraph>
+          <Space wrap>
+            <Typography.Text type="secondary">{sources.length} 个资讯源</Typography.Text>
+            <Typography.Text type="secondary">{files.length} 个文件条目</Typography.Text>
+            <Typography.Text type="secondary">{entities.length} 个图谱实体</Typography.Text>
+          </Space>
+        </Space>
+      </Card>
       <Tabs
         activeKey={activeTab}
+        tabBarStyle={{ marginBottom: 4 }}
         onChange={(k) => {
           setActiveTab(k);
           const next = new URLSearchParams(location.search);
@@ -162,10 +193,10 @@ export default function ResourcesPage() {
         items={[
           {
             key: "feeds",
-            label: "资讯信息流",
+            label: "信息流",
             children: (
               <Space direction="vertical" style={{ width: "100%" }} size={12}>
-                <Card title="资讯源管理" size="small">
+                <Card title="资讯源管理" size="small" bordered={false} style={shellStyle}>
                   <Space.Compact style={{ width: "100%" }}>
                     <Input value={sourceName} onChange={(e) => setSourceName(e.target.value)} placeholder="名称" />
                     <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="RSS URL" />
@@ -187,6 +218,8 @@ export default function ResourcesPage() {
                 <Card
                   title="信息流"
                   size="small"
+                  bordered={false}
+                  style={shellStyle}
                   extra={
                     <Space>
                       <Segmented
@@ -264,6 +297,8 @@ export default function ResourcesPage() {
               <Card
                 title="稍后读（未读）"
                 size="small"
+                bordered={false}
+                style={shellStyle}
                 extra={
                   <Button
                     size="small"
@@ -324,7 +359,7 @@ export default function ResourcesPage() {
             label: "知识图谱",
             children: (
               <Space direction="vertical" style={{ width: "100%" }} size={12}>
-                <Card title="新增实体" size="small">
+                <Card title="新增实体" size="small" bordered={false} style={shellStyle}>
                   <Space.Compact style={{ width: "100%" }}>
                     <Input value={entityName} onChange={(e) => setEntityName(e.target.value)} placeholder="实体名称" />
                     <Input value={entityType} onChange={(e) => setEntityType(e.target.value)} placeholder="类型（Person/Concept等）" />
@@ -333,7 +368,7 @@ export default function ResourcesPage() {
                     </Button>
                   </Space.Compact>
                 </Card>
-                <Card title="实体列表" size="small">
+                <Card title="实体列表" size="small" bordered={false} style={shellStyle}>
                   <List
                     loading={loading}
                     dataSource={entities}
@@ -358,6 +393,8 @@ export default function ResourcesPage() {
               <Card
                 title="文件与论文库"
                 size="small"
+                bordered={false}
+                style={shellStyle}
                 extra={
                   <Button
                     size="small"
@@ -439,7 +476,12 @@ export default function ResourcesPage() {
                       )}
                     />
                     {resolvedMode === "pc" ? (
-                      <Card size="small" title={selectedFile ? selectedFile.name : "预览"}>
+                      <Card
+                        size="small"
+                        title={selectedFile ? selectedFile.name : "预览"}
+                        bordered={false}
+                        style={{ ...shellStyle, height: "100%", boxShadow: "none", background: token.colorFillTertiary }}
+                      >
                         {selectedFile ? (
                           <Space direction="vertical" style={{ width: "100%" }} size={8}>
                             <Typography.Text type="secondary">{selectedFile.path}</Typography.Text>
@@ -466,7 +508,7 @@ export default function ResourcesPage() {
             label: "Wiki 检索",
             children: (
               <Space direction="vertical" style={{ width: "100%" }} size={12}>
-                <Card title="知识库查询（Hermes + Obsidian Wiki）" size="small">
+                <Card title="知识库查询（Hermes + Obsidian Wiki）" size="small" bordered={false} style={shellStyle}>
                   <Space.Compact style={{ width: "100%" }}>
                     <Input
                       value={wikiQuery}
@@ -479,7 +521,7 @@ export default function ResourcesPage() {
                     </Button>
                   </Space.Compact>
                 </Card>
-                <Card title="回答" size="small" loading={wikiLoading}>
+                <Card title="回答" size="small" loading={wikiLoading} bordered={false} style={shellStyle}>
                   <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
                     {wikiAnswer || "暂无结果"}
                   </Typography.Paragraph>

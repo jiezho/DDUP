@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
+    "baseUrl": ".",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
@@ -9,9 +10,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals"],
+    "types": ["react", "react-dom", "vite/client", "vitest/globals"],
     "jsx": "react-jsx",
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@ddup/shared": ["../../packages/shared/src"],
+      "@ddup/shared/*": ["../../packages/shared/src/*"]
+    }
   },
   "include": ["src", "vitest.setup.ts"]
 }

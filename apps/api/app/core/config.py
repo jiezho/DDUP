@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     hermes_api_key: str = ""
     hermes_model: str = "hermes-agent"
 
+    ddup_path: str = ""
+
 
 settings = Settings()
 

@@ -69,14 +69,14 @@ export HERMES_INSTANCE_ID="hermes-main"     # 修改为当前实例 ID
 export MINIO_ENDPOINT="192.168.102.204:9000"
 export MINIO_BUCKET="ddup-shared-library"
 export MINIO_ACCESS_KEY="ddup_admin"
-export MINIO_SECRET_KEY="ddup_shared_2026!"
+export MINIO_SECRET_KEY="REPLACE_WITH_STRONG_PASSWORD"
 
 # === 可选：Obsidian Wiki 路径 ===
 export OBSIDIAN_VAULT_PATH="/opt/ddup/wiki-vault"
 ```
 
 **各实例持久化方式**：
-- hermes-main (Docker): 写入 `/root/.bashrc`，或在 `docker-compose.yml` 的 environment 中配置
+- hermes-main (Docker): 建议通过 `docker-compose.yml` 的 env_file/environment 配置；数据目录通常挂载到 `/opt/data`（对应 `/opt/data/.env`）
 - hermes-research (服务器): 写入 `~/.bashrc`
 - hermes-devops (LXC): 写入 `~/.bashrc`
 

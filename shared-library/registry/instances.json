@@ -6,10 +6,10 @@
       "name": "Hermes 主智能体",
       "deployment": {
         "type": "docker",
-        "host": "localhost (WSL2)",
+        "host": "localhost",
         "data_path": "/opt/data/",
-        "shared_library_path": "E:\\BaiduSyncdisk\\DDUP",
-        "shared_library_mount": "/mnt/e/BaiduSyncdisk/DDUP → /opt/ddup",
+        "shared_library_path": "<DDUP_PATH>",
+        "shared_library_mount": "<DDUP_HOST_PATH> -> /opt/ddup",
         "sync_backend": "baidu_cloud_disk",
         "hermes_version": "v0.13.0"
       },
@@ -30,10 +30,10 @@
       ],
       "cron_jobs": [
         {"name": "版本更新检测", "schedule": "0 9 * * *", "output_target": "local"},
-        {"name": "功能清单自动更新", "schedule": "0 10 * * *", "output_target": "feishu_doc:RGQxdZnv7oPlJgxBv3icDma9nvd"}
+        {"name": "功能清单自动更新", "schedule": "0 10 * * *", "output_target": "feishu_doc:REDACTED"}
       ],
       "data_assets": {
-        "feishu_docs": ["RGQxdZnv7oPlJgxBv3icDma9nvd", "S789dzIZvolmWaxUanycqRpCnBk", "QaKGdj0dfoJ6KDxtZgWcAapCngx"]
+        "feishu_docs": ["REDACTED"]
       },
       "network_reachability": {
         "arxiv": true,
@@ -59,7 +59,7 @@
       "name": "Hermes 科研智能体",
       "deployment": {
         "type": "server",
-        "host": "feishu-platform",
+        "host": "<HOST>",
         "data_path": "~/.hermes/",
         "hermes_version": "v0.13.0"
       },
@@ -75,8 +75,8 @@
       "sub_agents": [
         {"name": "Paper Scout", "type": "cron", "trigger": "0 8 * * *", "output_target": "feishu_push"},
         {"name": "Code Hunter", "type": "cron", "trigger": "0 9 * * *", "output_target": "feishu_push"},
-        {"name": "Dataset Scout", "type": "cron", "trigger": "0 12 * * 6", "output_target": "feishu_doc:K0aedIntSoW3GpxB3ZkcI"},
-        {"name": "全景文档更新", "type": "cron", "trigger": "0 11 * * 1", "output_target": "feishu_doc:Ut7Ld9SO1oU5OixVpcMcXgQ8nde"}
+        {"name": "Dataset Scout", "type": "cron", "trigger": "0 12 * * 6", "output_target": "feishu_doc:REDACTED"},
+        {"name": "全景文档更新", "type": "cron", "trigger": "0 11 * * 1", "output_target": "feishu_doc:REDACTED"}
       ],
       "cron_jobs": [
         {"name": "Paper Scout", "schedule": "0 8 * * *", "output_target": "feishu_push + shared-library"},
@@ -91,10 +91,10 @@
         "cited_papers": 150,
         "sensor_categories": 11,
         "key_docs": [
-          {"name": "华润电力具身智能巡检战略研究报告", "doc_id": "Q3kXdzlS5ojGbOx1Qqqc2P4rnwc", "blocks": 338},
-          {"name": "发电行业巡检任务全面调研报告", "doc_id": "YnDPdZ7T8oTsXGxDzVach88Cneb", "blocks": 456},
-          {"name": "具身智能巡检博士课题方案(综合版)", "doc_id": "QntHdsn3woTX9jxjantc8iNsnGh", "blocks": 542},
-          {"name": "机器人传感器行业综合调研报告", "doc_id": "UPOydYKLso59HgxSrAvcNRu1nrb", "blocks": 438}
+          {"name": "华润电力具身智能巡检战略研究报告", "doc_id": "REDACTED", "blocks": 338},
+          {"name": "发电行业巡检任务全面调研报告", "doc_id": "REDACTED", "blocks": 456},
+          {"name": "具身智能巡检博士课题方案(综合版)", "doc_id": "REDACTED", "blocks": 542},
+          {"name": "机器人传感器行业综合调研报告", "doc_id": "REDACTED", "blocks": 438}
         ]
       },
       "network_reachability": {
@@ -121,7 +121,7 @@
       "name": "Hermes DevOps 智能体",
       "deployment": {
         "type": "lxc",
-        "host": "zhoujie-devops",
+        "host": "<HOST>",
         "data_path": "~/.hermes/",
         "hermes_version": "v2.1"
       },
@@ -135,7 +135,7 @@
       },
       "specialization": ["news_aggregation", "inspiration_management", "terminology", "content_extraction", "multi_agent_routing"],
       "sub_agents": [
-        {"name": "灵感管理器", "type": "interceptor", "trigger": "keyword:灵感", "output_target": "feishu_bitable:VQq9bJLquamyYvsAefucWUYonDg"},
+        {"name": "灵感管理器", "type": "interceptor", "trigger": "keyword:灵感", "output_target": "feishu_bitable:REDACTED"},
         {"name": "新闻术语推送", "type": "cron", "trigger": "0 7 * * *", "output_target": "feishu_card + bitable"},
         {"name": "28源新闻聚合器", "type": "on_demand", "trigger": "delegate_task", "output_target": "feishu_card + bitable"},
         {"name": "灵感信号检测", "type": "on_demand", "trigger": "delegate_task", "output_target": "bitable"}
@@ -146,14 +146,14 @@
       ],
       "data_assets": {
         "feishu_bitables": [
-          {"name": "灵感记录", "app_token": "VQq9bJLquamyYvsAefucWUYonDg", "table_id": "tblXsQGwgUwBOW9s"},
-          {"name": "每日新闻汇总", "app_token": "Utm9bLdgyap198s1gluc4KqinKf", "table_id": "tblqQbDcNjSUdsLg"},
-          {"name": "每日术语", "app_token": "Utm9bLdgyap198s1gluc4KqinKf", "table_id": "tblHmFGcvK5nwTFV"}
+          {"name": "灵感记录", "app_token": "REDACTED", "table_id": "REDACTED"},
+          {"name": "每日新闻汇总", "app_token": "REDACTED", "table_id": "REDACTED"},
+          {"name": "每日术语", "app_token": "REDACTED", "table_id": "REDACTED"}
         ],
         "feishu_docs": [
-          {"name": "术语大纲", "doc_id": "MZPwdxUlgokaMZxpFpmceLvdnFb", "terms": 186},
-          {"name": "术语汇总", "doc_id": "V91OdM5ogoeh4mx2PIvcXnRMnhb"},
-          {"name": "任务总结日志", "doc_id": "DZAFdX0qGoQHv6xFKveclqfSnte"}
+          {"name": "术语大纲", "doc_id": "REDACTED", "terms": 186},
+          {"name": "术语汇总", "doc_id": "REDACTED"},
+          {"name": "任务总结日志", "doc_id": "REDACTED"}
         ],
         "news_sources_count": 28,
         "terminology_total": 186,
