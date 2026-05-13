@@ -82,6 +82,8 @@ async def stream_message(
         db.commit()
         db.refresh(session)
 
+    session_id = session.id
+
     user_msg = ChatMessage(session_id=session.id, role="user", text=body.text)
     db.add(user_msg)
     db.commit()
@@ -93,6 +95,7 @@ async def stream_message(
     db.refresh(assistant_msg)
 
     assistant_message_id = str(assistant_msg.id)
+    assistant_msg_id = assistant_msg.id
 
     audit(
         "chat.message.stream",
@@ -100,7 +103,7 @@ async def stream_message(
         space.id,
         user_id,
         resource_type="chat_session",
-        resource_id=str(session.id),
+        resource_id=str(session_id),
         payload={"user_message_id": str(user_msg.id), "assistant_message_id": str(assistant_msg.id)},
     )
 
@@ -115,12 +118,13 @@ async def stream_message(
                 "请在 apps/api/.env 或环境变量中设置：HERMES_API_BASE=http://<hermes-host>:8642/v1（可选 HERMES_API_KEY、HERMES_MODEL）。\n"
                 f"已收到：{body.text}"
             )
-            assistant_msg.text = assistant_text
-            db.add(assistant_msg)
-            db.commit()
-            db.refresh(assistant_msg)
+            target_msg = db.get(ChatMessage, assistant_msg_id)
+            if target_msg is not None:
+                target_msg.text = assistant_text
+                db.commit()
+                db.refresh(target_msg)
 
-            card = ChatCard(message_id=assistant_msg.id, type="analysis", data={"summary": assistant_text})
+            card = ChatCard(message_id=assistant_msg_id, type="analysis", data={"summary": assistant_text})
             db.add(card)
             db.commit()
 
@@ -129,7 +133,7 @@ async def stream_message(
             yield _sse("done", {"status": "ok"})
             return
 
-        stmt = select(ChatMessage).where(ChatMessage.session_id == session.id).order_by(ChatMessage.created_at.asc())
+        stmt = select(ChatMessage).where(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.asc())
         history = list(db.scalars(stmt).all())
         messages: list[dict] = [
             {
@@ -190,12 +194,13 @@ async def stream_message(
             assistant_text = assistant_text or "Hermes 调用失败（请检查 Hermes API Server 是否可达且密钥正确）。"
             yield _sse("message.delta", {"messageId": assistant_message_id, "delta": assistant_text})
 
-        assistant_msg.text = assistant_text
-        db.add(assistant_msg)
-        db.commit()
-        db.refresh(assistant_msg)
+        target_msg = db.get(ChatMessage, assistant_msg_id)
+        if target_msg is not None:
+            target_msg.text = assistant_text
+            db.commit()
+            db.refresh(target_msg)
 
-        card = ChatCard(message_id=assistant_msg.id, type="analysis", data={"summary": assistant_text})
+        card = ChatCard(message_id=assistant_msg_id, type="analysis", data={"summary": assistant_text})
         db.add(card)
         db.commit()
 

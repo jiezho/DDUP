@@ -30,13 +30,13 @@ cron-archive save --job-id "paper-scout-daily" --content "..." --metadata '{"pap
 python scripts/cron_archive.py save \
   --job-id "paper-scout-daily" \
   --content '{"papers": [{"title": "...", "arxiv_id": "..."}]}' \
-  --metadata '{"papers_count": 5, "sources": ["arxiv"]}'
+  --metadata '{"title": "Paper Scout Daily", "summary": "今日新增 5 篇候选论文", "papers_count": 5, "sources": ["arxiv"], "status": "success", "duration_ms": 3400}'
 
 # 新闻术语推送归档
 python scripts/cron_archive.py save \
   --job-id "news-terminology-daily" \
   --content '{"news": [...], "terms": [...]}' \
-  --metadata '{"news_count": 10, "new_terms": 2}'
+  --metadata '{"title": "News Terminology Daily", "summary": "完成新闻与术语推送", "news_count": 10, "new_terms": 2, "status": "success", "duration_ms": 1800}'
 ```
 
 ## 集成到 Cron 技能

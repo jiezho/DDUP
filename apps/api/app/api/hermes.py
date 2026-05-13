@@ -243,6 +243,10 @@ def hermes_save_archive(
     space: Space = Depends(get_current_space),
 ) -> HermesActionResultOut:
     try:
+        attachments = [
+            {"filename": item.filename, "content_bytes": item.decoded_bytes(), "content_type": item.content_type}
+            for item in (body.attachments or [])
+        ]
         result = HermesActionResultOut(
             **archive_output(
                 body.instance_id,
@@ -251,6 +255,7 @@ def hermes_save_archive(
                 body.summary,
                 body.content,
                 body.metadata,
+                attachments,
             )
         )
         audit(

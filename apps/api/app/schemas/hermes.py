@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+
 from pydantic import BaseModel, Field
 
 
@@ -126,6 +128,9 @@ class HermesOperationalJobOut(BaseModel):
     last_failure_at: str | None = None
     last_duration_ms: int | None = None
     latest_title: str | None = None
+    last_failure_summary: str | None = None
+    last_failure_message: str | None = None
+    last_failure_hint: str | None = None
 
 
 class HermesFeedbackMetricsOut(BaseModel):
@@ -241,6 +246,16 @@ class HermesArchiveWriteIn(BaseModel):
     summary: str
     content: str
     metadata: dict = Field(default_factory=dict)
+    attachments: list["HermesArchiveAttachmentIn"] = Field(default_factory=list)
+
+
+class HermesArchiveAttachmentIn(BaseModel):
+    filename: str
+    content_base64: str
+    content_type: str | None = None
+
+    def decoded_bytes(self) -> bytes:
+        return base64.b64decode(self.content_base64.encode("utf-8"), validate=False)
 
 
 class HermesActionResultOut(BaseModel):

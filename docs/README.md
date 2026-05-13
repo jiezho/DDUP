@@ -19,6 +19,7 @@
 - Hermes Instance Setup：[`hermes-instance-setup.md`](./hermes-instance-setup.md)
 - Hermes Shared Library Design：[`hermes-shared-library-design.md`](./hermes-shared-library-design.md)
 - Hermes Shared Library Implementation：[`hermes-shared-library-implementation.md`](./hermes-shared-library-implementation.md)
+- Hermes Shared Library 任务看板：[`hermes-shared-library-taskboard.md`](./hermes-shared-library-taskboard.md)
 - Hermes 多实例协同审计：[`architecture/hermes-multi-instance-audit.md`](./architecture/hermes-multi-instance-audit.md)
 - 当前部署拓扑：[`architecture/deployment-topology-current.md`](./architecture/deployment-topology-current.md)
 - Hermes 升级操作手册：[`runbooks/hermes-upgrade-guide.md`](./runbooks/hermes-upgrade-guide.md)

@@ -1122,6 +1122,19 @@ export default function HermesAdminPage() {
                             .filter(Boolean)
                             .join(" | ")}
                         />
+                        {item.last_failure_summary || item.last_failure_message || item.last_failure_hint ? (
+                          <Space direction="vertical" size={4} style={{ width: "100%", marginTop: 8 }}>
+                            {item.last_failure_summary ? (
+                              <Typography.Text type="danger">失败摘要：{item.last_failure_summary}</Typography.Text>
+                            ) : null}
+                            {item.last_failure_message ? (
+                              <Typography.Text type="secondary">失败细节：{item.last_failure_message}</Typography.Text>
+                            ) : null}
+                            {item.last_failure_hint ? (
+                              <Alert type="warning" showIcon message={item.last_failure_hint} />
+                            ) : null}
+                          </Space>
+                        ) : null}
                       </List.Item>
                     )}
                   />

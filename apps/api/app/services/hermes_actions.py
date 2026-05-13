@@ -237,6 +237,7 @@ def archive_output(
     summary: str,
     content: str,
     metadata: dict[str, Any] | None = None,
+    attachments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return save_cron_archive(
         instance_id=instance_id,
@@ -245,4 +246,5 @@ def archive_output(
         summary=summary,
         content=content,
         metadata=metadata,
+        attachments=attachments,
     )

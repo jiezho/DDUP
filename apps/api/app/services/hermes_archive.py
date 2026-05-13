@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from urllib.parse import urlparse
 
 from app.core import config
 from app.services.hermes_registry import get_isolation_summary
+from app.services.hermes_storage import upload_storage_object_with_key
 
 
 def _repo_root() -> Path:
@@ -86,6 +88,7 @@ def save_cron_archive(
     summary: str,
     content: str,
     metadata: dict[str, Any] | None = None,
+    attachments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if not instance_id.strip():
         raise ValueError("instance_id is required")
@@ -111,6 +114,73 @@ def save_cron_archive(
     execution_status = str(normalized_metadata.get("status", "success") or "success").strip().lower()
     duration_ms = normalized_metadata.get("duration_ms")
 
+    policy = _storage_policy()
+    git_max_bytes = (
+        policy.get("policies", {})
+        .get("size_threshold", {})
+        .get("git_max_bytes", 1_048_576)
+    )
+    try:
+        git_max_bytes = int(git_max_bytes)
+    except Exception:
+        git_max_bytes = 1_048_576
+
+    normalized_attachments = attachments or []
+    processed_attachments: list[dict[str, Any]] = []
+    for att in normalized_attachments:
+        if not isinstance(att, dict):
+            continue
+        filename = str(att.get("filename", "") or "").strip()
+        content_bytes = att.get("content_bytes")
+        content_type = str(att.get("content_type", "") or "").strip() or None
+        if not filename or not isinstance(content_bytes, (bytes, bytearray)):
+            continue
+
+        suffix = Path(filename).suffix[:20]
+        digest = hashlib.sha256(bytes(content_bytes)).hexdigest()[:12]
+        object_name = f"{digest}{suffix}"
+
+        if len(content_bytes) > git_max_bytes:
+            key = f"{instance_id}/cron-archives/{job_id}/{date_str}/{object_name}"
+            upload_result = upload_storage_object_with_key(
+                key=key,
+                content=bytes(content_bytes),
+                filename=filename,
+                content_type=content_type,
+                metadata={
+                    "instance-id": instance_id,
+                    "job-id": job_id,
+                    "original-name": filename,
+                    "archived-at": now.isoformat(),
+                },
+            )
+            bucket = upload_result.get("bucket")
+            storage_ref = f"s3://{bucket}/{key}" if upload_result.get("status") == "success" and bucket else None
+            processed_attachments.append(
+                {
+                    "filename": filename,
+                    "storage_ref": storage_ref,
+                    "key": upload_result.get("key"),
+                    "size_bytes": len(content_bytes),
+                    "status": upload_result.get("status"),
+                    "error": upload_result.get("message") if upload_result.get("status") != "success" else None,
+                }
+            )
+            continue
+
+        local_path = archive_dir / date_str / object_name
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_bytes(bytes(content_bytes))
+        relative_local = str(local_path.relative_to(_repo_root())).replace(chr(92), "/")
+        processed_attachments.append(
+            {
+                "filename": filename,
+                "storage_ref": f"git://{relative_local}",
+                "size_bytes": len(content_bytes),
+                "status": "local",
+            }
+        )
+
     entry = {
         "id": entry_id,
         "job_id": job_id,
@@ -122,7 +192,7 @@ def save_cron_archive(
         "execution_status": execution_status,
         "duration_ms": duration_ms,
         "archived_at": now.isoformat(),
-        "attachments": [],
+        "attachments": processed_attachments,
     }
 
     archive_payload = _safe_read_json(archive_file, [])
@@ -147,6 +217,7 @@ def save_cron_archive(
             "execution_status": execution_status,
             "duration_ms": duration_ms,
             "archived_at": now.isoformat(),
+            "metadata": normalized_metadata,
             "file_path": str(archive_file.relative_to(_repo_root())).replace("\\", "/"),
         }
     )

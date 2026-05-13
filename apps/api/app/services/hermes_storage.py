@@ -143,6 +143,54 @@ def upload_storage_object(
         }
 
 
+def upload_storage_object_with_key(
+    *,
+    key: str,
+    content: bytes,
+    filename: str | None = None,
+    content_type: str | None = None,
+    metadata: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    normalized_key = (key or "").strip().lstrip("/")
+    if not normalized_key:
+        raise ValueError("key is required")
+    if not content:
+        raise ValueError("file content is required")
+    try:
+        client = _get_client()
+        settings = _storage_settings()
+        if hasattr(client, "bucket_exists") and not client.bucket_exists(settings["bucket"]):
+            client.make_bucket(settings["bucket"])
+        client.put_object(
+            settings["bucket"],
+            normalized_key,
+            data=content,
+            length=len(content),
+            content_type=content_type or "application/octet-stream",
+            metadata=metadata or {},
+        )
+        endpoint = settings["endpoint"].rstrip("/")
+        return {
+            "status": "success",
+            "bucket": settings["bucket"],
+            "key": normalized_key,
+            "url": f"{endpoint}/{settings['bucket']}/{normalized_key}" if endpoint else None,
+            "size_bytes": len(content),
+            "original_name": filename,
+            "message": None,
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "bucket": None,
+            "key": normalized_key,
+            "url": None,
+            "size_bytes": 0,
+            "original_name": filename,
+            "message": str(exc),
+        }
+
+
 def list_storage_objects(instance_id: str | None = None, prefix: str | None = None, limit: int = 20) -> dict[str, Any]:
     effective_prefix = _normalize_prefix(instance_id, prefix)
     try:

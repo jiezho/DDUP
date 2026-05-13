@@ -25,6 +25,36 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
+def _normalize_title(job_id: str, metadata: dict) -> str:
+    value = str(metadata.get("title", "") or "").strip()
+    if value:
+        return value
+    return job_id.replace("-", " ").strip() or job_id
+
+
+def _normalize_summary(content: str, metadata: dict) -> str:
+    value = str(metadata.get("summary", "") or "").strip()
+    if value:
+        return value
+    if isinstance(content, str):
+        return content[:200]
+    return json.dumps(content, ensure_ascii=False)[:200]
+
+
+def _normalize_execution_status(metadata: dict) -> str:
+    value = str(metadata.get("status", metadata.get("execution_status", "success")) or "success").strip().lower()
+    return value or "success"
+
+
+def _normalize_duration_ms(metadata: dict):
+    value = metadata.get("duration_ms")
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    return None
+
+
 def _upload_to_minio(local_path: Path, storage_key: str) -> dict:
     """上传文件到 MinIO"""
     try:
@@ -77,6 +107,10 @@ def save(job_id: str, content: str, metadata: dict = None, attachments: list = N
     attachments = attachments or []
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
+    title = _normalize_title(job_id, metadata)
+    summary = _normalize_summary(content, metadata)
+    execution_status = _normalize_execution_status(metadata)
+    duration_ms = _normalize_duration_ms(metadata)
 
     # 1. 创建归档目录
     archive_dir = _ensure_dir(OUTPUTS_DIR / INSTANCE_ID / "cron-archives" / job_id)
@@ -87,8 +121,12 @@ def save(job_id: str, content: str, metadata: dict = None, attachments: list = N
         "id": entry_id,
         "job_id": job_id,
         "instance_id": INSTANCE_ID,
+        "title": title,
+        "summary": summary,
         "content": content,
         "metadata": metadata,
+        "execution_status": execution_status,
+        "duration_ms": duration_ms,
         "archived_at": now.isoformat(),
         "attachments": []
     }
@@ -135,19 +173,25 @@ def save(job_id: str, content: str, metadata: dict = None, attachments: list = N
         archive_file.write_text(json.dumps([entry], ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 5. 更新全局索引
-    index = json.loads(INDEX_PATH.read_text(encoding="utf-8")) if INDEX_PATH.exists() else {"entries": [], "version": "2.0.0"}
-    summary = content[:200] if isinstance(content, str) else json.dumps(content, ensure_ascii=False)[:200]
+    index = (
+        json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+        if INDEX_PATH.exists()
+        else {"entries": [], "version": "2.0.0", "created_at": now.date().isoformat()}
+    )
     index["entries"].append({
         "id": entry_id,
         "instance_id": INSTANCE_ID,
         "type": "cron_archive",
         "job_id": job_id,
-        "title": f"{job_id} ({date_str})",
+        "title": title,
         "summary": summary,
+        "execution_status": execution_status,
+        "duration_ms": duration_ms,
         "archived_at": now.isoformat(),
+        "metadata": metadata,
         "file_path": str(archive_file.relative_to(DDUP_PATH))
     })
-    INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+    INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     return {
         "status": "archived",
@@ -184,6 +228,7 @@ def query(job_id: str = None, instance_id: str = None, date_from: str = None, da
 
 def _cli():
     import argparse
+    import sys
     parser = argparse.ArgumentParser(description="Cron Archive")
     sub = parser.add_subparsers(dest="cmd")
 
@@ -191,6 +236,7 @@ def _cli():
     save_p.add_argument("--job-id", required=True)
     save_p.add_argument("--content", required=True)
     save_p.add_argument("--metadata", default="{}")
+    save_p.add_argument("--meta", action="append", default=[])
     save_p.add_argument("--attachments", default="")
 
     query_p = sub.add_parser("query", help="查询归档")
@@ -203,9 +249,56 @@ def _cli():
     args = parser.parse_args()
 
     if args.cmd == "save":
-        meta = json.loads(args.metadata)
+        meta = {}
+        if args.metadata:
+            raw = str(args.metadata).strip()
+            if raw and raw != "{}":
+                try:
+                    meta = json.loads(raw)
+                except Exception:
+                    if "=" in raw:
+                        meta = {}
+                        for item in raw.split(","):
+                            item = item.strip()
+                            if not item:
+                                continue
+                            if "=" not in item:
+                                raise ValueError(f"invalid metadata kv: {item}")
+                            key, value = item.split("=", 1)
+                            meta[key.strip()] = value.strip()
+                    else:
+                        raise
+
+        for item in args.meta:
+            if not item:
+                continue
+            if "=" not in item:
+                raise ValueError(f"invalid meta kv: {item}")
+            key, value = item.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+            if value.lower() in {"true", "false"}:
+                meta[key] = value.lower() == "true"
+                continue
+            try:
+                if value.isdigit():
+                    meta[key] = int(value)
+                    continue
+            except Exception:
+                pass
+            try:
+                if value.startswith("{") or value.startswith("["):
+                    meta[key] = json.loads(value)
+                    continue
+            except Exception:
+                pass
+            meta[key] = value
         atts = [a.strip() for a in args.attachments.split(",") if a.strip()]
-        result = save(args.job_id, args.content, meta, atts)
+        try:
+            result = save(args.job_id, args.content, meta, atts)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            raise
     elif args.cmd == "query":
         result = query(args.job_id, args.instance_id, args.date_from, args.date_to, args.limit)
     else:

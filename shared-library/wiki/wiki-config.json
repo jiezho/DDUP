@@ -1,0 +1,16 @@
+{
+  "vault_path": "/opt/ddup/wiki-vault",
+  "compilation_schedule": "*/30 * * * *",
+  "cross_linker_schedule": "0 */2 * * *",
+  "health_check_schedule": "0 2 * * *",
+  "merge_strategy": {
+    "similarity_threshold": 0.8,
+    "tag_overlap_threshold": 2,
+    "conflict_resolution": "mark_for_review"
+  },
+  "instance_write_rules": {
+    "hermes-research": ["_raw/hermes-research/"],
+    "hermes-devops": ["_raw/hermes-devops/"],
+    "hermes-main": ["_raw/hermes-main/"]
+  }
+}

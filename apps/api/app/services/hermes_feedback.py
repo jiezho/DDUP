@@ -59,16 +59,82 @@ def _parse_iso(value: str | None) -> datetime | None:
 
 
 def _entry_execution_status(entry: dict[str, Any]) -> str:
-    return str(entry.get("execution_status", "success") or "success").strip().lower()
+    value = entry.get("execution_status")
+    if isinstance(value, str) and value.strip():
+        return value.strip().lower()
+    metadata = entry.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("status", "execution_status"):
+            metadata_value = metadata.get(key)
+            if isinstance(metadata_value, str) and metadata_value.strip():
+                return metadata_value.strip().lower()
+    return "success"
 
 
 def _entry_duration(entry: dict[str, Any]) -> int | None:
-    value = entry.get("duration_ms")
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return int(value)
+    candidates = [entry.get("duration_ms")]
+    metadata = entry.get("metadata")
+    if isinstance(metadata, dict):
+        candidates.extend([metadata.get("duration_ms"), metadata.get("duration")])
+    for value in candidates:
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            return int(value)
     return None
+
+
+def _entry_failure_summary(entry: dict[str, Any] | None) -> str | None:
+    if not entry:
+        return None
+    for key in ("failure_summary", "summary", "error", "message"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    metadata = entry.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("failure_summary", "error", "message"):
+            value = metadata.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
+
+
+def _entry_failure_message(entry: dict[str, Any] | None) -> str | None:
+    if not entry:
+        return None
+    metadata = entry.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("error_detail", "stderr", "detail", "hint"):
+            value = metadata.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
+
+
+def _failure_hint(entry: dict[str, Any] | None) -> str | None:
+    if not entry:
+        return None
+    summary = " ".join(
+        [
+            str(entry.get("summary", "") or ""),
+            str(entry.get("error", "") or ""),
+            str(entry.get("message", "") or ""),
+            str((entry.get("metadata") or {}).get("error", "") if isinstance(entry.get("metadata"), dict) else ""),
+            str((entry.get("metadata") or {}).get("detail", "") if isinstance(entry.get("metadata"), dict) else ""),
+        ]
+    ).lower()
+    if any(keyword in summary for keyword in ("timeout", "timed out", "超时")):
+        return "优先检查调度超时、网络连通性和上游 API 响应时间。"
+    if any(keyword in summary for keyword in ("permission", "forbidden", "denied", "权限")):
+        return "优先检查实例归属、对象存储权限和隔离规则是否阻断了当前写入。"
+    if any(keyword in summary for keyword in ("bucket", "minio", "storage", "对象存储")):
+        return "优先检查对象存储 endpoint、bucket、凭证和命名空间策略。"
+    if any(keyword in summary for keyword in ("wiki", "vault", "compile", "编译")):
+        return "优先检查 Wiki Vault 路径、raw/compiled 目录和编译任务运行状态。"
+    if any(keyword in summary for keyword in ("json", "parse", "schema", "格式")):
+        return "优先检查任务输出格式、归档元数据结构和索引写入内容。"
+    return "优先检查最近一次归档内容、任务输入参数和对应实例的运行日志。"
 
 
 def _derive_job_status(configured_status: str, last_archived_at: str | None, last_execution_status: str | None) -> str:
@@ -125,6 +191,9 @@ def _operational_jobs() -> list[dict[str, Any]]:
                 "last_failure_at": last_failure.get("archived_at") if last_failure else None,
                 "last_duration_ms": _entry_duration(latest) if latest else None,
                 "latest_title": latest.get("title") if latest else None,
+                "last_failure_summary": _entry_failure_summary(last_failure),
+                "last_failure_message": _entry_failure_message(last_failure),
+                "last_failure_hint": _failure_hint(last_failure),
             }
         )
     jobs.sort(

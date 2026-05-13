@@ -1,6 +1,10 @@
 import importlib
+import sys
 import json
 import os
+import subprocess
+import base64
+import hashlib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,6 +29,23 @@ def _build_app():
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def _load_cron_archive_module():
+    script_path = (
+        Path(__file__).resolve().parents[3]
+        / "shared-library"
+        / "registry"
+        / "published"
+        / "cron-archive"
+        / "scripts"
+        / "cron_archive.py"
+    )
+    spec = importlib.util.spec_from_file_location("cron_archive_script", script_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_hermes_overview_reads_registry(tmp_path: Path) -> None:
@@ -188,9 +209,10 @@ def test_hermes_register_and_write_actions(tmp_path: Path) -> None:
                     "type": "cron_archive",
                     "job_id": "feature-doc-update",
                     "title": "Feature Doc Update",
-                    "summary": "failed run",
+                    "summary": "storage timeout while syncing archive",
                     "execution_status": "failed",
                     "duration_ms": 8200,
+                    "metadata": {"detail": "minio request timed out after 30s"},
                     "archived_at": "2026-05-12T08:00:00+00:00",
                     "file_path": "shared-library/outputs/hermes-main/cron-archives/feature-doc-update/2026-05-12.json",
                 }
@@ -278,6 +300,9 @@ def test_hermes_register_and_write_actions(tmp_path: Path) -> None:
         assert failing_job["failure_count"] == 1
         assert failing_job["last_execution_status"] == "failed"
         assert failing_job["last_duration_ms"] == 8200
+        assert failing_job["last_failure_summary"] == "storage timeout while syncing archive"
+        assert failing_job["last_failure_message"] == "minio request timed out after 30s"
+        assert "网络连通性" in failing_job["last_failure_hint"]
 
     registry = json.loads((tmp_path / "shared-library" / "registry" / "instances.json").read_text(encoding="utf-8"))
     assert registry["instances"][0]["status"] == "active"
@@ -407,6 +432,275 @@ def test_hermes_archive_and_runtime_status(tmp_path: Path) -> None:
     assert index_payload["entries"][0]["job_id"] == "paper-scout-daily"
     assert index_payload["entries"][0]["execution_status"] == "success"
     assert index_payload["entries"][0]["duration_ms"] == 4200
+
+
+def test_hermes_archive_save_writes_small_attachment_to_outputs(tmp_path: Path) -> None:
+    os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["DDUP_PATH"] = str(tmp_path)
+
+    _write_json(
+        tmp_path / "shared-library" / "registry" / "instances.json",
+        {"instances": [{"id": "hermes-research", "name": "Hermes Research", "status": "active", "deployment": {"type": "server", "host": "<HOST>", "data_path": "~/.hermes", "hermes_version": "v0.13.0"}, "capabilities": {}, "specialization": [], "published_skills": []}]},
+    )
+    _write_json(tmp_path / "shared-library" / "registry" / "skills-manifest.json", {"skills": []})
+    _write_json(tmp_path / "shared-library" / "outputs" / ".index.json", {"entries": []})
+    _write_json(tmp_path / "shared-library" / "registry" / "cron-registry.json", {"jobs": [{"id": "paper-scout-daily", "owner": "hermes-research"}]})
+    _write_json(
+        tmp_path / "shared-library" / "config" / "storage-policy.json",
+        {"policies": {"size_threshold": {"git_max_bytes": 1048576}}},
+    )
+
+    payload = b"hello"
+    digest = hashlib.sha256(payload).hexdigest()[:12]
+    encoded = base64.b64encode(payload).decode("utf-8")
+
+    app = _build_app()
+    with TestClient(app) as client:
+        archive_resp = client.post(
+            "/api/hermes/archive/save",
+            headers={"X-User-Id": "u1"},
+            json={
+                "instance_id": "hermes-research",
+                "job_id": "paper-scout-daily",
+                "title": "Paper Scout Daily",
+                "summary": "daily summary",
+                "content": "full archive content",
+                "metadata": {"status": "success"},
+                "attachments": [{"filename": "note.txt", "content_base64": encoded, "content_type": "text/plain"}],
+            },
+        )
+        assert archive_resp.status_code == 200
+        archive_path = archive_resp.json()["path"]
+
+    date_str = Path(archive_path).stem
+    archive_file = tmp_path / Path(archive_path)
+    saved = json.loads(archive_file.read_text(encoding="utf-8"))
+    assert isinstance(saved, list) and saved
+    entry = saved[-1]
+    assert entry["attachments"]
+    att = entry["attachments"][0]
+    assert att["status"] == "local"
+    expected_local = (
+        tmp_path
+        / "shared-library"
+        / "outputs"
+        / "hermes-research"
+        / "cron-archives"
+        / "paper-scout-daily"
+        / date_str
+        / f"{digest}.txt"
+    )
+    assert expected_local.exists()
+    assert att["storage_ref"].endswith(f"shared-library/outputs/hermes-research/cron-archives/paper-scout-daily/{date_str}/{digest}.txt")
+
+
+def test_hermes_archive_save_uploads_large_attachment_to_minio(tmp_path: Path) -> None:
+    os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["DDUP_PATH"] = str(tmp_path)
+    os.environ["STORAGE_ENDPOINT"] = "http://127.0.0.1:9000"
+    os.environ["STORAGE_BUCKET"] = "ddup-shared-library"
+    os.environ["STORAGE_ACCESS_KEY"] = "minio"
+    os.environ["STORAGE_SECRET_KEY"] = "miniopass"
+
+    _write_json(tmp_path / "shared-library" / "registry" / "instances.json", {"instances": []})
+    _write_json(tmp_path / "shared-library" / "registry" / "skills-manifest.json", {"skills": []})
+    _write_json(tmp_path / "shared-library" / "outputs" / ".index.json", {"entries": []})
+    _write_json(tmp_path / "shared-library" / "registry" / "cron-registry.json", {"jobs": [{"id": "paper-scout-daily", "owner": "hermes-research"}]})
+    _write_json(
+        tmp_path / "shared-library" / "config" / "storage-policy.json",
+        {"policies": {"size_threshold": {"git_max_bytes": 3}}},
+    )
+
+    payload = b"0123456789"
+    digest = hashlib.sha256(payload).hexdigest()[:12]
+    encoded = base64.b64encode(payload).decode("utf-8")
+
+    class _FakeMinioClient:
+        def __init__(self):
+            self.put: list[dict[str, object]] = []
+
+        def bucket_exists(self, bucket: str) -> bool:
+            return True
+
+        def make_bucket(self, bucket: str) -> None:
+            return None
+
+        def put_object(self, bucket: str, key: str, data, length: int, content_type: str, metadata: dict[str, str]):
+            self.put.append({"bucket": bucket, "key": key, "length": length, "content_type": content_type, "metadata": metadata})
+            return None
+
+    fake = _FakeMinioClient()
+    app = _build_app()
+    with patch("app.services.hermes_storage._get_client", return_value=fake):
+        with TestClient(app) as client:
+            archive_resp = client.post(
+                "/api/hermes/archive/save",
+                headers={"X-User-Id": "u1"},
+                json={
+                    "instance_id": "hermes-research",
+                    "job_id": "paper-scout-daily",
+                    "title": "Paper Scout Daily",
+                    "summary": "daily summary",
+                    "content": "full archive content",
+                    "metadata": {"status": "success"},
+                    "attachments": [{"filename": "big.pdf", "content_base64": encoded, "content_type": "application/pdf"}],
+                },
+            )
+            assert archive_resp.status_code == 200
+            archive_path = archive_resp.json()["path"]
+
+    assert fake.put
+    date_str = Path(archive_path).stem
+    expected_key = f"hermes-research/cron-archives/paper-scout-daily/{date_str}/{digest}.pdf"
+    assert fake.put[0]["bucket"] == "ddup-shared-library"
+    assert fake.put[0]["key"] == expected_key
+    assert fake.put[0]["length"] == len(payload)
+
+    archive_file = tmp_path / Path(archive_path)
+    saved = json.loads(archive_file.read_text(encoding="utf-8"))
+    entry = saved[-1]
+    att = entry["attachments"][0]
+    assert att["status"] == "success"
+    assert att["storage_ref"] == f"s3://ddup-shared-library/{expected_key}"
+
+
+def test_cron_archive_script_updates_runtime_and_feedback(tmp_path: Path) -> None:
+    os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["DDUP_PATH"] = str(tmp_path)
+    os.environ["HERMES_INSTANCE_ID"] = "hermes-research"
+
+    _write_json(
+        tmp_path / "shared-library" / "registry" / "instances.json",
+        {
+            "instances": [
+                {
+                    "id": "hermes-research",
+                    "name": "Hermes Research",
+                    "status": "active",
+                    "description": "research instance",
+                    "deployment": {"type": "docker", "host": "localhost", "data_path": "/opt/ddup", "hermes_version": "v0.13.0"},
+                    "capabilities": {"platforms": ["feishu"], "toolsets": ["research"]},
+                    "specialization": ["paper"],
+                    "published_skills": [],
+                    "sub_agents": [],
+                    "cron_jobs": [],
+                    "data_assets": {},
+                }
+            ]
+        },
+    )
+    _write_json(tmp_path / "shared-library" / "registry" / "skills-manifest.json", {"skills": []})
+    _write_json(
+        tmp_path / "shared-library" / "registry" / "cron-registry.json",
+        {
+            "jobs": [
+                {
+                    "id": "paper-scout-daily",
+                    "owner": "hermes-research",
+                    "schedule": "0 8 * * *",
+                    "status": "active",
+                }
+            ]
+        },
+    )
+
+    cron_archive = _load_cron_archive_module()
+    result = cron_archive.save(
+        "paper-scout-daily",
+        content='{"papers": []}',
+        metadata={
+            "title": "Paper Scout Daily",
+            "summary": "source timeout after fetching 2 papers",
+            "status": "failed",
+            "duration_ms": 1800,
+            "error": "source timeout",
+        },
+    )
+    assert result["status"] == "archived"
+
+    app = _build_app()
+    with TestClient(app) as client:
+        runtime_resp = client.get("/api/hermes/runtime", headers={"X-User-Id": "u1"})
+        assert runtime_resp.status_code == 200
+        runtime_body = runtime_resp.json()
+        assert runtime_body["archives"]["entries_count"] == 1
+
+        feedback_resp = client.get("/api/hermes/feedback/summary", headers={"X-User-Id": "u1"})
+        assert feedback_resp.status_code == 200
+        feedback_body = feedback_resp.json()
+        paper_job = next(item for item in feedback_body["operational_jobs"] if item["job_id"] == "paper-scout-daily")
+        assert paper_job["last_execution_status"] == "failed"
+        assert paper_job["failure_count"] == 1
+        assert paper_job["last_duration_ms"] == 1800
+        assert paper_job["latest_title"] == "Paper Scout Daily"
+        assert paper_job["last_failure_summary"] == "source timeout after fetching 2 papers"
+
+    index_payload = json.loads((tmp_path / "shared-library" / "outputs" / ".index.json").read_text(encoding="utf-8"))
+    entry = index_payload["entries"][0]
+    assert entry["job_id"] == "paper-scout-daily"
+    assert entry["title"] == "Paper Scout Daily"
+    assert entry["summary"] == "source timeout after fetching 2 papers"
+    assert entry["execution_status"] == "failed"
+    assert entry["duration_ms"] == 1800
+
+
+def test_cron_archive_cli_supports_meta_kv(tmp_path: Path) -> None:
+    os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["DDUP_PATH"] = str(tmp_path)
+    os.environ["HERMES_INSTANCE_ID"] = "hermes-research"
+
+    _write_json(tmp_path / "shared-library" / "registry" / "instances.json", {"instances": []})
+    _write_json(tmp_path / "shared-library" / "registry" / "skills-manifest.json", {"skills": []})
+    _write_json(
+        tmp_path / "shared-library" / "registry" / "cron-registry.json",
+        {"jobs": [{"id": "paper-scout-daily", "owner": "hermes-research", "schedule": "0 8 * * *", "status": "active"}]},
+    )
+
+    script_path = (
+        Path(__file__).resolve().parents[3]
+        / "shared-library"
+        / "registry"
+        / "published"
+        / "cron-archive"
+        / "scripts"
+        / "cron_archive.py"
+    )
+    env = dict(os.environ)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "save",
+            "--job-id",
+            "paper-scout-daily",
+            "--content",
+            "manual smoke content",
+            "--meta",
+            "status=failed",
+            "--meta",
+            "duration_ms=1234",
+            "--meta",
+            "summary=manual smoke",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=str(tmp_path),
+    )
+    assert '"status": "archived"' in result.stdout
+
+    index_payload = json.loads((tmp_path / "shared-library" / "outputs" / ".index.json").read_text(encoding="utf-8"))
+    entry = index_payload["entries"][0]
+    assert entry["job_id"] == "paper-scout-daily"
+    assert entry["execution_status"] == "failed"
+    assert entry["duration_ms"] == 1234
+    assert entry["summary"] == "manual smoke"
+    assert entry["metadata"]["summary"] == "manual smoke"
 
 
 def test_hermes_storage_objects_and_presign(tmp_path: Path) -> None:

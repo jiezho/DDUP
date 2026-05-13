@@ -6,7 +6,7 @@
       "owner": "hermes-research",
       "schedule": "0 8 * * *",
       "description": "每日 arXiv 论文检索与摘要推送",
-      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/paper-scout/"],
+      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/paper-scout-daily/"],
       "archive_format": "YYYY-MM-DD.json",
       "exclusive": true,
       "status": "active"
@@ -16,7 +16,7 @@
       "owner": "hermes-research",
       "schedule": "0 9 * * *",
       "description": "每日 GitHub/HuggingFace 开源项目扫描",
-      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/code-hunter/"],
+      "output_targets": ["feishu_push", "shared-library/outputs/hermes-research/cron-archives/code-hunter-daily/"],
       "archive_format": "YYYY-MM-DD.json",
       "exclusive": true,
       "status": "active"
@@ -26,8 +26,8 @@
       "owner": "hermes-research",
       "schedule": "0 12 * * 6",
       "description": "每周六数据集检索周报",
-      "output_targets": ["feishu_doc:K0aedIntSoW3GpxB3ZkcI", "shared-library/outputs/hermes-research/cron-archives/dataset-scout/"],
-      "archive_format": "YYYY-WW.json",
+      "output_targets": ["feishu_doc:K0aedIntSoW3GpxB3ZkcI", "shared-library/outputs/hermes-research/cron-archives/dataset-scout-weekly/"],
+      "archive_format": "YYYY-MM-DD.json",
       "exclusive": true,
       "status": "active"
     },
@@ -37,7 +37,7 @@
       "schedule": "0 7 * * *",
       "description": "每日新闻与术语推送",
       "hermes_job_id": "252f25a22da9",
-      "output_targets": ["feishu_card", "bitable:Utm9bLdgyap198s1gluc4KqinKf", "shared-library/outputs/hermes-devops/cron-archives/news-terminology/"],
+      "output_targets": ["feishu_card", "bitable:Utm9bLdgyap198s1gluc4KqinKf", "shared-library/outputs/hermes-devops/cron-archives/news-terminology-daily/"],
       "archive_format": "YYYY-MM-DD.json",
       "exclusive": true,
       "status": "active"
@@ -72,5 +72,5 @@
   ],
   "conflict_resolution": "owner_priority",
   "duplicate_detection": true,
-  "notes": "Cron 时间均为 UTC。飞书推送目标为中国时间。"
+  "notes": "Cron 时间均为 UTC。飞书推送目标为中国时间。凡声明 shared-library 归档目标的作业，目录一律使用 job_id，归档文件名当前统一为 YYYY-MM-DD.json。"
 }

@@ -462,9 +462,8 @@ def archive(job_id: str, content: str, metadata: dict = None, attachments: list 
 
 ```bash
 # 创建各 Cron 归档子目录
-mkdir -p shared-library/outputs/hermes-research/cron-archives/{paper-scout,code-hunter,dataset-scout}
-mkdir -p shared-library/outputs/hermes-devops/cron-archives/news-terminology
-mkdir -p shared-library/outputs/hermes-main/cron-archives/version-check
+mkdir -p shared-library/outputs/hermes-research/cron-archives/{paper-scout-daily,code-hunter-daily,dataset-scout-weekly}
+mkdir -p shared-library/outputs/hermes-devops/cron-archives/news-terminology-daily
 
 # 创建空索引
 echo '{"entries": [], "version": "2.0.0", "created_at": "2026-05-11"}' > shared-library/outputs/.index.json
@@ -475,7 +474,7 @@ echo '{"entries": [], "version": "2.0.0", "created_at": "2026-05-11"}' > shared-
 # 模拟归档一条测试记录
 DDUP_PATH=. HERMES_INSTANCE_ID=hermes-research python shared-library/registry/published/cron-archive/scripts/cron_archive.py
 # 检查文件是否生成
-cat shared-library/outputs/hermes-research/cron-archives/paper-scout/$(date +%Y-%m-%d).json
+cat shared-library/outputs/hermes-research/cron-archives/paper-scout-daily/$(date +%Y-%m-%d).json
 ```
 
 ---

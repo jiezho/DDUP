@@ -171,6 +171,9 @@ export type HermesFeedbackSummary = {
     last_failure_at: string | null;
     last_duration_ms: number | null;
     latest_title: string | null;
+    last_failure_summary: string | null;
+    last_failure_message: string | null;
+    last_failure_hint: string | null;
   }[];
   metrics: {
     open_tasks: number;
