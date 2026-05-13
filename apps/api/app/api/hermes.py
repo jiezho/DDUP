@@ -13,6 +13,7 @@ from app.schemas.hermes import (
     HermesInstanceDetailOut,
     HermesInstancesResponse,
     HermesMemoryWriteIn,
+    HermesOpsCheckOut,
     HermesRegisterInstanceIn,
     HermesRuntimeStatusOut,
     HermesSearchResponse,
@@ -27,6 +28,7 @@ from app.schemas.hermes import (
 from app.services.hermes_archive import get_runtime_status
 from app.services.hermes_actions import archive_output, register_instance, save_memory_entry, search_library, write_wiki_raw
 from app.services.hermes_feedback import get_feedback_summary
+from app.services.hermes_ops import get_ops_check
 from app.services.hermes_registry import (
     get_blueprint,
     get_instance_detail,
@@ -132,6 +134,14 @@ def hermes_feedback_summary(
     return HermesFeedbackSummaryOut(
         **get_feedback_summary(db, space_id=space.id, user_id=user_id, action_limit=action_limit)
     )
+
+
+@router.get("/ops/check", response_model=HermesOpsCheckOut)
+def hermes_ops_check(
+    _user_id: str = Depends(get_current_user_id),
+    _space: Space = Depends(get_current_space),
+) -> HermesOpsCheckOut:
+    return HermesOpsCheckOut(**get_ops_check())
 
 
 @router.get("/storage/objects", response_model=HermesStorageListResponse)

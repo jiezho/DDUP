@@ -132,6 +132,23 @@ export type HermesRuntimeStatus = {
       port?: number;
     };
   };
+  isolation: {
+    present: boolean;
+    rules_count: number;
+    enforcement_level: string;
+    block_on_violation: boolean;
+    audit_violations: boolean;
+    shared_memory_cross_read: boolean;
+    storage_cross_read: boolean;
+    compiled_wiki_readonly: boolean;
+  };
+  lifecycle_tasks: {
+    key: string;
+    stage: string;
+    title: string;
+    status: string;
+    detail: string;
+  }[];
 };
 
 export type HermesFeedbackSummary = {
@@ -163,6 +180,30 @@ export type HermesFeedbackSummary = {
     operational_jobs: number;
     stale_jobs: number;
   };
+};
+
+export type HermesOpsCheck = {
+  environment: {
+    ddup_path_configured: boolean;
+    hermes_api_configured: boolean;
+    wiki_enabled: boolean;
+    storage_configured: boolean;
+    isolation_rules_present: boolean;
+  };
+  integrity: {
+    registry_present: boolean;
+    skills_manifest_present: boolean;
+    outputs_index_present: boolean;
+    shared_memory_present: boolean;
+    wiki_raw_present: boolean;
+    cron_registry_present: boolean;
+  };
+  runtime: HermesRuntimeStatus;
+  recommendations: {
+    level: string;
+    title: string;
+    description: string;
+  }[];
 };
 
 export type HermesRegisterInstanceInput = {
@@ -302,6 +343,10 @@ export async function getHermesRuntime(limit = 5): Promise<HermesRuntimeStatus> 
 
 export async function getHermesFeedbackSummary(actionLimit = 8): Promise<HermesFeedbackSummary> {
   return apiGet<HermesFeedbackSummary>(`/api/hermes/feedback/summary?action_limit=${actionLimit}`);
+}
+
+export async function getHermesOpsCheck(): Promise<HermesOpsCheck> {
+  return apiGet<HermesOpsCheck>("/api/hermes/ops/check");
 }
 
 export async function getHermesStorageObjects(filters: HermesStorageListFilters = {}): Promise<HermesStorageListResponse> {

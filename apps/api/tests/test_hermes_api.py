@@ -111,6 +111,17 @@ def test_hermes_instances_and_search(tmp_path: Path) -> None:
         "updated_at": "2026-05-12T00:00:00Z",
         "skills": [{"name": "scientific-research-agent", "description": "survey helper", "tags": ["paper"]}],
     })
+    _write_json(
+        tmp_path / "shared-library" / "config" / "isolation-rules.json",
+        {
+            "rules": {
+                "memory_ext": {"other_namespace_read_summary": True},
+                "wiki_raw": {"formal_pages_readonly": True},
+                "minio_storage": {"other_namespace_read": True},
+            },
+            "enforcement": {"level": "strict", "block_on_violation": True, "audit_violations": True},
+        },
+    )
     _write_json(tmp_path / "shared-library" / "outputs" / ".index.json", {
         "entries": [{"id": "o1", "instance_id": "hermes-research", "title": "paper digest", "summary": "survey output"}]
     })
@@ -120,6 +131,9 @@ def test_hermes_instances_and_search(tmp_path: Path) -> None:
     wiki_dir = tmp_path / "shared-library" / "wiki" / "compiled"
     wiki_dir.mkdir(parents=True, exist_ok=True)
     (wiki_dir / "survey.md").write_text("# Survey Wiki\n\nsurvey knowledge base", encoding="utf-8")
+    wiki_raw_dir = tmp_path / "shared-library" / "wiki" / "_raw" / "hermes-research"
+    wiki_raw_dir.mkdir(parents=True, exist_ok=True)
+    (wiki_raw_dir / "survey-draft.md").write_text("# Survey Draft\n\nsurvey raw notes", encoding="utf-8")
     cron_dir = tmp_path / "shared-library" / "outputs" / "hermes-research" / "cron-archives" / "daily-review"
     cron_dir.mkdir(parents=True, exist_ok=True)
     (cron_dir / "2026-05-12.json").write_text('{"summary":"survey cron archive"}', encoding="utf-8")
@@ -141,6 +155,9 @@ def test_hermes_instances_and_search(tmp_path: Path) -> None:
         assert any(item["source"] == "skill" for item in results)
         assert any(item["source"] == "wiki" for item in results)
         assert any(item["source"] == "cron" for item in results)
+        memory_result = next(item for item in results if item["source"] == "memory")
+        assert memory_result["access"] == "summary"
+        assert memory_result["file_path"] is None
 
         filtered_resp = client.get(
             "/api/hermes/search",
@@ -151,6 +168,7 @@ def test_hermes_instances_and_search(tmp_path: Path) -> None:
         filtered = filtered_resp.json()["items"]
         assert filtered
         assert all(item["source"] == "wiki" for item in filtered)
+        assert any(item["access"] == "summary" and item["file_path"] is None for item in filtered)
 
 
 def test_hermes_register_and_write_actions(tmp_path: Path) -> None:
@@ -325,6 +343,24 @@ def test_hermes_archive_and_runtime_status(tmp_path: Path) -> None:
             }
         },
     )
+    _write_json(
+        tmp_path / "shared-library" / "config" / "isolation-rules.json",
+        {
+            "rules": {
+                "memory_ext": {"other_namespace_read_summary": True},
+                "wiki_raw": {"formal_pages_readonly": True},
+                "minio_storage": {"other_namespace_read": True},
+            },
+            "enforcement": {"level": "strict", "block_on_violation": True, "audit_violations": True},
+        },
+    )
+    _write_json(
+        tmp_path / "shared-library" / "config" / "sync-schedule.json",
+        {"sync_jobs": [{"name": "registry-sync", "schedule": "*/30 * * * *"}]},
+    )
+    compiled_dir = tmp_path / "shared-library" / "wiki" / "compiled"
+    compiled_dir.mkdir(parents=True, exist_ok=True)
+    (compiled_dir / "paper.md").write_text("# Paper\n\ncompiled", encoding="utf-8")
 
     app = _build_app()
     with TestClient(app) as client:
@@ -349,6 +385,8 @@ def test_hermes_archive_and_runtime_status(tmp_path: Path) -> None:
         assert runtime_body["cron"]["jobs_total"] == 1
         assert runtime_body["archives"]["entries_count"] == 1
         assert runtime_body["storage"]["bucket"] == "ddup-shared-library"
+        assert runtime_body["isolation"]["present"] is True
+        assert any(item["key"] == "operate_wiki_compile" and item["status"] == "healthy" for item in runtime_body["lifecycle_tasks"])
 
         feedback_resp = client.get("/api/hermes/feedback/summary", headers={"X-User-Id": "u1"})
         assert feedback_resp.status_code == 200
@@ -357,6 +395,13 @@ def test_hermes_archive_and_runtime_status(tmp_path: Path) -> None:
         assert paper_job["last_execution_status"] == "success"
         assert paper_job["success_count"] == 1
         assert paper_job["last_duration_ms"] == 4200
+
+        ops_resp = client.get("/api/hermes/ops/check", headers={"X-User-Id": "u1"})
+        assert ops_resp.status_code == 200
+        ops_body = ops_resp.json()
+        assert ops_body["environment"]["isolation_rules_present"] is True
+        assert ops_body["integrity"]["outputs_index_present"] is True
+        assert ops_body["recommendations"]
 
     index_payload = json.loads((tmp_path / "shared-library" / "outputs" / ".index.json").read_text(encoding="utf-8"))
     assert index_payload["entries"][0]["job_id"] == "paper-scout-daily"

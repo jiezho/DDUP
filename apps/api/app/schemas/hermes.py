@@ -86,6 +86,8 @@ class HermesRuntimeStatusOut(BaseModel):
     cron: dict
     archives: dict
     storage: dict
+    isolation: dict = Field(default_factory=dict)
+    lifecycle_tasks: list[dict] = Field(default_factory=list)
 
 
 class HermesFeedbackItemOut(BaseModel):
@@ -142,6 +144,13 @@ class HermesFeedbackSummaryOut(BaseModel):
     recent_actions: list[HermesRecentActionOut] = Field(default_factory=list)
     operational_jobs: list[HermesOperationalJobOut] = Field(default_factory=list)
     metrics: HermesFeedbackMetricsOut = Field(default_factory=HermesFeedbackMetricsOut)
+
+
+class HermesOpsCheckOut(BaseModel):
+    environment: dict = Field(default_factory=dict)
+    integrity: dict = Field(default_factory=dict)
+    runtime: dict = Field(default_factory=dict)
+    recommendations: list[dict] = Field(default_factory=list)
 
 
 class HermesStorageObjectOut(BaseModel):

@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from app.core import config
+from app.services.hermes_registry import get_isolation_summary
 
 
 def _repo_root() -> Path:
@@ -41,6 +42,12 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _count_matching_files(directory: Path, pattern: str) -> int:
+    if not directory.exists():
+        return 0
+    return sum(1 for path in directory.rglob(pattern) if path.is_file())
+
+
 def _utc_now() -> datetime:
     return datetime.now(tz=timezone.utc).replace(microsecond=0)
 
@@ -51,6 +58,10 @@ def _cron_registry() -> dict[str, Any]:
 
 def _storage_policy() -> dict[str, Any]:
     return _safe_read_json(_shared_root() / "config" / "storage-policy.json", {})
+
+
+def _sync_schedule() -> dict[str, Any]:
+    return _safe_read_json(_shared_root() / "config" / "sync-schedule.json", {})
 
 
 def _storage_probe(endpoint: str) -> dict[str, Any]:
@@ -153,16 +164,62 @@ def get_runtime_status(limit: int = 5) -> dict[str, Any]:
     cron_registry = _cron_registry()
     outputs_index = _safe_read_json(_outputs_index_path(), {"entries": []})
     storage_policy = _storage_policy()
+    sync_schedule = _sync_schedule()
     minio_policy = storage_policy.get("policies", {}).get("minio", {})
     endpoint = config.settings.storage_endpoint or minio_policy.get("endpoint", "")
     bucket = config.settings.storage_bucket or minio_policy.get("bucket", "")
     probe = _storage_probe(endpoint)
+    isolation = get_isolation_summary()
 
     entries = [entry for entry in outputs_index.get("entries", []) if entry.get("type") == "cron_archive"]
     entries.sort(key=lambda item: str(item.get("archived_at", "")), reverse=True)
 
     jobs = cron_registry.get("jobs", [])
     owners = sorted({str(item.get("owner", "")) for item in jobs if item.get("owner")})
+    lifecycle_tasks = [
+        {
+            "key": "bootstrap_registry",
+            "stage": "Bootstrap",
+            "title": "实例注册表与共享目录",
+            "status": "healthy" if (_shared_root() / "registry" / "instances.json").exists() else "missing",
+            "detail": "检查 shared-library 实例注册表是否可读。",
+        },
+        {
+            "key": "bootstrap_storage",
+            "stage": "Bootstrap",
+            "title": "对象存储连接",
+            "status": "healthy" if probe.get("reachable") else "degraded",
+            "detail": f"当前探测状态：{probe.get('status', 'unknown')}。",
+        },
+        {
+            "key": "operate_wiki_compile",
+            "stage": "Operate",
+            "title": "Wiki 编译链路",
+            "status": "healthy" if _count_matching_files(_shared_root() / 'wiki' / 'compiled', '*.md') > 0 else "pending",
+            "detail": "检查 compiled 目录是否已有可见产物。",
+        },
+        {
+            "key": "archive_index",
+            "stage": "Archive",
+            "title": "归档索引维护",
+            "status": "healthy" if _outputs_index_path().exists() and bool(entries) else "pending",
+            "detail": f"当前索引中已有 {len(entries)} 条归档记录。",
+        },
+        {
+            "key": "archive_storage_retention",
+            "stage": "Archive",
+            "title": "对象存储生命周期",
+            "status": "healthy" if bool(minio_policy.get("retention_days")) else "pending",
+            "detail": f"保留策略天数：{minio_policy.get('retention_days') or '-'}。",
+        },
+        {
+            "key": "evolve_sync_schedule",
+            "stage": "Evolve",
+            "title": "实例同步与演进任务",
+            "status": "healthy" if bool(sync_schedule) else "pending",
+            "detail": "检查 sync-schedule.json 是否已配置实例同步节奏。",
+        },
+    ]
 
     return {
         "cron": {
@@ -186,4 +243,6 @@ def get_runtime_status(limit: int = 5) -> dict[str, Any]:
             "git_max_bytes": storage_policy.get("policies", {}).get("size_threshold", {}).get("git_max_bytes"),
             "probe": probe,
         },
+        "isolation": isolation,
+        "lifecycle_tasks": lifecycle_tasks,
     }

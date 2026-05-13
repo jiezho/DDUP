@@ -93,6 +93,13 @@ const jobStatusColorMap: Record<string, string> = {
   paused: "default"
 };
 
+const lifecycleStatusColorMap: Record<string, string> = {
+  healthy: "success",
+  pending: "processing",
+  degraded: "warning",
+  missing: "error"
+};
+
 type RegisterFormValues = {
   id: string;
   name: string;
@@ -745,6 +752,47 @@ export default function HermesAdminPage() {
                     />
                   </List.Item>
                 )}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="生命周期任务">
+              <List
+                size="small"
+                locale={{ emptyText: "暂无生命周期任务" }}
+                dataSource={runtime?.lifecycle_tasks || []}
+                renderItem={(item: HermesRuntimeStatus["lifecycle_tasks"][number]) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={
+                        <Space wrap>
+                          <Tag color="blue">{item.stage}</Tag>
+                          <Typography.Text strong>{item.title}</Typography.Text>
+                          <Tag color={lifecycleStatusColorMap[item.status] || "default"}>{item.status}</Tag>
+                        </Space>
+                      }
+                      description={item.detail}
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="隔离与脱敏规则">
+              <List
+                size="small"
+                dataSource={[
+                  `规则文件：${runtime?.isolation.present ? "已加载" : "缺失"}`,
+                  `规则数量：${runtime?.isolation.rules_count ?? 0}`,
+                  `执行级别：${runtime?.isolation.enforcement_level || "-"}`,
+                  `违规阻断：${runtime?.isolation.block_on_violation ? "开启" : "关闭"}`,
+                  `违规审计：${runtime?.isolation.audit_violations ? "开启" : "关闭"}`,
+                  `他实例记忆摘要：${runtime?.isolation.shared_memory_cross_read ? "允许摘要只读" : "关闭"}`,
+                  `对象存储跨实例读：${runtime?.isolation.storage_cross_read ? "允许" : "关闭"}`,
+                  `编译 Wiki 只读：${runtime?.isolation.compiled_wiki_readonly ? "是" : "否"}`
+                ]}
+                renderItem={(item: string) => <List.Item>{item}</List.Item>}
               />
             </Card>
           </Col>

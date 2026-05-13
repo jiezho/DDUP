@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { apiGet } from "../lib/api";
+import { getHermesOpsCheck, type HermesOpsCheck } from "../lib/hermes";
 
 type DashboardStats = {
   todos_total: number;
@@ -26,6 +27,7 @@ export default function MeWorkspacePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [wiki, setWiki] = useState<WikiStatus | null>(null);
+  const [opsCheck, setOpsCheck] = useState<HermesOpsCheck | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { token } = theme.useToken();
@@ -41,6 +43,7 @@ export default function MeWorkspacePage() {
       setStats(dashboardResp);
       setTemplates(templateResp);
       setWiki(wikiResp);
+      setOpsCheck(await getHermesOpsCheck());
     } catch {
       // ignore
     } finally {
@@ -250,6 +253,67 @@ export default function MeWorkspacePage() {
                   </Space>
                 )}
               </Card>
+            )
+          },
+          {
+            key: "ops",
+            label: "运维",
+            children: (
+              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                <Card title="Hermes 升级与运维检查" size="small" bordered={false} style={shellStyle}>
+                  {!opsCheck ? (
+                    <Typography.Text>加载中...</Typography.Text>
+                  ) : (
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} xl={12}>
+                        <Card bordered={false} size="small" style={statStyle} title="环境就绪">
+                          <List
+                            size="small"
+                            dataSource={[
+                              `DDUP_PATH：${opsCheck.environment.ddup_path_configured ? "已配置" : "未配置"}`,
+                              `Hermes API：${opsCheck.environment.hermes_api_configured ? "已配置" : "未配置"}`,
+                              `Wiki：${opsCheck.environment.wiki_enabled ? "已启用" : "未启用"}`,
+                              `对象存储：${opsCheck.environment.storage_configured ? "已配置" : "未配置"}`,
+                              `隔离规则：${opsCheck.environment.isolation_rules_present ? "已加载" : "缺失"}`
+                            ]}
+                            renderItem={(item) => <List.Item>{item}</List.Item>}
+                          />
+                        </Card>
+                      </Col>
+                      <Col xs={24} xl={12}>
+                        <Card bordered={false} size="small" style={statStyle} title="索引完整性">
+                          <List
+                            size="small"
+                            dataSource={[
+                              `实例注册表：${opsCheck.integrity.registry_present ? "就绪" : "缺失"}`,
+                              `技能清单：${opsCheck.integrity.skills_manifest_present ? "就绪" : "缺失"}`,
+                              `产出索引：${opsCheck.integrity.outputs_index_present ? "就绪" : "缺失"}`,
+                              `共享记忆：${opsCheck.integrity.shared_memory_present ? "就绪" : "缺失"}`,
+                              `Wiki 原始区：${opsCheck.integrity.wiki_raw_present ? "就绪" : "缺失"}`,
+                              `Cron 注册表：${opsCheck.integrity.cron_registry_present ? "就绪" : "缺失"}`
+                            ]}
+                            renderItem={(item) => <List.Item>{item}</List.Item>}
+                          />
+                        </Card>
+                      </Col>
+                      <Col xs={24}>
+                        <Card bordered={false} size="small" style={statStyle} title="升级建议">
+                          <List
+                            size="small"
+                            locale={{ emptyText: "暂无建议" }}
+                            dataSource={opsCheck.recommendations}
+                            renderItem={(item) => (
+                              <List.Item>
+                                <List.Item.Meta title={`${item.level.toUpperCase()} | ${item.title}`} description={item.description} />
+                              </List.Item>
+                            )}
+                          />
+                        </Card>
+                      </Col>
+                    </Row>
+                  )}
+                </Card>
+              </Space>
             )
           }
         ]}

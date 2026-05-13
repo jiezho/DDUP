@@ -171,6 +171,10 @@ def _load_outputs_index() -> dict[str, Any]:
     return _safe_read_json(_json_path("outputs", ".index.json"), {"entries": []})
 
 
+def _load_isolation_rules() -> dict[str, Any]:
+    return _safe_read_json(_json_path("config", "isolation-rules.json"), {})
+
+
 def _count_matching_files(directory: Path, pattern: str) -> int:
     if not directory.exists():
         return 0
@@ -399,6 +403,13 @@ def _memory_access_level(scope_name: str) -> str:
     return "summary"
 
 
+def _summary_text(text: str, limit: int = 180) -> str:
+    collapsed = " ".join((text or "").strip().split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[: max(0, limit - 1)].rstrip()}…"
+
+
 def _search_memory(query: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     q = query.lower()
@@ -415,8 +426,7 @@ def _search_memory(query: str) -> list[dict[str, Any]]:
             if q not in target:
                 continue
             access = _memory_access_level(scope_dir.name)
-            snippet_limit = 1000 if access == "full" else 500
-            snippet = text.strip().replace("\n", " ")[:snippet_limit]
+            snippet = _summary_text(text, 900 if access == "full" else 180)
             results.append(
                 {
                     "source": "memory",
@@ -425,7 +435,7 @@ def _search_memory(query: str) -> list[dict[str, Any]]:
                     "snippet": snippet,
                     "instance_id": scope_dir.name,
                     "access": access,
-                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/") if access == "full" else None,
                     "score": target.count(q) + 1,
                 }
             )
@@ -451,14 +461,16 @@ def _search_wiki(query: str) -> list[dict[str, Any]]:
                     instance_id = path.relative_to(wiki_root / "_raw").parts[0]
                 except Exception:
                     instance_id = None
+            access = "summary" if "_raw" in path.parts else "read_only"
             results.append(
                 {
                     "source": "wiki",
                     "id": str(path.relative_to(_repo_root())).replace("\\", "/"),
                     "title": path.stem,
-                    "snippet": text.strip().replace("\n", " ")[:300],
+                    "snippet": _summary_text(text, 180 if access == "summary" else 300),
                     "instance_id": instance_id,
-                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "access": access,
+                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/") if access != "summary" else None,
                     "score": target.count(q) + 1,
                 }
             )
@@ -499,6 +511,28 @@ def _search_cron_archives(query: str) -> list[dict[str, Any]]:
 
 def get_blueprint() -> dict[str, Any]:
     return BLUEPRINT
+
+
+def get_isolation_summary() -> dict[str, Any]:
+    payload = _load_isolation_rules()
+    rules = payload.get("rules", {}) if isinstance(payload, dict) else {}
+    enforcement = payload.get("enforcement", {}) if isinstance(payload, dict) else {}
+    return {
+        "present": bool(payload),
+        "rules_count": len(rules) if isinstance(rules, dict) else 0,
+        "enforcement_level": str(enforcement.get("level", "unknown") or "unknown"),
+        "block_on_violation": bool(enforcement.get("block_on_violation")),
+        "audit_violations": bool(enforcement.get("audit_violations")),
+        "shared_memory_cross_read": bool(
+            ((rules.get("memory_ext", {}) if isinstance(rules, dict) else {}).get("other_namespace_read_summary"))
+        ),
+        "storage_cross_read": bool(
+            ((rules.get("minio_storage", {}) if isinstance(rules, dict) else {}).get("other_namespace_read"))
+        ),
+        "compiled_wiki_readonly": bool(
+            ((rules.get("wiki_raw", {}) if isinstance(rules, dict) else {}).get("formal_pages_readonly"))
+        ),
+    }
 
 
 def list_skills() -> dict[str, Any]:
