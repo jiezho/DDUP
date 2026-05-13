@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     hermes_api_key: str = ""
     hermes_model: str = "hermes-agent"
 
+    storage_endpoint: str = ""
+    storage_bucket: str = ""
+    storage_access_key: str = ""
+    storage_secret_key: str = ""
+    storage_region: str = "us-east-1"
+    storage_secure: bool = False
+
     ddup_path: str = ""
 
 

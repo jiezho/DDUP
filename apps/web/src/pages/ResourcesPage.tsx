@@ -1,7 +1,7 @@
 import { Button, Card, Drawer, Input, List, Segmented, Select, Space, Tag, Typography, Tabs, theme } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost } from "@ddup/shared/lib/api";
 import { useDisplayMode } from "../contexts/displayMode";
 
 type FeedSource = { id: string; name: string; url: string };

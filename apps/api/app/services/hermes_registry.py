@@ -171,6 +171,12 @@ def _load_outputs_index() -> dict[str, Any]:
     return _safe_read_json(_json_path("outputs", ".index.json"), {"entries": []})
 
 
+def _count_matching_files(directory: Path, pattern: str) -> int:
+    if not directory.exists():
+        return 0
+    return sum(1 for path in directory.rglob(pattern) if path.is_file())
+
+
 def _sanitize_deployment(deployment: dict[str, Any]) -> dict[str, Any]:
     host = str(deployment.get("host", "") or "")
     host_label = "internal"
@@ -181,6 +187,68 @@ def _sanitize_deployment(deployment: dict[str, Any]) -> dict[str, Any]:
         "host_label": host_label,
         "hermes_version": deployment.get("hermes_version", "unknown"),
         "data_path_present": bool(deployment.get("data_path")),
+    }
+
+
+def _normalize_status(value: str) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in {"active", "online", "ready", "running"}:
+        return "active"
+    if normalized in {"partial", "degraded"}:
+        return "partial"
+    if normalized in {"planned", "provisioning"}:
+        return "planned"
+    if normalized in {"inactive", "offline", "stopped"}:
+        return "inactive"
+    return "unknown"
+
+
+def _normalize_capabilities(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, list):
+        toolsets = [str(item).strip() for item in raw if str(item).strip()]
+        summary_tags = toolsets[:6]
+        return {
+            "model": None,
+            "context_window": None,
+            "platforms": [],
+            "toolsets": toolsets,
+            "skills_count": None,
+            "skill_hub_available": None,
+            "max_subagents": None,
+            "declared_count": len(toolsets),
+            "summary_tags": summary_tags,
+        }
+
+    capabilities = raw if isinstance(raw, dict) else {}
+    platforms = [str(item).strip() for item in capabilities.get("platforms", []) if str(item).strip()]
+    toolsets = [str(item).strip() for item in capabilities.get("toolsets", []) if str(item).strip()]
+    summary_tags: list[str] = []
+    model = capabilities.get("model")
+    if model:
+        summary_tags.append(str(model))
+    summary_tags.extend(platforms[:2])
+    summary_tags.extend(toolsets[:3])
+
+    declared_count = len(platforms) + len(toolsets)
+    if model:
+        declared_count += 1
+    if capabilities.get("context_window"):
+        declared_count += 1
+    if capabilities.get("skills_count") is not None:
+        declared_count += 1
+    if capabilities.get("max_subagents") is not None:
+        declared_count += 1
+
+    return {
+        "model": str(model) if model else None,
+        "context_window": capabilities.get("context_window"),
+        "platforms": platforms,
+        "toolsets": toolsets,
+        "skills_count": capabilities.get("skills_count"),
+        "skill_hub_available": capabilities.get("skill_hub_available"),
+        "max_subagents": capabilities.get("max_subagents"),
+        "declared_count": declared_count,
+        "summary_tags": summary_tags[:6],
     }
 
 
@@ -234,10 +302,10 @@ def list_instances() -> list[dict[str, Any]]:
             {
                 "id": instance_id,
                 "name": item.get("name", instance_id),
-                "status": item.get("status", "unknown"),
+                "status": _normalize_status(str(item.get("status", "unknown"))),
                 "description": item.get("description", ""),
                 "deployment": _sanitize_deployment(item.get("deployment", {})),
-                "capabilities": item.get("capabilities", []),
+                "capabilities": _normalize_capabilities(item.get("capabilities", {})),
                 "specialization": item.get("specialization", []),
                 "published_skills": item.get("published_skills", []),
                 "sub_agents_count": len(item.get("sub_agents", [])),
@@ -261,10 +329,10 @@ def get_instance_detail(instance_id: str) -> dict[str, Any] | None:
         return {
             "id": instance_id,
             "name": item.get("name", instance_id),
-            "status": item.get("status", "unknown"),
+            "status": _normalize_status(str(item.get("status", "unknown"))),
             "description": item.get("description", ""),
             "deployment": _sanitize_deployment(item.get("deployment", {})),
-            "capabilities": item.get("capabilities", []),
+            "capabilities": _normalize_capabilities(item.get("capabilities", {})),
             "specialization": item.get("specialization", []),
             "published_skills": item.get("published_skills", []),
             "sub_agents": item.get("sub_agents", []),
@@ -282,19 +350,34 @@ def get_overview() -> dict[str, Any]:
     skills_manifest = _load_skills_manifest()
     outputs_index = _load_outputs_index()
     shared_memory_dir = _shared_root() / "memory-ext" / "shared"
+    wiki_root = _shared_root() / "wiki"
+    outputs_root = _shared_root() / "outputs"
     shared_memory_files = (
         [path for path in shared_memory_dir.glob("*.md") if path.is_file()]
         if shared_memory_dir.exists()
         else []
     )
+    wiki_raw_files_count = _count_matching_files(wiki_root / "_raw", "*.md")
+    wiki_compiled_files_count = _count_matching_files(wiki_root / "compiled", "*.md")
+    cron_archive_files_count = _count_matching_files(outputs_root, "*.json")
 
     return {
         "repo_root": str(_repo_root()),
         "instances_count": len(instances),
-        "online_instances_count": sum(1 for item in instances if item.get("status") == "online"),
+        "active_instances_count": sum(1 for item in instances if item.get("status") == "active"),
+        "online_instances_count": sum(1 for item in instances if item.get("status") == "active"),
         "skills_count": len(skills_manifest.get("skills", [])),
         "shared_memory_files_count": len(shared_memory_files),
         "outputs_entries_count": len(outputs_index.get("entries", [])),
+        "runtime": {
+            "wiki_raw_files_count": wiki_raw_files_count,
+            "wiki_compiled_files_count": wiki_compiled_files_count,
+            "cron_archive_files_count": cron_archive_files_count,
+            "published_skills_count": len(skills_manifest.get("skills", [])),
+            "memory_namespaces_count": sum(
+                1 for path in (_shared_root() / "memory-ext").glob("*") if path.is_dir()
+            ),
+        },
         "coverage": {
             "registry_present": _json_path("registry", "instances.json").exists(),
             "skills_manifest_present": _json_path("registry", "skills-manifest.json").exists(),
@@ -303,11 +386,115 @@ def get_overview() -> dict[str, Any]:
             "wiki_raw_present": (_shared_root() / "wiki" / "_raw").exists(),
         },
         "current_focus": [
-            "Read-only governance APIs are now available.",
-            "A shared Hermes console is mounted in web, pc and mobile apps.",
-            "Write operations still rely on script-based shared-library flows.",
+            "The Hermes console now supports registration, memory writes and wiki raw writes.",
+            "Cross-instance search covers instances, skills, memory, outputs, wiki and cron archives.",
+            "Archive jobs, storage lifecycle and wiki compilation still need full productization.",
         ],
     }
+
+
+def _memory_access_level(scope_name: str) -> str:
+    if scope_name == "shared":
+        return "full"
+    return "summary"
+
+
+def _search_memory(query: str) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    q = query.lower()
+    memory_root = _shared_root() / "memory-ext"
+    if not memory_root.exists():
+        return results
+
+    for scope_dir in memory_root.glob("*"):
+        if not scope_dir.is_dir():
+            continue
+        for path in scope_dir.glob("*.md"):
+            text = _safe_read_text(path)
+            target = f"{path.name}\n{text[:4000]}".lower()
+            if q not in target:
+                continue
+            access = _memory_access_level(scope_dir.name)
+            snippet_limit = 1000 if access == "full" else 500
+            snippet = text.strip().replace("\n", " ")[:snippet_limit]
+            results.append(
+                {
+                    "source": "memory",
+                    "id": path.stem,
+                    "title": path.name,
+                    "snippet": snippet,
+                    "instance_id": scope_dir.name,
+                    "access": access,
+                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "score": target.count(q) + 1,
+                }
+            )
+    return results
+
+
+def _search_wiki(query: str) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    q = query.lower()
+    wiki_root = _shared_root() / "wiki"
+    search_dirs = [wiki_root / "compiled", wiki_root / "_raw"]
+    for base_dir in search_dirs:
+        if not base_dir.exists():
+            continue
+        for path in base_dir.rglob("*.md"):
+            text = _safe_read_text(path)
+            target = f"{path.name}\n{text[:4000]}".lower()
+            if q not in target:
+                continue
+            instance_id = None
+            if "_raw" in path.parts:
+                try:
+                    instance_id = path.relative_to(wiki_root / "_raw").parts[0]
+                except Exception:
+                    instance_id = None
+            results.append(
+                {
+                    "source": "wiki",
+                    "id": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "title": path.stem,
+                    "snippet": text.strip().replace("\n", " ")[:300],
+                    "instance_id": instance_id,
+                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "score": target.count(q) + 1,
+                }
+            )
+    return results
+
+
+def _search_cron_archives(query: str) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    q = query.lower()
+    outputs_root = _shared_root() / "outputs"
+    if not outputs_root.exists():
+        return results
+
+    for instance_dir in outputs_root.iterdir():
+        if not instance_dir.is_dir() or instance_dir.name.startswith("."):
+            continue
+        cron_dir = instance_dir / "cron-archives"
+        if not cron_dir.exists():
+            continue
+        for path in cron_dir.rglob("*.json"):
+            text = _safe_read_text(path)
+            target = f"{path.name}\n{text[:4000]}".lower()
+            if q not in target:
+                continue
+            results.append(
+                {
+                    "source": "cron",
+                    "id": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "title": path.stem,
+                    "snippet": text.strip().replace("\n", " ")[:300],
+                    "instance_id": instance_dir.name,
+                    "file_path": str(path.relative_to(_repo_root())).replace("\\", "/"),
+                    "score": target.count(q) + 1,
+                }
+            )
+    return results
 
 
 def get_blueprint() -> dict[str, Any]:
@@ -324,12 +511,21 @@ def list_skills() -> dict[str, Any]:
     }
 
 
-def search_shared_library(query: str, limit: int = 20) -> list[dict[str, Any]]:
+def search_shared_library(
+    query: str,
+    limit: int = 20,
+    sources: list[str] | None = None,
+    instance_id: str | None = None,
+) -> list[dict[str, Any]]:
     q = (query or "").strip().lower()
     if not q:
         return []
 
     results: list[dict[str, Any]] = []
+    normalized_sources = {item.strip().lower() for item in (sources or []) if item and item.strip()}
+    if not normalized_sources:
+        normalized_sources = {"instance", "skill", "memory", "output", "wiki", "cron"}
+    instance_filter = (instance_id or "").strip()
 
     def score_text(*parts: str) -> int:
         score = 0
@@ -339,79 +535,92 @@ def search_shared_library(query: str, limit: int = 20) -> list[dict[str, Any]]:
                 score += max(1, text.count(q))
         return score
 
-    for instance in list_instances():
-        score = score_text(
-            instance["id"],
-            instance["name"],
-            instance.get("description", ""),
-            " ".join(instance.get("specialization", [])),
-        )
-        if score:
-            results.append(
-                {
-                    "source": "instance",
-                    "id": instance["id"],
-                    "title": instance["name"],
-                    "snippet": instance.get("description", ""),
-                    "instance_id": instance["id"],
-                    "score": score + 3,
-                }
+    if "instance" in normalized_sources:
+        for instance in list_instances():
+            if instance_filter and instance["id"] != instance_filter:
+                continue
+            score = score_text(
+                instance["id"],
+                instance["name"],
+                instance.get("description", ""),
+                " ".join(instance.get("specialization", [])),
+                instance.get("capabilities", {}).get("model") or "",
+                " ".join(instance.get("capabilities", {}).get("platforms", [])),
+                " ".join(instance.get("capabilities", {}).get("toolsets", [])),
             )
-
-    for skill in list_skills().get("skills", []):
-        score = score_text(
-            skill.get("name", ""),
-            skill.get("description", ""),
-            " ".join(skill.get("tags", [])),
-        )
-        if score:
-            results.append(
-                {
-                    "source": "skill",
-                    "id": skill.get("name", ""),
-                    "title": skill.get("name", ""),
-                    "snippet": skill.get("description", ""),
-                    "instance_id": None,
-                    "score": score + 2,
-                }
-            )
-
-    for scope_dir in (_shared_root() / "memory-ext").glob("*"):
-        if not scope_dir.is_dir():
-            continue
-        for path in scope_dir.glob("*.md"):
-            text = _safe_read_text(path)
-            score = score_text(path.name, text[:4000])
             if score:
-                snippet = text.strip().replace("\n", " ")[:160]
                 results.append(
                     {
-                        "source": "memory",
-                        "id": path.stem,
-                        "title": path.name,
-                        "snippet": snippet,
-                        "instance_id": scope_dir.name,
-                        "score": score + 1,
+                        "source": "instance",
+                        "id": instance["id"],
+                        "title": instance["name"],
+                        "snippet": instance.get("description", ""),
+                        "instance_id": instance["id"],
+                        "score": score + 3,
                     }
                 )
 
-    for entry in _load_outputs_index().get("entries", []):
-        score = score_text(
-            str(entry.get("title", "")),
-            str(entry.get("summary", "")),
-            str(entry.get("job_id", "")),
-        )
-        if score:
-            results.append(
-                {
-                    "source": "output",
-                    "id": str(entry.get("id", "")),
-                    "title": str(entry.get("title", "")),
-                    "snippet": str(entry.get("summary", "")),
-                    "instance_id": entry.get("instance_id"),
-                    "score": score,
-                }
+    if "skill" in normalized_sources:
+        for skill in list_skills().get("skills", []):
+            score = score_text(
+                skill.get("name", ""),
+                skill.get("description", ""),
+                " ".join(skill.get("tags", [])),
             )
+            if score:
+                results.append(
+                    {
+                        "source": "skill",
+                        "id": skill.get("name", ""),
+                        "title": skill.get("name", ""),
+                        "snippet": skill.get("description", ""),
+                        "instance_id": None,
+                        "score": score + 2,
+                    }
+                )
+
+    if "memory" in normalized_sources:
+        for item in _search_memory(query):
+            if instance_filter and item.get("instance_id") not in {instance_filter, "shared"}:
+                continue
+            item["score"] = item.get("score", 0) + 1
+            results.append(item)
+
+    if "output" in normalized_sources:
+        for entry in _load_outputs_index().get("entries", []):
+            if instance_filter and entry.get("instance_id") != instance_filter:
+                continue
+            score = score_text(
+                str(entry.get("title", "")),
+                str(entry.get("summary", "")),
+                str(entry.get("job_id", "")),
+            )
+            if score:
+                results.append(
+                    {
+                        "source": "output",
+                        "id": str(entry.get("id", "")),
+                        "title": str(entry.get("title", "")),
+                        "snippet": str(entry.get("summary", "")),
+                        "instance_id": entry.get("instance_id"),
+                        "file_path": entry.get("file_path"),
+                        "score": score,
+                    }
+                )
+
+    if "wiki" in normalized_sources:
+        for item in _search_wiki(query):
+            if instance_filter and item.get("instance_id") not in {None, instance_filter}:
+                continue
+            item["score"] = item.get("score", 0) + 1
+            results.append(item)
+
+    if "cron" in normalized_sources:
+        for item in _search_cron_archives(query):
+            if instance_filter and item.get("instance_id") != instance_filter:
+                continue
+            item["score"] = item.get("score", 0)
+            results.append(item)
 
     results.sort(key=lambda item: (-item["score"], str(item["title"])))
     trimmed = results[: max(1, min(limit, 50))]

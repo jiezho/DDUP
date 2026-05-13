@@ -1,8 +1,9 @@
-name: Deploy DDUP (PC & Mobile)
+name: Deploy DDUP
 
 on:
   push:
     branches:
+      - master
       - main
 
 jobs:
@@ -31,7 +32,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_KEY }}
-          source: "apps/pc/dist/,apps/mobile/dist/,infra/docker-compose.prod.yml,infra/nginx/nginx.conf"
+          source: "apps/api/,apps/pc/,apps/mobile/,packages/shared/,package.json,package-lock.json,infra/docker-compose.prod.yml,infra/nginx/nginx.conf"
           target: "/opt/ddup"
 
       - name: Restart Docker Compose
@@ -42,5 +43,5 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             cd /opt/ddup/infra
-            docker-compose -f docker-compose.prod.yml build pc mobile gateway
-            docker-compose -f docker-compose.prod.yml up -d pc mobile gateway
+            docker-compose -f docker-compose.prod.yml build api pc mobile gateway
+            docker-compose -f docker-compose.prod.yml up -d api pc mobile gateway

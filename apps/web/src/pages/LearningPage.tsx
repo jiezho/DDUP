@@ -1,7 +1,6 @@
 import { Button, Card, Input, List, Space, Tag, Typography, Tabs, theme } from "antd";
 import { useEffect, useState } from "react";
-
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost } from "@ddup/shared/lib/api";
 
 type Term = { id: string; term: string; definition: string; source: string; mastered: boolean; next_review_date: string | null };
 

@@ -37,6 +37,16 @@ export async function apiPatch<T>(url: string, body: unknown): Promise<T> {
   return (await resp.json()) as T;
 }
 
+export async function apiPostForm<T>(url: string, body: FormData): Promise<T> {
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: buildHeaders(),
+    body
+  });
+  if (!resp.ok) throw new Error(`POST ${url} failed: ${resp.status}`);
+  return (await resp.json()) as T;
+}
+
 export async function apiDelete<T>(url: string): Promise<T> {
   const resp = await fetch(url, { method: "DELETE", headers: buildHeaders() });
   if (!resp.ok) throw new Error(`DELETE ${url} failed: ${resp.status}`);

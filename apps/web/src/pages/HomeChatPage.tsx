@@ -1,8 +1,8 @@
 import { Badge, Button, Card, Divider, Form, Input, List, Modal, Select, Space, Tag, Typography, message, theme } from "antd";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiGet, apiPost, buildHeaders } from "@ddup/shared/lib/api";
 import { useDisplayMode } from "../contexts/displayMode";
-import { apiGet, apiPost, buildHeaders } from "../lib/api";
 import { UIButton, UITextField } from "../ui";
 
 type Msg = { id?: string; role: "user" | "assistant"; text: string };

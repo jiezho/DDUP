@@ -5,6 +5,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       ENVIRONMENT: ${ENVIRONMENT:-prod}
+      DDUP_PATH: ${DDUP_PATH:-/opt/ddup}
       DDUP_WIKI_ENABLED: ${DDUP_WIKI_ENABLED:-true}
       DDUP_WIKI_VAULT_PATH: ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
       DDUP_WIKI_RAW_DIR: ${DDUP_WIKI_RAW_DIR:-_raw}
@@ -20,6 +21,8 @@ services:
       STORAGE_SECURE: ${STORAGE_SECURE:-false}
     volumes:
       - ${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}:${DDUP_WIKI_VAULT_PATH:-/opt/ddup/wiki-vault}
+      - ../shared-library:${DDUP_PATH:-/opt/ddup}/shared-library
+      - ../agents:${DDUP_PATH:-/opt/ddup}/agents
     ports:
       - "8000:8000"
     extra_hosts:

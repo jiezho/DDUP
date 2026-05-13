@@ -1,7 +1,6 @@
 import { Button, Card, Drawer, Input, List, Space, Tabs, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
-
-import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@ddup/shared/lib/api";
 
 export default function AssistantPage() {
   const [todos, setTodos] = useState<{ id: string; text: string; done: boolean }[]>([]);
