@@ -12,6 +12,19 @@
 
 ---
 
+## 当前进度（2026-05-13）
+
+| Epic | 状态 | 关键落地点 |
+|---|---|---|
+| A | Done | wiki-config + wiki/outputs/agents 目录最小落盘 |
+| B | Done | cron-archive 归档落盘 + 索引更新 + CLI 元数据易用性 |
+| C | Done | archive/save 支持附件并按阈值分流（git 落盘 / MinIO 上传） |
+| D | Done | published skills 结构补齐 + instances/manifest 一致性自动校验 |
+| E | Done | wiki_compiler 产物生成闭环（含自动化验证） |
+| F | Done | cross-instance-query 执行 isolation-rules（memory-ext 策略） |
+| G | Done | /api/shared-library 兼容路由与 /api/hermes 对齐 |
+| B2 | Done | paper-scout-daily 示例工作流调用 cron-archive（含自动化验证） |
+
 ## 测试与验证基线
 
 ### 后端（FastAPI）

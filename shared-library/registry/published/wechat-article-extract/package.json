@@ -1,0 +1,12 @@
+{
+  "name": "wechat-article-extract",
+  "version": "1.0.0",
+  "description": "微信公众号文章内容提取技能（最小骨架）。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": [],
+  "install_instructions": "当前为占位骨架，需在实例侧实现网页抓取与正文解析。",
+  "tags": ["wechat", "article", "extract", "devops"],
+  "priority": "P2"
+}

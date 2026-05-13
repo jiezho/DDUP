@@ -1,0 +1,12 @@
+{
+  "name": "inspiration-signal",
+  "version": "1.0.0",
+  "description": "灵感信号检测技能（最小骨架）。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": [],
+  "install_instructions": "当前为占位骨架，需在实例侧实现信号检测与写入 bitable。",
+  "tags": ["inspiration", "signal", "devops"],
+  "priority": "P1"
+}

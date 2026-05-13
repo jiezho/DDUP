@@ -1,8 +1,22 @@
 {
   "version": "2.0.0",
-  "updated_at": "2026-05-11T00:00:00+08:00",
-  "skills_count": 10,
+  "updated_at": "2026-05-13T00:00:00+08:00",
+  "skills_count": 15,
   "skills": [
+    {
+      "name": "arxiv-paper-scout",
+      "version": "1.0.0",
+      "description": "arXiv 论文检索与摘要整理技能（最小骨架）。",
+      "author": "hermes-research",
+      "tags": [
+        "arxiv",
+        "paper",
+        "research",
+        "cron"
+      ],
+      "priority": "P1",
+      "path": "arxiv-paper-scout"
+    },
     {
       "name": "cron-archive",
       "version": "1.0.0",
@@ -46,6 +60,20 @@
       "path": "feishu-doc-writer"
     },
     {
+      "name": "douyin-video-extract",
+      "version": "1.0.0",
+      "description": "抖音视频内容提取技能（最小骨架）。",
+      "author": "hermes-devops",
+      "tags": [
+        "douyin",
+        "video",
+        "extract",
+        "devops"
+      ],
+      "priority": "P2",
+      "path": "douyin-video-extract"
+    },
+    {
       "name": "inspiration-manager",
       "version": "1.0.0",
       "description": "灵感记录管理技能，关键词拦截触发，自动分类、关联研究、飞书多维表格存储。",
@@ -58,6 +86,19 @@
       ],
       "priority": "P1",
       "path": "inspiration-manager"
+    },
+    {
+      "name": "inspiration-signal",
+      "version": "1.0.0",
+      "description": "灵感信号检测技能（最小骨架）。",
+      "author": "hermes-devops",
+      "tags": [
+        "inspiration",
+        "signal",
+        "devops"
+      ],
+      "priority": "P1",
+      "path": "inspiration-signal"
     },
     {
       "name": "memory-ext-client",
@@ -102,6 +143,20 @@
       "path": "news-terminology-push"
     },
     {
+      "name": "open-source-scout",
+      "version": "1.0.0",
+      "description": "开源项目扫描技能（GitHub/HuggingFace 等，最小骨架）。",
+      "author": "hermes-research",
+      "tags": [
+        "github",
+        "open-source",
+        "research",
+        "cron"
+      ],
+      "priority": "P1",
+      "path": "open-source-scout"
+    },
+    {
       "name": "scientific-research-agent",
       "version": "1.0.0",
       "description": "科研全流程技能，含论文检索（arXiv/Semantic Scholar）、精读、创新点提取、文献综述、报告撰写。",
@@ -129,6 +184,20 @@
       ],
       "priority": "P0",
       "path": "storage-client"
+    },
+    {
+      "name": "wechat-article-extract",
+      "version": "1.0.0",
+      "description": "微信公众号文章内容提取技能（最小骨架）。",
+      "author": "hermes-devops",
+      "tags": [
+        "wechat",
+        "article",
+        "extract",
+        "devops"
+      ],
+      "priority": "P2",
+      "path": "wechat-article-extract"
     },
     {
       "name": "wiki-write",

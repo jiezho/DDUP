@@ -1,0 +1,12 @@
+{
+  "name": "open-source-scout",
+  "version": "1.0.0",
+  "description": "开源项目扫描技能（GitHub/HuggingFace 等，最小骨架）。",
+  "author": "hermes-research",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": [],
+  "install_instructions": "当前为占位骨架，需在实例侧实现抓取与筛选逻辑。",
+  "tags": ["github", "open-source", "research", "cron"],
+  "priority": "P1"
+}

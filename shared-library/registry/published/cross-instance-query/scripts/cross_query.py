@@ -10,6 +10,28 @@ SHARED_LIB = DDUP_PATH / "shared-library"
 INSTANCE_ID = os.environ.get("HERMES_INSTANCE_ID", "unknown")
 
 
+def _safe_read_json(path: Path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def _isolation_rules() -> dict:
+    return _safe_read_json(SHARED_LIB / "config" / "isolation-rules.json", {}).get("rules", {})
+
+
+def _memory_ext_access(target_namespace: str, rules: dict) -> str:
+    if target_namespace in (INSTANCE_ID, "shared"):
+        return "full"
+    policy = rules.get("memory_ext", {}) if isinstance(rules, dict) else {}
+    if bool(policy.get("other_namespace_read_full")):
+        return "full"
+    if bool(policy.get("other_namespace_read_summary")):
+        return "summary"
+    return "deny"
+
+
 def search(keywords: list, sources: list = None, from_instance: str = None, limit: int = 20):
     """全局搜索"""
     sources = sources or ["outputs", "memory", "wiki", "cron"]
@@ -61,17 +83,20 @@ def _search_memory(keywords, from_instance, limit):
         return []
     results = []
     kw_lower = [k.lower() for k in keywords]
+    rules = _isolation_rules()
     for dir_path in memory_dir.iterdir():
         if not dir_path.is_dir() or dir_path.name.startswith("."):
             continue
         if from_instance and dir_path.name != from_instance and dir_path.name != "shared":
+            continue
+        access = _memory_ext_access(dir_path.name, rules)
+        if access == "deny":
             continue
         for md_file in dir_path.glob("*.md"):
             text = md_file.read_text(encoding="utf-8")
             if not any(kw in text.lower() for kw in kw_lower):
                 continue
             title = text.split("\n")[0].replace("# ", "").strip() if text else md_file.stem
-            access = "full" if dir_path.name in (INSTANCE_ID, "shared") else "summary"
             snippet = text[:500] + "..." if len(text) > 500 and access == "summary" else text[:1000]
             results.append({
                 "source": "memory-ext",

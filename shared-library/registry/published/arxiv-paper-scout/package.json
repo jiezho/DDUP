@@ -1,0 +1,12 @@
+{
+  "name": "arxiv-paper-scout",
+  "version": "1.0.0",
+  "description": "arXiv 论文检索与摘要整理技能（最小骨架）。",
+  "author": "hermes-research",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": [],
+  "install_instructions": "当前为占位骨架，需在实例侧实现 arXiv 检索与解析。",
+  "tags": ["arxiv", "paper", "research", "cron"],
+  "priority": "P1"
+}

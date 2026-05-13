@@ -1,0 +1,12 @@
+{
+  "name": "douyin-video-extract",
+  "version": "1.0.0",
+  "description": "抖音视频内容提取技能（最小骨架）。",
+  "author": "hermes-devops",
+  "compatibility": "hermes >= 0.13.0",
+  "dependencies": [],
+  "env_vars": [],
+  "install_instructions": "当前为占位骨架，需在实例侧实现链接解析与内容提取。",
+  "tags": ["douyin", "video", "extract", "devops"],
+  "priority": "P2"
+}

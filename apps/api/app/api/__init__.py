@@ -9,6 +9,7 @@ from app.api.hermes import router as hermes_router
 from app.api.learning import router as learning_router
 from app.api.me import router as me_router
 from app.api.resources import router as resources_router
+from app.api.shared_library import router as shared_library_router
 from app.api.spaces import router as spaces_router
 from app.api.wiki import router as wiki_router
 
@@ -25,3 +26,4 @@ api_router.include_router(resources_router)
 api_router.include_router(me_router)
 api_router.include_router(wiki_router)
 api_router.include_router(hermes_router)
+api_router.include_router(shared_library_router)
