@@ -1,0 +1,911 @@
+openapi: 3.1.0
+info:
+  title: Personal AI Workbench Local API
+  version: 1.5.0
+  description: >-
+    Local-loopback MVP contract. Foundation session/security and the durable
+    project, milestone, task, manual discussion-to-decision, explicit text/link
+    capture, daily focus/review, controlled Markdown source intake, and authorized
+    context full-text search slices are implemented; other product domains remain out of scope.
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: Minimal service health without business data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /api/v1/session/bootstrap:
+    post:
+      operationId: bootstrapLocalSession
+      parameters:
+        - in: header
+          name: X-Workbench-Bootstrap
+          required: true
+          schema: { type: string, minLength: 32 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "403": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/v1/session:
+    get:
+      operationId: getLocalSession
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: revokeLocalSession
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/system/capabilities:
+    get:
+      operationId: getCapabilities
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/v1/spaces:
+    get:
+      operationId: listSpaces
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/v1/spaces/{spaceId}:
+    get:
+      operationId: getSpace
+      security: [{ localSession: [] }]
+      parameters:
+        - in: path
+          name: spaceId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/projects:
+    get:
+      operationId: listProjects
+      security: [{ localSession: [] }]
+      parameters:
+        - in: query
+          name: space_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: status
+          schema: { $ref: "#/components/schemas/ProjectStatus" }
+        - in: query
+          name: template_type
+          schema: { $ref: "#/components/schemas/ProjectTemplate" }
+        - in: query
+          name: cursor
+          schema: { type: string, maxLength: 512 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}:
+    get:
+      operationId: getProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectPatch" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/transitions:
+    post:
+      operationId: transitionProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectTransition" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/restore:
+    post:
+      operationId: restoreProject
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/milestones:
+    get:
+      operationId: listMilestones
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createMilestone
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MilestoneCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/milestones/{milestoneId}:
+    patch:
+      operationId: updateMilestone
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/MilestoneId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MilestonePatch" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteMilestone
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/MilestoneId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/tasks:
+    get:
+      operationId: listTasks
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createTask
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/tasks/{taskId}:
+    get:
+      operationId: getTask
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateTask
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskPatch" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteTask
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/tasks/{taskId}/transitions:
+    post:
+      operationId: transitionTask
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskTransition" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/discussions:
+    get:
+      operationId: listDiscussions
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createDiscussion
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscussionCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/discussions/{discussionId}/entries:
+    get:
+      operationId: listDiscussionEntries
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DiscussionId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createDiscussionEntry
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DiscussionId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscussionEntryCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/projects/{projectId}/decisions:
+    get:
+      operationId: listDecisions
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/discussions/{discussionId}/conversions:
+    post:
+      operationId: convertDiscussionToDecisionAndTask
+      description: >-
+        Explicit owner-confirmed atomic command. It resolves one open discussion,
+        accepts one decision, creates one task, and records their link. It is not an AI approval.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DiscussionId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscussionConversion" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/captures:
+    get:
+      operationId: listCaptures
+      security: [{ localSession: [] }]
+      parameters:
+        - in: query
+          name: space_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: project_id
+          schema: { type: string, format: uuid }
+        - in: query
+          name: status
+          schema: { type: string, enum: [inbox, processed, archived], default: inbox }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createCapture
+      description: >-
+        Stores explicit text or http/https link metadata in the local inbox.
+        The endpoint never fetches the URL and never promotes the capture to long-term knowledge.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaptureCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/captures/{captureId}/transitions:
+    post:
+      operationId: transitionCapture
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CaptureId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaptureTransition" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/daily/{date}:
+    get:
+      operationId: getDailySnapshot
+      description: >-
+        Returns project task truth, at most three saved focus references, and the
+        explicit user-authored review for one local date. It does not copy tasks or generate AI text.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DailyDate"
+        - in: query
+          name: space_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/daily-plans/{date}:
+    put:
+      operationId: saveDailyPlan
+      description: Saves up to three references to project tasks; task records remain owned by the project workspace.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DailyDate"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/OptionalIfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DailyPlanSave" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/daily-reviews/{date}:
+    put:
+      operationId: saveDailyReview
+      description: Stores only the user's explicit review fields; no AI generation or silent rewriting occurs.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/DailyDate"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/OptionalIfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DailyReviewSave" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/sources:
+    get:
+      operationId: listSources
+      description: Lists source metadata only after space/project authorization; storage paths and source bodies are not returned.
+      security: [{ localSession: [] }]
+      parameters:
+        - in: query
+          name: space_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: project_id
+          schema: { type: string, format: uuid }
+        - in: query
+          name: status
+          schema: { type: string, enum: [ready, archived, failed], default: ready }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/sources/imports/markdown:
+    post:
+      operationId: importMarkdownSource
+      description: >-
+        Accepts one explicit Markdown payload from the browser, writes immutable content-addressed
+        bytes under the controlled source root, creates Source/SourceVersion/Document, and indexes
+        normalized text. It never accepts a client path, fetches a URL, invokes AI, or parses XLSX.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MarkdownSourceImport" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/context/search:
+    post:
+      operationId: searchAuthorizedContext
+      description: >-
+        Read-only search command. Space/project/type/date authorization filters are applied in the
+        database query before titles, snippets, counts, or locators are returned. The current baseline
+        is FTS5 trigram with a bounded short-query fallback; it has no semantic recall or reranking.
+      security: [{ localSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContextSearch" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    localSession:
+      type: apiKey
+      in: cookie
+      name: workbench_session
+  parameters:
+    CsrfToken:
+      in: header
+      name: X-CSRF-Token
+      required: true
+      schema: { type: string, minLength: 32 }
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 200, pattern: "^[A-Za-z0-9._~-]+$" }
+    IfMatch:
+      in: header
+      name: If-Match
+      required: true
+      schema: { type: string, pattern: '^"v[1-9][0-9]*"$' }
+    OptionalIfMatch:
+      in: header
+      name: If-Match
+      required: false
+      description: Omit when creating the date record; send the current version when updating it.
+      schema: { type: string, pattern: '^"v[1-9][0-9]*"$' }
+    ProjectId:
+      in: path
+      name: projectId
+      required: true
+      schema: { type: string, format: uuid }
+    MilestoneId:
+      in: path
+      name: milestoneId
+      required: true
+      schema: { type: string, format: uuid }
+    TaskId:
+      in: path
+      name: taskId
+      required: true
+      schema: { type: string, format: uuid }
+    DiscussionId:
+      in: path
+      name: discussionId
+      required: true
+      schema: { type: string, format: uuid }
+    CaptureId:
+      in: path
+      name: captureId
+      required: true
+      schema: { type: string, format: uuid }
+    DailyDate:
+      in: path
+      name: date
+      required: true
+      schema: { type: string, pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  responses:
+    Success:
+      description: Successful envelope.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+    Error:
+      description: Safe error envelope.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  schemas:
+    ProjectStatus:
+      type: string
+      enum: [draft, active, paused, completed, archived]
+    ProjectTemplate:
+      type: string
+      enum: [general, research, ai_exploration, frontier_tracking, learning]
+    LocalDate:
+      type: [string, "null"]
+      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    ProjectCreate:
+      type: object
+      additionalProperties: false
+      required: [space_id, name, template_type]
+      properties:
+        space_id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        summary: { type: string, maxLength: 2000, default: "" }
+        template_type: { $ref: "#/components/schemas/ProjectTemplate" }
+        start_date: { $ref: "#/components/schemas/LocalDate" }
+        target_date: { $ref: "#/components/schemas/LocalDate" }
+        context_policy: { type: string, enum: [project_only, space_allowed], default: project_only }
+        color_token: { type: string, enum: [sky, cyan, blue, teal, indigo], default: sky }
+    ProjectPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        summary: { type: string, maxLength: 2000 }
+        start_date: { $ref: "#/components/schemas/LocalDate" }
+        target_date: { $ref: "#/components/schemas/LocalDate" }
+        context_policy: { type: string, enum: [project_only, space_allowed] }
+        color_token: { type: string, enum: [sky, cyan, blue, teal, indigo] }
+    ProjectTransition:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [activate, pause, complete, archive, reopen] }
+    MilestoneStatus:
+      type: string
+      enum: [planned, active, completed, cancelled]
+    MilestoneCreate:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        target_date: { $ref: "#/components/schemas/LocalDate" }
+        sort_order: { type: integer, minimum: 0, maximum: 1000000, default: 0 }
+    MilestonePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        status: { $ref: "#/components/schemas/MilestoneStatus" }
+        target_date: { $ref: "#/components/schemas/LocalDate" }
+        sort_order: { type: integer, minimum: 0, maximum: 1000000 }
+    TaskStatus:
+      type: string
+      enum: [inbox, planned, in_progress, blocked, done, cancelled]
+    NullableUuid:
+      type: [string, "null"]
+      format: uuid
+    NullableDateTime:
+      type: [string, "null"]
+      format: date-time
+    TaskCreate:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        description: { type: string, maxLength: 20000, default: "" }
+        priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        due_at: { $ref: "#/components/schemas/NullableDateTime" }
+        due_date: { $ref: "#/components/schemas/LocalDate" }
+        milestone_id: { $ref: "#/components/schemas/NullableUuid" }
+        parent_task_id: { $ref: "#/components/schemas/NullableUuid" }
+    TaskPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        description: { type: string, maxLength: 20000 }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        due_at: { $ref: "#/components/schemas/NullableDateTime" }
+        due_date: { $ref: "#/components/schemas/LocalDate" }
+        milestone_id: { $ref: "#/components/schemas/NullableUuid" }
+        parent_task_id: { $ref: "#/components/schemas/NullableUuid" }
+    TaskTransition:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [plan, start, block, complete, cancel, reopen] }
+    DiscussionCreate:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+    DiscussionEntryCreate:
+      type: object
+      additionalProperties: false
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 20000 }
+    DiscussionConversion:
+      type: object
+      additionalProperties: false
+      required: [decision_title, statement, task_title]
+      properties:
+        decision_title: { type: string, minLength: 1, maxLength: 200 }
+        statement: { type: string, minLength: 1, maxLength: 20000 }
+        rationale: { type: string, maxLength: 20000, default: "" }
+        task_title: { type: string, minLength: 1, maxLength: 240 }
+        task_priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        task_due_date: { $ref: "#/components/schemas/LocalDate" }
+        milestone_id: { $ref: "#/components/schemas/NullableUuid" }
+    CaptureCreate:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, space_id, title, body]
+          properties:
+            kind: { const: text }
+            space_id: { type: string, format: uuid }
+            project_id: { $ref: "#/components/schemas/NullableUuid" }
+            title: { type: string, minLength: 1, maxLength: 200 }
+            body: { type: string, minLength: 1, maxLength: 20000 }
+        - type: object
+          additionalProperties: false
+          required: [kind, space_id, title, canonical_uri]
+          properties:
+            kind: { const: link }
+            space_id: { type: string, format: uuid }
+            project_id: { $ref: "#/components/schemas/NullableUuid" }
+            title: { type: string, minLength: 1, maxLength: 200 }
+            canonical_uri: { type: string, format: uri, maxLength: 2048, pattern: "^https?://" }
+    CaptureTransition:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [process, archive, reopen] }
+    DailyPlanSave:
+      type: object
+      additionalProperties: false
+      required: [space_id, task_ids]
+      properties:
+        space_id: { type: string, format: uuid }
+        task_ids:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    DailyReviewSave:
+      type: object
+      additionalProperties: false
+      required: [space_id]
+      properties:
+        space_id: { type: string, format: uuid }
+        summary: { type: string, maxLength: 10000, default: "" }
+        wins: { type: string, maxLength: 10000, default: "" }
+        blockers: { type: string, maxLength: 10000, default: "" }
+        next_focus: { type: string, maxLength: 10000, default: "" }
+    MarkdownSourceImport:
+      type: object
+      additionalProperties: false
+      required: [space_id, filename, content]
+      properties:
+        space_id: { type: string, format: uuid }
+        project_id: { $ref: "#/components/schemas/NullableUuid" }
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: "^[^/\\\\\\x00-\\x1F\\x7F]+\\.(md|markdown)$"
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 1000000 }
+    ContextSearch:
+      type: object
+      additionalProperties: false
+      required: [space_id, q]
+      properties:
+        space_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        q: { type: string, minLength: 2, maxLength: 200 }
+        types:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          default: [project, task, capture, document]
+          items: { type: string, enum: [project, task, capture, document] }
+        from: { type: string, pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+        to: { type: string, pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+        limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    SuccessEnvelope:
+      type: object
+      additionalProperties: false
+      required: [request_id, status, data, errors, meta]
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { const: ok }
+        data: {}
+        errors: { type: array, maxItems: 0 }
+        meta:
+          type: object
+          required: [api_version]
+          properties:
+            api_version: { const: v1 }
+          additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [request_id, status, data, errors, meta]
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { const: error }
+        data: { type: "null" }
+        errors:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, message, field, retryable]
+            properties:
+              code: { type: string }
+              message: { type: string }
+              field: { type: [string, "null"] }
+              retryable: { type: boolean }
+        meta:
+          type: object
+          required: [api_version]
+          properties:
+            api_version: { const: v1 }
+          additionalProperties: true

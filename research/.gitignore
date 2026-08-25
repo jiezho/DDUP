@@ -1,0 +1,9 @@
+# Temporary Chromium profiles created while capturing public screenshots.
+# Keep the final PNG/GIF evidence files, but never commit browser caches,
+# extension state, cookies, history, or machine-local profile metadata.
+screenshots/**/profile-*/
+
+# Raw upstream demo downloads used only while selecting the three final,
+# report-linked screenshots. They are large and are not referenced by reports.
+screenshots/open_source/*.gif
+screenshots/open_source/*-contact.png

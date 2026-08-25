@@ -1,0 +1,10 @@
+# Redundant downloaded source archive.
+person_dashboard-main.zip
+
+# Local task artifacts are not product or research deliverables.
+artifacts/
+
+# Browser/test runtime output.
+**/test-results/
+**/playwright-report/
+

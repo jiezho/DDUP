@@ -1,0 +1,69 @@
+name: Workbench CI
+
+on:
+  push:
+    paths:
+      - "person_dashboard-main/Workbench/**"
+      - ".github/workflows/workbench-ci.yml"
+  pull_request:
+    paths:
+      - "person_dashboard-main/Workbench/**"
+      - ".github/workflows/workbench-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workbench-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: ${{ matrix.os }} / Node 24
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    defaults:
+      run:
+        working-directory: person_dashboard-main/Workbench
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: person_dashboard-main/Workbench/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check runtime and SQLite capabilities
+        run: npm run check:runtime
+
+      - name: Run SQLite quick reliability spike
+        run: npm run spike:sqlite
+
+      - name: Build and run tests
+        run: npm test
+
+      - name: Install Chromium headless shell
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Run project browser acceptance
+        if: runner.os == 'Linux'
+        run: npm run test:e2e
+
+      - name: Scan privacy boundary
+        run: npm run privacy:scan
