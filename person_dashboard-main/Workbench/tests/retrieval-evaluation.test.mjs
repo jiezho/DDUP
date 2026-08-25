@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { runSyntheticFtsBaseline } from '../scripts/evaluate-context-fts-baseline.mjs'
+import { shouldRefuseSyntheticSearch } from '../scripts/evaluate-context-bge-m3.mjs'
 import {
   SYNTHETIC_RETRIEVAL_EXPECTED_COUNTS,
   SYNTHETIC_RETRIEVAL_QRELS,
@@ -30,4 +31,13 @@ test('the FTS5 baseline is reproducible, scoped and intentionally exposes semant
   assert.equal(first.by_category.exact_zh.recall_at_20, 1)
   assert.equal(first.by_category.scope_filter.recall_at_20, 1)
   assert.ok(first.by_category.semantic_zh.recall_at_20 < 0.5)
+})
+
+test('the deterministic evaluation guard refuses every adversarial query without blocking judged queries', () => {
+  const adversarial = SYNTHETIC_RETRIEVAL_QRELS.filter((query) => query.category === 'adversarial')
+  const judged = SYNTHETIC_RETRIEVAL_QRELS.filter((query) => query.relevant.length > 0)
+
+  assert.equal(adversarial.length, 6)
+  assert.ok(adversarial.every((query) => shouldRefuseSyntheticSearch(query.query)))
+  assert.ok(judged.every((query) => !shouldRefuseSyntheticSearch(query.query)))
 })

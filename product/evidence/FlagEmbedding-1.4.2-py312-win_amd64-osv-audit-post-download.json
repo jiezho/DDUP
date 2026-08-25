@@ -1,0 +1,16 @@
+{
+  "schema_version": "dd-up-osv-metadata-audit-v1",
+  "generated_at": "2026-08-25T11:59:27.722010+00:00",
+  "source": "https://api.osv.dev/v1/querybatch",
+  "ecosystem": "PyPI",
+  "package_count": 70,
+  "artifact_state": "downloaded_hash_verified",
+  "affected_package_count": 0,
+  "vulnerability_record_count": 0,
+  "limitations": [
+    "The audit reflects OSV records available at the generated timestamp.",
+    "An empty result does not prove absence of vulnerabilities.",
+    "Artifacts were downloaded and hash-verified separately; OSV identifies packages by name and version, not by wheel hash."
+  ],
+  "findings": []
+}

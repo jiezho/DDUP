@@ -18,6 +18,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--artifact-state",
+        choices=("metadata_only", "downloaded_hash_verified"),
+        default="metadata_only",
+    )
     args = parser.parse_args()
 
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -71,6 +76,7 @@ def main() -> int:
         "source": OSV_BATCH_URL,
         "ecosystem": "PyPI",
         "package_count": len(packages),
+        "artifact_state": args.artifact_state,
         "affected_package_count": len(findings),
         "vulnerability_record_count": sum(
             len(item["vulnerabilities"]) for item in findings
@@ -78,7 +84,11 @@ def main() -> int:
         "limitations": [
             "The audit reflects OSV records available at the generated timestamp.",
             "An empty result does not prove absence of vulnerabilities.",
-            "Package artifacts were not downloaded and their hashes were not recomputed locally.",
+            (
+                "Artifacts were downloaded and hash-verified separately; OSV identifies packages by name and version, not by wheel hash."
+                if args.artifact_state == "downloaded_hash_verified"
+                else "Package artifacts were not downloaded and their hashes were not recomputed locally."
+            ),
         ],
         "findings": findings,
     }

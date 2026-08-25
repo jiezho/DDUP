@@ -1,0 +1,44 @@
+{
+  "schema_version": "dd-up-bge-m3-cpu-smoke-v1",
+  "generated_at": "2026-08-25T11:26:45.149756+00:00",
+  "status": "passed",
+  "boundary": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "model_source": "reviewed_local_directory",
+    "network_allowed": false,
+    "device_requested": "cpu",
+    "real_user_data_used": false,
+    "input_kind": "explicitly_synthetic_short_text"
+  },
+  "versions": {
+    "python": "3.12.13",
+    "FlagEmbedding": "1.4.2",
+    "torch": "2.13.0+cpu",
+    "transformers": "5.15.1"
+  },
+  "runtime": {
+    "cuda_available": false,
+    "cuda_version": null,
+    "load_seconds": 1.66,
+    "encode_seconds": 0.266,
+    "memory_before": {
+      "rss_bytes": 463101952,
+      "peak_working_set_bytes": 463101952
+    },
+    "memory_after_load": {
+      "rss_bytes": 814170112,
+      "peak_working_set_bytes": 888086528
+    },
+    "memory_after_encode": {
+      "rss_bytes": 2031538176,
+      "peak_working_set_bytes": 2031538176
+    }
+  },
+  "embedding": {
+    "batch_size": 1,
+    "dimension": 1024,
+    "finite": true,
+    "l2_norm": 1.0
+  }
+}

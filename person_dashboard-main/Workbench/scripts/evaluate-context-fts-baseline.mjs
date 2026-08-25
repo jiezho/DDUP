@@ -11,7 +11,7 @@ function quotedMatch(value) {
   return `"${value.replaceAll('"', '""')}"`
 }
 
-export function runSyntheticFtsBaseline() {
+export function runSyntheticFtsCandidates() {
   const database = new DatabaseSync(':memory:', { allowExtension: false })
   try {
     database.exec("CREATE VIRTUAL TABLE documents_fts USING fts5(document_id UNINDEXED, project_id UNINDEXED, title, body, tokenize='trigram')")
@@ -39,10 +39,17 @@ export function runSyntheticFtsBaseline() {
       })))
     }
 
-    return evaluateRetrievalRun({ queries: SYNTHETIC_RETRIEVAL_QRELS, resultsByQuery })
+    return resultsByQuery
   } finally {
     database.close()
   }
+}
+
+export function runSyntheticFtsBaseline() {
+  return evaluateRetrievalRun({
+    queries: SYNTHETIC_RETRIEVAL_QRELS,
+    resultsByQuery: runSyntheticFtsCandidates(),
+  })
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

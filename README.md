@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G5a 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、混合检索契约与 60 条合成评测基线已经实现；真实向量检索、重排、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G5a-DL 已确认。核心项目闭环、受控 Markdown、权限优先全文检索和混合检索契约已经实现；BGE-M3 仅完成仓库外 synthetic-only CPU POC，G5b 待确认。正式向量检索、重排、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -36,7 +36,7 @@ flowchart TB
     SQLite[(SQLite\n业务对象·权限·审计)]
     Files[受控文件\n原始资料与附件]
     FTS[(FTS5\n可重建全文索引)]
-    Vector[(向量/图谱 · 待评测)]
+    Vector[(向量/图谱 · 隔离 POC / 未启用)]
   end
 
   PC --> Entry
@@ -74,7 +74,7 @@ flowchart TB
 | 今日与复盘 | 最多三项任务聚焦、任务真源同步、日终复盘 | 已实现首版 |
 | 受控来源 | 虚构 Markdown 导入、SHA-256 文件真源、SourceVersion、Document | 已实现首版 |
 | 上下文检索 | Project/Task/Capture/Document 统一 FTS5，空间/项目/类型/日期过滤 | 已实现首版 |
-| 混合与向量检索 | Adapter、Chunk、SearchEvidence、RRF 与合成评测已落地；BGE-M3 尚未下载 | 契约/基线已实现，真实模型待确认 |
+| 混合与向量检索 | Adapter、Chunk、SearchEvidence、RRF 已落地；BGE-M3 完成仓库外 CPU 合成 POC | 契约/评测已实现，G5b 待确认，未集成 |
 | 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中，等待 G5b |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
@@ -132,7 +132,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19、测试 186/186、生产构建、隐私扫描和 Playwright Chromium 端到端测试均已通过。构建仍有主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
+当前验证快照：Node 24.19，测试 189/189、独立生产构建和隐私扫描通过；最近一次 UI E2E 为 Playwright Chromium 1/1。构建存在主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
 
 ## 六、仓库结构
 
@@ -185,16 +185,18 @@ DDUP/
 - [旧版 XLSX 导入依赖处置（待确认）](product/旧版XLSX导入依赖处置_待确认.md)
 - [模型与推理运行时依赖审查（G5a-D 已确认）](product/模型与推理运行时依赖审查.md)
 - [FlagEmbedding 依赖元数据解析报告](product/FlagEmbedding依赖元数据解析报告.md)
-- [模型 POC 实际下载授权（待确认）](product/模型POC实际下载授权_待确认.md)
+- [模型 POC 实际下载授权（G5a-DL 已确认）](product/模型POC实际下载授权.md)
+- [BGE-M3 隔离 POC 运行报告](product/BGE-M3隔离POC运行报告.md)
+- [AI 评测方案与检索评测报告（G5b 待确认）](product/AI评测方案与检索评测报告_待确认.md)
 
 文档中的能力状态统一使用“已实现、原型演示、设计方案、POC 候选、后续计划”。没有代码、测试和运行证据的能力不得描述为已集成或生产可用。
 
 ## 八、后续路线
 
-1. 用户确认模型与推理运行时专项审查；确认前不下载模型；
-2. 确认后先冻结依赖闭包和精确下载量，再单独确认大体积下载；
-3. 隔离评测 BGE-M3 与 RRF；只有融合达门后才审查 reranker；
-4. 通过 G5b 的引用、拒答和泄漏门后，再开放生成式引用问答；
+1. 确认 G5b 的条件式 Go/Stop；确认前保持正式 FTS 和生成式回答关闭；
+2. 若条件式 Go，先实现权限前置、确定性意图拦截、无答案证据门与 FTS 回退；
+3. 补真实 locator 的合成端到端验证和独立盲测，暂不下载 reranker；
+4. 通过拒答、引用、泄漏、回退和资源门后，再单独确认生成式引用问答；
 5. 随后进入 Native Runtime、Tool Gateway、Harness/Hermes POC 和移动连接器阶段。
 
 ## 九、隐私与发布边界

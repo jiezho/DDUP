@@ -5,6 +5,8 @@
 > 状态：已完成的 metadata-only 审查  
 > 真实边界：**没有下载 wheel/sdist，没有安装 Python 包，没有下载模型**
 
+> 后续状态说明（2026-08-25）：本文冻结的是下载前元数据快照。G5a-DL 后已在仓库外按该清单完成下载、哈希校验、离线安装和合成 POC；结果见 `BGE-M3隔离POC运行报告.md`。本文历史边界不改写为当下产品能力。
+
 ## 1. 结论
 
 针对 Windows AMD64、CPython 3.12.13 和 `FlagEmbedding==1.4.2`，已通过 PyPI 官方 JSON 元数据闭合出一份候选锁：70 个包、全部具有兼容 wheel、0 个 sdist 构建回退，候选分发包压缩总量 262,686,832 bytes（250.52 MiB）。
@@ -52,5 +54,4 @@ OSV 原始审查证据：`product/evidence/FlagEmbedding-1.4.2-py312-win_amd64-o
 
 ## 5. 下一步
 
-实际下载需通过 `模型POC实际下载授权_待确认.md`。通过后仍只在仓库外隔离目录下载 hash-pinned wheels 和固定 revision 的 BGE-M3 文件，先做导入/哈希/资源 smoke test，再决定是否运行 60 条全合成 dense + RRF 对照。
-
+实际下载已通过 `模型POC实际下载授权.md` 的 G5a-DL 确认，并已按仓库外、hash-pinned、固定 revision、synthetic-only 边界完成。隔离 POC 不等于正式依赖或产品集成；下一步等待 G5b。

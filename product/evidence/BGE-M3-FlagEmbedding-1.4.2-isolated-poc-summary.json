@@ -1,0 +1,62 @@
+{
+  "schema_version": "dd-up-isolated-model-poc-summary-v1",
+  "generated_at": "2026-08-25T12:10:46.829015+00:00",
+  "status": "isolated_poc_completed_not_integrated",
+  "boundary": {
+    "runtime_root_outside_repository": true,
+    "loopback_service_started": false,
+    "workbench_production_dependency_changed": false,
+    "real_user_data_used": false,
+    "reranker_used": false,
+    "generated_answer_enabled": false
+  },
+  "downloads": {
+    "wheel_count": 70,
+    "wheel_bytes": 262686832,
+    "model_file_count": 12,
+    "model_bytes": 2295419991,
+    "combined_bytes": 2558106823,
+    "all_sha256_recomputed": true,
+    "all_declared_lfs_sha256_matched": true,
+    "wheel_download_seconds": 209.236,
+    "model_download_seconds": 427.468
+  },
+  "installation": {
+    "mode": "isolated_offline_hash_pinned_venv",
+    "python": "3.12.13",
+    "versions": {
+      "FlagEmbedding": "1.4.2",
+      "torch": "2.13.0",
+      "transformers": "5.15.1"
+    }
+  },
+  "disk_bytes": {
+    "wheelhouse": 262686832,
+    "model": 2295419991,
+    "venv": 1223751856
+  },
+  "security_snapshot": {
+    "osv_generated_at": "2026-08-25T11:59:27.722010+00:00",
+    "package_count": 70,
+    "affected_package_count": 0,
+    "vulnerability_record_count": 0,
+    "empty_result_proves_absence": false
+  },
+  "smoke": {
+    "status": "passed",
+    "embedding_dimension": 1024,
+    "cuda_available": false,
+    "load_seconds": 1.66,
+    "encode_seconds": 0.266,
+    "peak_working_set_bytes": 2031538176
+  },
+  "retrieval": {
+    "status": "hard_quality_gate_passed_with_no_answer_risk_g5b_user_decision_required",
+    "query_count": 60,
+    "relative_ndcg_gain": 0.7917299261921296,
+    "recall_delta": 0.44791666666666674,
+    "raw_unauthorized_leak_count": 60,
+    "guarded_unauthorized_leak_count": 0,
+    "no_answer_false_positive_rate": 1
+  }
+}
