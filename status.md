@@ -7,3 +7,4 @@
 - 最新 UI 证据：`research/screenshots/workbench-mvp/context-library-desktop.png`、`context-library-mobile.png`。
 - 真实边界：混合/向量检索、重排、引用问答、Harness 和 Hermes 均未接入。
 - 独立待确认：旧版 XLSX 依赖处置；模型下载和新增生产依赖也需后续专项确认。
+- 代码管理：本地 `main`/正式远端目标为 `https://github.com/jiezho/DDUP.git`；根 README 负责总体方案与文档导航。
