@@ -2133,8 +2133,9 @@ h3 {
 
 .sidebar__tag {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.115em;
+  font-size: 9px;
+  letter-spacing: 0.055em;
+  white-space: pre-wrap;
   text-transform: uppercase;
   color: var(--ink-faint);
   padding: 2px 8px 14px;

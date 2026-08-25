@@ -113,7 +113,7 @@ export function AppShell({ children, onOpenSearch, sync }) {
               <IconX aria-hidden="true" />
             </button>
           </div>
-          <div className="sidebar__tag">PERSONAL CONTEXT WORKBENCH</div>
+          <div className="sidebar__tag">{"Good Good Study  Day Day Up"}</div>
 
           <nav aria-label="主要导航" className="sidebar__nav">
             {primaryNavigation.map((item) => {

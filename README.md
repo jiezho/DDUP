@@ -132,7 +132,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19、测试 185/185、生产构建、隐私扫描和 Playwright Chromium 端到端测试均已通过。构建仍有主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
+当前验证快照：Node 24.19、测试 186/186、生产构建、隐私扫描和 Playwright Chromium 端到端测试均已通过。构建仍有主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
 
 ## 六、仓库结构
 
@@ -183,7 +183,9 @@ DDUP/
 - [Node SQLite 可靠性 Spike](product/Node_SQLite可靠性Spike报告.md)
 - [Fastify 与 Playwright 依赖审查](product/Fastify与Playwright依赖审查.md)
 - [旧版 XLSX 导入依赖处置（待确认）](product/旧版XLSX导入依赖处置_待确认.md)
-- [模型与推理运行时依赖审查（待确认）](product/模型与推理运行时依赖审查_待确认.md)
+- [模型与推理运行时依赖审查（G5a-D 已确认）](product/模型与推理运行时依赖审查.md)
+- [FlagEmbedding 依赖元数据解析报告](product/FlagEmbedding依赖元数据解析报告.md)
+- [模型 POC 实际下载授权（待确认）](product/模型POC实际下载授权_待确认.md)
 
 文档中的能力状态统一使用“已实现、原型演示、设计方案、POC 候选、后续计划”。没有代码、测试和运行证据的能力不得描述为已集成或生产可用。
 

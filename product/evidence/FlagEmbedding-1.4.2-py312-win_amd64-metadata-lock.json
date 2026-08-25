@@ -1,0 +1,1837 @@
+{
+  "schema_version": "dd-up-pypi-metadata-lock-v1",
+  "generated_at": "2026-08-25T08:45:16.591785+00:00",
+  "status": "metadata_only_candidate_lock",
+  "root_requirement": "FlagEmbedding==1.4.2",
+  "target": {
+    "python": "3.12.13",
+    "implementation": "CPython",
+    "os": "Windows",
+    "architecture": "AMD64"
+  },
+  "network_effects": {
+    "pypi_json_metadata_read": true,
+    "distribution_artifacts_downloaded": false,
+    "packages_installed": false,
+    "models_downloaded": false
+  },
+  "summary": {
+    "package_count": 70,
+    "sdist_fallback_count": 0,
+    "selected_artifact_download_bytes": 262686832,
+    "selected_artifact_download_mib": 250.52,
+    "installed_disk_bytes": null,
+    "installed_disk_note": "Cannot be measured without the separately approved artifact download/install step."
+  },
+  "limitations": [
+    "This is a metadata candidate lock, not a pip installation report.",
+    "Selected artifacts were not downloaded, so archive hashes were not recomputed locally.",
+    "PyPI-declared SHA-256 values must be verified after a separately approved download.",
+    "Any sdist fallback requires an additional build-tool and source review before download.",
+    "Model weights and optional training extras are excluded."
+  ],
+  "packages": [
+    {
+      "name": "accelerate",
+      "normalized_name": "accelerate",
+      "version": "1.14.0",
+      "constraints": [
+        ">=0.20.1",
+        ">=0.21.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding",
+        "peft"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10.0",
+      "selected_artifact": {
+        "filename": "accelerate-1.14.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 389246,
+        "sha256": "e94390c2863b873be18f623f9df48a0d8fe5eff13ea7f1a00092b0a7904888c6",
+        "url": "https://files.pythonhosted.org/packages/a8/db/253133d7e7cb40d3af384bb2f5c0b4a2b7fdcffbc95c688cc67a20a3c103/accelerate-1.14.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/accelerate/",
+      "upload_time": "2026-06-11T13:45:50.477469Z"
+    },
+    {
+      "name": "aiohappyeyeballs",
+      "normalized_name": "aiohappyeyeballs",
+      "version": "2.7.1",
+      "constraints": [
+        ">=2.5.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp"
+      ],
+      "license": "Python Software Foundation License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "aiohappyeyeballs-2.7.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 15038,
+        "sha256": "9243213661e29250eb41368e5daa826fc017156c3b8a11440826b2e3ed376472",
+        "url": "https://files.pythonhosted.org/packages/71/43/1947f06babed6b3f1d7f38b0c767f52df66bfb2bc10b468c4a7de9eceff2/aiohappyeyeballs-2.7.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/aiohappyeyeballs/",
+      "upload_time": "2026-07-01T17:11:54.055058Z"
+    },
+    {
+      "name": "aiohttp",
+      "normalized_name": "aiohttp",
+      "version": "3.14.3",
+      "constraints": [
+        "!=4.0.0a0,!=4.0.0a1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "fsspec"
+      ],
+      "license": "Apache-2.0 AND MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "aiohttp-3.14.3-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 476845,
+        "sha256": "33a2d7c28d33797a2e99923dffa63f83d908a19b6bf26cfe80fa790aa5e1a75a",
+        "url": "https://files.pythonhosted.org/packages/76/9b/f2f8f108da17ecef2cc3efc424e8b7ad3782b1a8360f7b8eae8ced84f6ea/aiohttp-3.14.3-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/aiohttp/",
+      "upload_time": "2026-07-23T01:54:44.853681Z"
+    },
+    {
+      "name": "aiosignal",
+      "normalized_name": "aiosignal",
+      "version": "1.4.0",
+      "constraints": [
+        ">=1.4.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "aiosignal-1.4.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 7490,
+        "sha256": "053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e",
+        "url": "https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/aiosignal/",
+      "upload_time": "2025-07-03T22:54:42.156277Z"
+    },
+    {
+      "name": "annotated-doc",
+      "normalized_name": "annotated-doc",
+      "version": "0.0.5",
+      "constraints": [
+        ">=0.0.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "typer"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "annotated_doc-0.0.5-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 5302,
+        "sha256": "117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101",
+        "url": "https://files.pythonhosted.org/packages/3e/30/e900b21425a860e195f32e37657aa1f7c7f2b1bfb26f03ca209b90933c06/annotated_doc-0.0.5-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/annotated-doc/",
+      "upload_time": "2026-07-28T13:50:57.239109Z"
+    },
+    {
+      "name": "anyio",
+      "normalized_name": "anyio",
+      "version": "4.14.2",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "httpx"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "anyio-4.14.2-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 125813,
+        "sha256": "9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494",
+        "url": "https://files.pythonhosted.org/packages/da/35/f2287558c17e29fafc8ef3daf819bb9834061cfa43bff8014f7df7f63bdc/anyio-4.14.2-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/anyio/",
+      "upload_time": "2026-07-12T20:29:05.763870Z"
+    },
+    {
+      "name": "attrs",
+      "normalized_name": "attrs",
+      "version": "26.1.0",
+      "constraints": [
+        ">=17.3.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "attrs-26.1.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 67548,
+        "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+        "url": "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/attrs/",
+      "upload_time": "2026-03-19T14:22:23.645947Z"
+    },
+    {
+      "name": "certifi",
+      "normalized_name": "certifi",
+      "version": "2026.7.22",
+      "constraints": [
+        "*",
+        "*",
+        ">=2023.5.7"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "httpcore",
+        "httpx",
+        "requests"
+      ],
+      "license": "Mozilla Public License 2.0 (MPL 2.0)",
+      "requires_python": ">=3.7",
+      "selected_artifact": {
+        "filename": "certifi-2026.7.22-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 136983,
+        "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+        "url": "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/certifi/",
+      "upload_time": "2026-07-22T03:35:11.276376Z"
+    },
+    {
+      "name": "charset-normalizer",
+      "normalized_name": "charset-normalizer",
+      "version": "3.5.1",
+      "constraints": [
+        "<4,>=2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "requests"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.7",
+      "selected_artifact": {
+        "filename": "charset_normalizer-3.5.1-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 200551,
+        "sha256": "3617ac3cfd8b9888f145ad89dd6e692285834b0201c6074a5eeaad3fd4d668c2",
+        "url": "https://files.pythonhosted.org/packages/9d/7a/4c6c298171e6b3e745633180ff59350fc0ca0db1ffd28df1e369e0579f71/charset_normalizer-3.5.1-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/charset-normalizer/",
+      "upload_time": "2026-08-15T08:17:30.668865Z"
+    },
+    {
+      "name": "click",
+      "normalized_name": "click",
+      "version": "8.4.2",
+      "constraints": [
+        "<9.0.0,>=8.4.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "huggingface-hub"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "click-8.4.2-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 119243,
+        "sha256": "e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76",
+        "url": "https://files.pythonhosted.org/packages/fb/e2/79c688af8b210d232694e31e59da9f6ec747bae31c3f5946e4e9b98860d5/click-8.4.2-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/click/",
+      "upload_time": "2026-06-24T17:45:13.730054Z"
+    },
+    {
+      "name": "colorama",
+      "normalized_name": "colorama",
+      "version": "0.4.6",
+      "constraints": [
+        "*",
+        "*",
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "click",
+        "tqdm",
+        "typer"
+      ],
+      "license": "BSD License",
+      "requires_python": "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7",
+      "selected_artifact": {
+        "filename": "colorama-0.4.6-py2.py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 25335,
+        "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+        "url": "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/colorama/",
+      "upload_time": "2022-10-25T02:36:20.889702Z"
+    },
+    {
+      "name": "datasets",
+      "normalized_name": "datasets",
+      "version": "5.0.1",
+      "constraints": [
+        ">=2.19.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10.0",
+      "selected_artifact": {
+        "filename": "datasets-5.0.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 559079,
+        "sha256": "9fbf73688f8c18f7529b4fe592abd04015f81d1e58001e4bac73ffb2b39d7cc4",
+        "url": "https://files.pythonhosted.org/packages/44/0b/98fc6eb83333508ca5f44c52b3e287ea8137a0ad582714e2cbc67a02154b/datasets-5.0.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/datasets/",
+      "upload_time": "2026-07-28T11:09:10.266825Z"
+    },
+    {
+      "name": "dill",
+      "normalized_name": "dill",
+      "version": "0.4.1",
+      "constraints": [
+        "<0.4.2,>=0.3.0",
+        ">=0.4.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets",
+        "multiprocess"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "dill-0.4.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 120019,
+        "sha256": "1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d",
+        "url": "https://files.pythonhosted.org/packages/1e/77/dc8c558f7593132cf8fefec57c4f60c83b16941c574ac5f619abb3ae7933/dill-0.4.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/dill/",
+      "upload_time": "2026-01-19T02:36:55.663313Z"
+    },
+    {
+      "name": "filelock",
+      "normalized_name": "filelock",
+      "version": "3.32.4",
+      "constraints": [
+        "*",
+        "*",
+        ">=3.10.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets",
+        "huggingface-hub",
+        "torch"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "filelock-3.32.4-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 99864,
+        "sha256": "22e58ca3b1ae3b98993b762d7338367ae64fe50252bf78d59da3bfebcdf1cedd",
+        "url": "https://files.pythonhosted.org/packages/01/a4/9b63d595d748e3aff8812b65eacc1a2c4bd90b7c2012e08e72373b4835eb/filelock-3.32.4-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/filelock/",
+      "upload_time": "2026-08-23T17:37:53.913430Z"
+    },
+    {
+      "name": "FlagEmbedding",
+      "normalized_name": "flagembedding",
+      "version": "1.4.2",
+      "constraints": [
+        "==1.4.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "root"
+      ],
+      "license": "not_declared_in_summary",
+      "requires_python": null,
+      "selected_artifact": {
+        "filename": "flagembedding-1.4.2-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 250528,
+        "sha256": "35e33a08e8ed5e299eabbe3bc23518eb66a424dd29ee08fb3802bf9aef9e9bf2",
+        "url": "https://files.pythonhosted.org/packages/6e/4a/eb1a033d744e5a854f0918b2a002fca0d7db72078aa70b5145d5100141c1/flagembedding-1.4.2-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/FlagEmbedding/",
+      "upload_time": "2026-08-24T02:57:20.271640Z"
+    },
+    {
+      "name": "frozenlist",
+      "normalized_name": "frozenlist",
+      "version": "1.8.0",
+      "constraints": [
+        ">=1.1.0",
+        ">=1.1.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp",
+        "aiosignal"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "frozenlist-1.8.0-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 44591,
+        "sha256": "34187385b08f866104f0c0617404c8eb08165ab1272e884abc89c112e9c00746",
+        "url": "https://files.pythonhosted.org/packages/b8/af/38e51a553dd66eb064cdf193841f16f077585d4d28394c2fa6235cb41765/frozenlist-1.8.0-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/frozenlist/",
+      "upload_time": "2025-10-06T05:36:24.958664Z"
+    },
+    {
+      "name": "fsspec",
+      "normalized_name": "fsspec",
+      "version": "2026.6.0",
+      "constraints": [
+        "<=2026.6.0,>=2023.1.0",
+        ">=0.8.5",
+        ">=2023.5.0"
+      ],
+      "requested_extras": [
+        "http"
+      ],
+      "required_by": [
+        "datasets",
+        "huggingface-hub",
+        "torch"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "fsspec-2026.6.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 203949,
+        "sha256": "02e0b71817df9b2169dc30a16832045764def1191b43dcff5bb85bdee212d2a1",
+        "url": "https://files.pythonhosted.org/packages/e5/22/4222d7ddf3da30f363edaa98e329c2bce6c65497c9cb2810931c8b2c0fbc/fsspec-2026.6.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/fsspec/",
+      "upload_time": "2026-06-16T01:57:26.358592Z"
+    },
+    {
+      "name": "h11",
+      "normalized_name": "h11",
+      "version": "0.16.0",
+      "constraints": [
+        ">=0.16"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "httpcore"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "h11-0.16.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 37515,
+        "sha256": "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+        "url": "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/h11/",
+      "upload_time": "2025-04-24T03:35:24.344199Z"
+    },
+    {
+      "name": "hf-xet",
+      "normalized_name": "hf-xet",
+      "version": "1.6.0",
+      "constraints": [
+        "<2.0.0,>=1.5.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "huggingface-hub"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "hf_xet-1.6.0-cp38-abi3-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 4033128,
+        "sha256": "fb4fadde1b2b70bf4c0c14a6dccbe7194b1c28947fefd5bbe3fed9d940676c3b",
+        "url": "https://files.pythonhosted.org/packages/98/b7/8c59a66d15205024662f1d66968136f13893f96df1ddc5087e2e281fc95f/hf_xet-1.6.0-cp38-abi3-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/hf-xet/",
+      "upload_time": "2026-08-03T22:33:10.171386Z"
+    },
+    {
+      "name": "httpcore",
+      "normalized_name": "httpcore",
+      "version": "1.0.9",
+      "constraints": [
+        "==1.*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "httpx"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "httpcore-1.0.9-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 78784,
+        "sha256": "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+        "url": "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/httpcore/",
+      "upload_time": "2025-04-24T22:06:20.566605Z"
+    },
+    {
+      "name": "httpx",
+      "normalized_name": "httpx",
+      "version": "0.28.1",
+      "constraints": [
+        "<1,>=0.23.0",
+        "<1.0.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets",
+        "huggingface-hub"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "httpx-0.28.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 73517,
+        "sha256": "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad",
+        "url": "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/httpx/",
+      "upload_time": "2024-12-06T15:37:21.509172Z"
+    },
+    {
+      "name": "huggingface-hub",
+      "normalized_name": "huggingface-hub",
+      "version": "1.28.0",
+      "constraints": [
+        "<2.0,>=0.16.4",
+        "<2.0,>=0.25.0",
+        "<2.0,>=1.5.0",
+        "<2.0.0,>=1.3.0",
+        ">=0.21.0",
+        ">=0.25.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "datasets",
+        "peft",
+        "sentence-transformers",
+        "tokenizers",
+        "transformers"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10.0",
+      "selected_artifact": {
+        "filename": "huggingface_hub-1.28.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 793202,
+        "sha256": "58a8bacb03072edfc38067065e9dc24bbb34805410fcd36a1632de0b329660bb",
+        "url": "https://files.pythonhosted.org/packages/51/0e/eafef18f1a75e125e68395db21131db0cf868a128ecd2fce69b4df6c584b/huggingface_hub-1.28.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/huggingface-hub/",
+      "upload_time": "2026-08-18T12:27:12.719169Z"
+    },
+    {
+      "name": "idna",
+      "normalized_name": "idna",
+      "version": "3.19",
+      "constraints": [
+        "*",
+        "<4,>=2.5",
+        ">=2.0",
+        ">=2.8"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "anyio",
+        "httpx",
+        "requests",
+        "yarl"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "idna-3.19-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 68550,
+        "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4",
+        "url": "https://files.pythonhosted.org/packages/57/b0/0e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5/idna-3.19-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/idna/",
+      "upload_time": "2026-08-18T05:14:22.343598Z"
+    },
+    {
+      "name": "ir-datasets",
+      "normalized_name": "ir-datasets",
+      "version": "0.6.3",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "ir_datasets-0.6.3-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 947801,
+        "sha256": "8188ad99408dc042b3be7493fa8a9d76cf04681ca1ea010e97a5f93a0aaf1dbd",
+        "url": "https://files.pythonhosted.org/packages/1b/8e/1e56e401daf67c1f8acebf3791e9fe1e1a6b4fe605d8e6d1c6579d8fdce1/ir_datasets-0.6.3-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/ir-datasets/",
+      "upload_time": "2026-07-18T11:59:36.561031Z"
+    },
+    {
+      "name": "Jinja2",
+      "normalized_name": "jinja2",
+      "version": "3.1.6",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "torch"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.7",
+      "selected_artifact": {
+        "filename": "jinja2-3.1.6-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 134899,
+        "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+        "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/Jinja2/",
+      "upload_time": "2025-03-05T20:05:00.369721Z"
+    },
+    {
+      "name": "joblib",
+      "normalized_name": "joblib",
+      "version": "1.5.3",
+      "constraints": [
+        ">=1.4.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "scikit-learn"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "joblib-1.5.3-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 309071,
+        "sha256": "5fc3c5039fc5ca8c0276333a188bbd59d6b7ab37fe6632daa76bc7f9ec18e713",
+        "url": "https://files.pythonhosted.org/packages/7b/91/984aca2ec129e2757d1e4e3c81c3fcda9d0f85b74670a094cc443d9ee949/joblib-1.5.3-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/joblib/",
+      "upload_time": "2025-12-15T08:41:44.973259Z"
+    },
+    {
+      "name": "lxml",
+      "normalized_name": "lxml",
+      "version": "6.1.2",
+      "constraints": [
+        ">=4.5.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "ir-datasets"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "lxml-6.1.2-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 4005965,
+        "sha256": "b97153ca609b434b712ddfb92cd6af101a7045a7724c542258bd4727a344472f",
+        "url": "https://files.pythonhosted.org/packages/1b/fb/909584e16d2148c1a252cc2c32dd99fe0e2682459c586d3d7a192e74a0ae/lxml-6.1.2-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/lxml/",
+      "upload_time": "2026-08-19T05:02:07.157420Z"
+    },
+    {
+      "name": "lz4",
+      "normalized_name": "lz4",
+      "version": "4.4.5",
+      "constraints": [
+        ">=3.1.10"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "ir-datasets"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "lz4-4.4.5-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 99497,
+        "sha256": "713a777de88a73425cf08eb11f742cd2c98628e79a8673d6a52e3c5f0c116f33",
+        "url": "https://files.pythonhosted.org/packages/a5/0b/a54cd7406995ab097fceb907c7eb13a6ddd49e0b231e448f1a81a50af65c/lz4-4.4.5-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/lz4/",
+      "upload_time": "2025-11-03T13:01:53.477004Z"
+    },
+    {
+      "name": "markdown-it-py",
+      "normalized_name": "markdown-it-py",
+      "version": "4.2.0",
+      "constraints": [
+        ">=2.2.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "rich"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "markdown_it_py-4.2.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 91687,
+        "sha256": "9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a",
+        "url": "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/markdown-it-py/",
+      "upload_time": "2026-05-07T12:08:27.182789Z"
+    },
+    {
+      "name": "MarkupSafe",
+      "normalized_name": "markupsafe",
+      "version": "3.0.3",
+      "constraints": [
+        ">=2.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "jinja2"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "markupsafe-3.0.3-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 15105,
+        "sha256": "26a5784ded40c9e318cfc2bdb30fe164bdb8665ded9cd64d500a34fb42067b1c",
+        "url": "https://files.pythonhosted.org/packages/aa/5b/bec5aa9bbbb2c946ca2733ef9c4ca91c91b6a24580193e891b5f7dbe8e1e/markupsafe-3.0.3-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/MarkupSafe/",
+      "upload_time": "2025-09-27T18:36:39.701297Z"
+    },
+    {
+      "name": "mdurl",
+      "normalized_name": "mdurl",
+      "version": "0.1.2",
+      "constraints": [
+        "~=0.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "markdown-it-py"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.7",
+      "selected_artifact": {
+        "filename": "mdurl-0.1.2-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 9979,
+        "sha256": "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8",
+        "url": "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/mdurl/",
+      "upload_time": "2022-08-14T12:40:09.779676Z"
+    },
+    {
+      "name": "mpmath",
+      "normalized_name": "mpmath",
+      "version": "1.3.0",
+      "constraints": [
+        "<1.4,>=1.1.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "sympy"
+      ],
+      "license": "BSD License",
+      "requires_python": "",
+      "selected_artifact": {
+        "filename": "mpmath-1.3.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 536198,
+        "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+        "url": "https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/mpmath/",
+      "upload_time": "2023-03-07T16:47:09.197171Z"
+    },
+    {
+      "name": "multidict",
+      "normalized_name": "multidict",
+      "version": "6.7.1",
+      "constraints": [
+        "<7.0,>=4.5",
+        ">=4.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp",
+        "yarl"
+      ],
+      "license": "Apache License 2.0",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "multidict-6.7.1-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 46053,
+        "sha256": "fcee94dfbd638784645b066074b338bc9cc155d4b4bffa4adce1615c5a426c19",
+        "url": "https://files.pythonhosted.org/packages/80/31/0b2517913687895f5904325c2069d6a3b78f66cc641a86a2baf75a05dcbb/multidict-6.7.1-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/multidict/",
+      "upload_time": "2026-01-26T02:44:15.371894Z"
+    },
+    {
+      "name": "multiprocess",
+      "normalized_name": "multiprocess",
+      "version": "0.70.19",
+      "constraints": [
+        "<0.70.20"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "multiprocess-0.70.19-py312-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 150281,
+        "sha256": "3a56c0e85dd5025161bac5ce138dcac1e49174c7d8e74596537e729fd5c53c28",
+        "url": "https://files.pythonhosted.org/packages/71/70/38998b950a97ea279e6bd657575d22d1a2047256caf707d9a10fbce4f065/multiprocess-0.70.19-py312-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/multiprocess/",
+      "upload_time": "2026-01-19T06:47:35.037388Z"
+    },
+    {
+      "name": "narwhals",
+      "normalized_name": "narwhals",
+      "version": "2.25.0",
+      "constraints": [
+        ">=2.0.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "scikit-learn"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "narwhals-2.25.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 467373,
+        "sha256": "1f0f403e8c7e4463cde9bfe78b12fdd809e3ae3dda6d9b2f802934fb9c7a6a8f",
+        "url": "https://files.pythonhosted.org/packages/eb/dc/55481808fd70ef1567cf13540ffd4702af3f74b112e35427564b03f79c2d/narwhals-2.25.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/narwhals/",
+      "upload_time": "2026-08-20T18:10:13.834292Z"
+    },
+    {
+      "name": "networkx",
+      "normalized_name": "networkx",
+      "version": "3.6.1",
+      "constraints": [
+        ">=2.5.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "torch"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": "!=3.14.1,>=3.11",
+      "selected_artifact": {
+        "filename": "networkx-3.6.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 2068504,
+        "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+        "url": "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/networkx/",
+      "upload_time": "2025-12-08T17:02:38.159362Z"
+    },
+    {
+      "name": "numpy",
+      "normalized_name": "numpy",
+      "version": "2.5.2",
+      "constraints": [
+        "<2.8,>=2.0.0",
+        ">=1.17",
+        ">=1.17",
+        ">=1.17",
+        ">=1.17",
+        ">=1.18.1",
+        ">=1.24.0",
+        ">=1.24.1",
+        ">=1.26.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "datasets",
+        "ir-datasets",
+        "pandas",
+        "peft",
+        "scikit-learn",
+        "scipy",
+        "sentence-transformers",
+        "transformers"
+      ],
+      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "requires_python": ">=3.12",
+      "selected_artifact": {
+        "filename": "numpy-2.5.2-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 12464674,
+        "sha256": "28ac63476ec7651484215ee7fa15a1f78b57c14621f01e392afe17b9a1390ce4",
+        "url": "https://files.pythonhosted.org/packages/7f/b9/87fea2769fe1c47c1b5b01d8310772c9d1a85d485de7cf386ef7a3332b02/numpy-2.5.2-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/numpy/",
+      "upload_time": "2026-08-09T13:45:20.734036Z"
+    },
+    {
+      "name": "packaging",
+      "normalized_name": "packaging",
+      "version": "26.3",
+      "constraints": [
+        "*",
+        ">=20.0",
+        ">=20.0",
+        ">=20.0",
+        ">=20.9"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "datasets",
+        "huggingface-hub",
+        "peft",
+        "transformers"
+      ],
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "packaging-26.3-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 129956,
+        "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+        "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/packaging/",
+      "upload_time": "2026-08-04T18:15:27.159957Z"
+    },
+    {
+      "name": "pandas",
+      "normalized_name": "pandas",
+      "version": "3.0.5",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.11",
+      "selected_artifact": {
+        "filename": "pandas-3.0.5-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 9831691,
+        "sha256": "80a611068e8a3ac23f7398c6c14eb46dc974e5cc9997f653e2dcfd1da74edd41",
+        "url": "https://files.pythonhosted.org/packages/70/b5/d2d3e9ae73362ba4229651b0ee1455cf78073a1ce585f6ff693782ce263e/pandas-3.0.5-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/pandas/",
+      "upload_time": "2026-07-22T22:18:24.534155Z"
+    },
+    {
+      "name": "peft",
+      "normalized_name": "peft",
+      "version": "0.20.0",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10.0",
+      "selected_artifact": {
+        "filename": "peft-0.20.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 775777,
+        "sha256": "0fbba16ffebfad3de96e06f2da6860fd860292324b85b6141909fa1e26ea9233",
+        "url": "https://files.pythonhosted.org/packages/28/79/13bcabb8048126422d5c4b880575d40886c726f354db88cfeed4325525bb/peft-0.20.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/peft/",
+      "upload_time": "2026-07-28T13:45:59.809156Z"
+    },
+    {
+      "name": "propcache",
+      "normalized_name": "propcache",
+      "version": "0.5.2",
+      "constraints": [
+        ">=0.2.0",
+        ">=0.2.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp",
+        "yarl"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "propcache-0.5.2-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 42322,
+        "sha256": "d9ee8826a7d47863a08ac44e1a5f611a462eefc3a194b492da242128bec75b42",
+        "url": "https://files.pythonhosted.org/packages/61/7c/5c0d34aa3024694d6dcb9271cdbdd08c4e47c1c0ad95ec7e7bc74cdea145/propcache-0.5.2-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/propcache/",
+      "upload_time": "2026-05-08T21:00:32.918114Z"
+    },
+    {
+      "name": "protobuf",
+      "normalized_name": "protobuf",
+      "version": "7.36.0",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "3-Clause BSD License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "protobuf-7.36.0-cp310-abi3-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 453731,
+        "sha256": "1781cc1de61249b750848029bca452c0a8b7e990080316b9bbc2518b2117b488",
+        "url": "https://files.pythonhosted.org/packages/0e/4e/12cb93270967a2affff5b3f720694700d4d87712a67afd05c8cb3f6fa52c/protobuf-7.36.0-cp310-abi3-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/protobuf/",
+      "upload_time": "2026-08-20T16:33:58.951156Z"
+    },
+    {
+      "name": "psutil",
+      "normalized_name": "psutil",
+      "version": "7.2.2",
+      "constraints": [
+        "*",
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "peft"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.6",
+      "selected_artifact": {
+        "filename": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 137737,
+        "sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988",
+        "url": "https://files.pythonhosted.org/packages/b4/90/e2159492b5426be0c1fef7acba807a03511f97c5f86b3caeda6ad92351a7/psutil-7.2.2-cp37-abi3-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/psutil/",
+      "upload_time": "2026-01-28T18:15:33.849193Z"
+    },
+    {
+      "name": "pyarrow",
+      "normalized_name": "pyarrow",
+      "version": "25.0.1",
+      "constraints": [
+        ">=21.0.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "pyarrow-25.0.1-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 27953934,
+        "sha256": "8858d7bfc22e3f51529aeaa4077225029724623e4595dc9eff8c793935c34140",
+        "url": "https://files.pythonhosted.org/packages/65/ee/197cbf47e49f83e6ebeb946a5259a48a638dea27ac774db42fe78022179d/pyarrow-25.0.1-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/pyarrow/",
+      "upload_time": "2026-08-10T12:38:39.808949Z"
+    },
+    {
+      "name": "Pygments",
+      "normalized_name": "pygments",
+      "version": "2.21.0",
+      "constraints": [
+        "<3.0.0,>=2.13.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "rich"
+      ],
+      "license": "BSD-2-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "pygments-2.21.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 1250147,
+        "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+        "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/Pygments/",
+      "upload_time": "2026-08-17T08:02:44.912148Z"
+    },
+    {
+      "name": "python-dateutil",
+      "normalized_name": "python-dateutil",
+      "version": "2.9.0.post0",
+      "constraints": [
+        ">=2.8.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "pandas"
+      ],
+      "license": "Apache Software License; BSD License",
+      "requires_python": "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7",
+      "selected_artifact": {
+        "filename": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 229892,
+        "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427",
+        "url": "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/python-dateutil/",
+      "upload_time": "2024-03-01T18:36:18.570437Z"
+    },
+    {
+      "name": "PyYAML",
+      "normalized_name": "pyyaml",
+      "version": "6.0.3",
+      "constraints": [
+        "*",
+        "*",
+        ">=5.1",
+        ">=5.1",
+        ">=5.1",
+        ">=5.3.1"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "datasets",
+        "huggingface-hub",
+        "ir-datasets",
+        "peft",
+        "transformers"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "pyyaml-6.0.3-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 154003,
+        "sha256": "5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b",
+        "url": "https://files.pythonhosted.org/packages/86/bf/899e81e4cce32febab4fb42bb97dcdf66bc135272882d1987881a4b519e9/pyyaml-6.0.3-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/PyYAML/",
+      "upload_time": "2025-09-25T21:32:21.167929Z"
+    },
+    {
+      "name": "regex",
+      "normalized_name": "regex",
+      "version": "2026.7.19",
+      "constraints": [
+        ">=2025.10.22"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "transformers"
+      ],
+      "license": "Apache-2.0 AND CNRI-Python",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "regex-2026.7.19-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 277777,
+        "sha256": "e30d40268a28d54ce0437031750497004c22602b8e3ab891f759b795a003b312",
+        "url": "https://files.pythonhosted.org/packages/08/8e/c780c131f79b42ed22d1bd7da4096c2c35f813e835acd02ef0f018bd892c/regex-2026.7.19-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/regex/",
+      "upload_time": "2026-07-19T00:17:32.848199Z"
+    },
+    {
+      "name": "requests",
+      "normalized_name": "requests",
+      "version": "2.34.2",
+      "constraints": [
+        ">=2.22.0",
+        ">=2.32.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets",
+        "ir-datasets"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "requests-2.34.2-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 73075,
+        "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+        "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/requests/",
+      "upload_time": "2026-05-14T19:25:26.443000Z"
+    },
+    {
+      "name": "rich",
+      "normalized_name": "rich",
+      "version": "15.0.0",
+      "constraints": [
+        ">=13.8.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "typer"
+      ],
+      "license": "MIT License",
+      "requires_python": ">=3.9.0",
+      "selected_artifact": {
+        "filename": "rich-15.0.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 310654,
+        "sha256": "33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb",
+        "url": "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/rich/",
+      "upload_time": "2026-04-12T08:24:02.830783Z"
+    },
+    {
+      "name": "safetensors",
+      "normalized_name": "safetensors",
+      "version": "0.8.0",
+      "constraints": [
+        "*",
+        ">=0.4.3",
+        ">=0.8.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "peft",
+        "transformers"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 355540,
+        "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f",
+        "url": "https://files.pythonhosted.org/packages/1b/6d/3fba214c1e5e0f69991677ec3bc17023f0421776975e1de0c682dca475e2/safetensors-0.8.0-cp310-abi3-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/safetensors/",
+      "upload_time": "2026-06-09T07:52:27.832806Z"
+    },
+    {
+      "name": "scikit-learn",
+      "normalized_name": "scikit-learn",
+      "version": "1.9.0",
+      "constraints": [
+        ">=1.1.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "sentence-transformers"
+      ],
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "selected_artifact": {
+        "filename": "scikit_learn-1.9.0-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 8211173,
+        "sha256": "4306775fad04cc4b472a1b15af1ae9cede1540fbfcc17fbce3767cd8dc7ae283",
+        "url": "https://files.pythonhosted.org/packages/83/a4/c8e67227c680e2259c8864ae72ff48b06e16a6f51253a22167aa02a8aa4e/scikit_learn-1.9.0-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/scikit-learn/",
+      "upload_time": "2026-06-02T11:53:36.602094Z"
+    },
+    {
+      "name": "scipy",
+      "normalized_name": "scipy",
+      "version": "1.18.1",
+      "constraints": [
+        ">=1.0.0",
+        ">=1.10.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "scikit-learn",
+        "sentence-transformers"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.12",
+      "selected_artifact": {
+        "filename": "scipy-1.18.1-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 36658278,
+        "sha256": "5e4d44984abc0020154ea81b247adeddcc3ac5527b975ff798bd1ba0adc513c2",
+        "url": "https://files.pythonhosted.org/packages/39/e7/979fd14e75008623df31ba70d6bb144700f68feadcea042021c06a05bf82/scipy-1.18.1-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/scipy/",
+      "upload_time": "2026-08-21T23:24:25.463061Z"
+    },
+    {
+      "name": "sentence-transformers",
+      "normalized_name": "sentence-transformers",
+      "version": "6.0.0",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "sentence_transformers-6.0.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 739640,
+        "sha256": "b974ac67523ea2a955afa87b1024129305472bd884367dcc969261cb086790e9",
+        "url": "https://files.pythonhosted.org/packages/04/fe/9d19b01fe87945f9455c617bf5d33dfbf29fe06ab6580bc0bea06080c788/sentence_transformers-6.0.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/sentence-transformers/",
+      "upload_time": "2026-08-18T13:33:48.428187Z"
+    },
+    {
+      "name": "sentencepiece",
+      "normalized_name": "sentencepiece",
+      "version": "0.2.2",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "sentencepiece-0.2.2-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 1248030,
+        "sha256": "7c6e7bf684dc12145bfa685d3060beaea55139134ba848289bee514ed42e7383",
+        "url": "https://files.pythonhosted.org/packages/8d/11/753fca2e6b109be3ab7867abf357dfe48677fe726ae5a5363d0b54ca9450/sentencepiece-0.2.2-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/sentencepiece/",
+      "upload_time": "2026-07-12T08:38:37.604337Z"
+    },
+    {
+      "name": "setuptools",
+      "normalized_name": "setuptools",
+      "version": "84.0.0",
+      "constraints": [
+        ">=77.0.3"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "torch"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "setuptools-84.0.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 818216,
+        "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+        "url": "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/setuptools/",
+      "upload_time": "2026-08-08T18:27:56.719708Z"
+    },
+    {
+      "name": "shellingham",
+      "normalized_name": "shellingham",
+      "version": "1.5.4",
+      "constraints": [
+        ">=1.3.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "typer"
+      ],
+      "license": "ISC License (ISCL)",
+      "requires_python": ">=3.7",
+      "selected_artifact": {
+        "filename": "shellingham-1.5.4-py2.py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 9755,
+        "sha256": "7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686",
+        "url": "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/shellingham/",
+      "upload_time": "2023-10-24T04:13:38.866125Z"
+    },
+    {
+      "name": "six",
+      "normalized_name": "six",
+      "version": "1.17.0",
+      "constraints": [
+        ">=1.5"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "python-dateutil"
+      ],
+      "license": "MIT License",
+      "requires_python": "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7",
+      "selected_artifact": {
+        "filename": "six-1.17.0-py2.py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 11050,
+        "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+        "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/six/",
+      "upload_time": "2024-12-04T17:35:26.475808Z"
+    },
+    {
+      "name": "sympy",
+      "normalized_name": "sympy",
+      "version": "1.14.0",
+      "constraints": [
+        ">=1.13.3"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "torch"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "sympy-1.14.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 6299353,
+        "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+        "url": "https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/sympy/",
+      "upload_time": "2025-04-27T18:04:59.103806Z"
+    },
+    {
+      "name": "threadpoolctl",
+      "normalized_name": "threadpoolctl",
+      "version": "3.6.0",
+      "constraints": [
+        ">=3.5.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "scikit-learn"
+      ],
+      "license": "BSD License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "threadpoolctl-3.6.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 18638,
+        "sha256": "43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb",
+        "url": "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/threadpoolctl/",
+      "upload_time": "2025-03-13T13:49:21.846456Z"
+    },
+    {
+      "name": "tokenizers",
+      "normalized_name": "tokenizers",
+      "version": "0.22.2",
+      "constraints": [
+        "<=0.23.0,>=0.22.0",
+        ">=0.19"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "sentence-transformers",
+        "transformers"
+      ],
+      "license": "Apache Software License",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "tokenizers-0.22.2-cp39-abi3-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 2747786,
+        "sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48",
+        "url": "https://files.pythonhosted.org/packages/65/71/0670843133a43d43070abeb1949abfdef12a86d490bea9cd9e18e37c5ff7/tokenizers-0.22.2-cp39-abi3-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/tokenizers/",
+      "upload_time": "2026-01-05T10:45:18.411482Z"
+    },
+    {
+      "name": "torch",
+      "normalized_name": "torch",
+      "version": "2.13.0",
+      "constraints": [
+        ">=1.13.0",
+        ">=1.6.0",
+        ">=2.0.0",
+        ">=2.2"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "accelerate",
+        "flagembedding",
+        "peft",
+        "sentence-transformers"
+      ],
+      "license": "Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "torch-2.13.0-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 122057313,
+        "sha256": "024c6cc0c1b085f2f91f20a3dc27b0471d021c31ce84b81be3afdc39f791fd9d",
+        "url": "https://files.pythonhosted.org/packages/21/d6/e8f3c6f7e01f626f77259de9860d2a78bc84c40539e28e79b7e98b0bb659/torch-2.13.0-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/torch/",
+      "upload_time": "2026-07-08T16:03:53.430266Z"
+    },
+    {
+      "name": "tqdm",
+      "normalized_name": "tqdm",
+      "version": "4.70.0",
+      "constraints": [
+        "*",
+        ">=4.0.0",
+        ">=4.38.0",
+        ">=4.42.1",
+        ">=4.60",
+        ">=4.66.3"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets",
+        "huggingface-hub",
+        "ir-datasets",
+        "peft",
+        "sentence-transformers",
+        "transformers"
+      ],
+      "license": "MPL-2.0 AND MIT",
+      "requires_python": ">=3.8",
+      "selected_artifact": {
+        "filename": "tqdm-4.70.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 80184,
+        "sha256": "7f585706bfddbdebf89daac705b2dfcc16890130727d3197ca62c732b4310953",
+        "url": "https://files.pythonhosted.org/packages/f9/1c/01bfd571a64e7f270e6bab5e33777debe0edc56759233ce84f27dec92d14/tqdm-4.70.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/tqdm/",
+      "upload_time": "2026-07-27T11:33:13.167874Z"
+    },
+    {
+      "name": "transformers",
+      "normalized_name": "transformers",
+      "version": "5.15.1",
+      "constraints": [
+        "*",
+        "<6.0.0,>=4.44.2",
+        "<6.0.0,>=5.0.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "flagembedding",
+        "peft",
+        "sentence-transformers"
+      ],
+      "license": "Apache 2.0 License",
+      "requires_python": ">=3.10.0",
+      "selected_artifact": {
+        "filename": "transformers-5.15.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 11749582,
+        "sha256": "b7cdf238ff583e3a58dbc7fa34da1aaf091ce063141f65a30538160bd5afe93f",
+        "url": "https://files.pythonhosted.org/packages/41/c4/a12e1d9b387fb0c40a57116db82b457e8c771cb419163cda29204d74a595/transformers-5.15.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/transformers/",
+      "upload_time": "2026-08-19T11:28:16.726698Z"
+    },
+    {
+      "name": "typer",
+      "normalized_name": "typer",
+      "version": "0.27.1",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "transformers"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "typer-0.27.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 122874,
+        "sha256": "53150287edd11baeb4e4722c8e394fcdf8181c0ae89485cba8d25c778d5edd56",
+        "url": "https://files.pythonhosted.org/packages/43/89/9518bc0c3929bee36b3a4a8e3daddd6e03f92f9961c66d4983b837160543/typer-0.27.1-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/typer/",
+      "upload_time": "2026-08-03T14:41:04.391012Z"
+    },
+    {
+      "name": "typing-extensions",
+      "normalized_name": "typing-extensions",
+      "version": "4.16.0",
+      "constraints": [
+        ">=4.1.0",
+        ">=4.10.0",
+        ">=4.10.0",
+        ">=4.2",
+        ">=4.4",
+        ">=4.5"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp",
+        "aiosignal",
+        "anyio",
+        "huggingface-hub",
+        "sentence-transformers",
+        "torch"
+      ],
+      "license": "PSF-2.0",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 45571,
+        "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+        "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/typing-extensions/",
+      "upload_time": "2026-07-02T08:40:04.659120Z"
+    },
+    {
+      "name": "tzdata",
+      "normalized_name": "tzdata",
+      "version": "2026.3",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "pandas"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=2",
+      "selected_artifact": {
+        "filename": "tzdata-2026.3-py2.py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 348168,
+        "sha256": "dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931",
+        "url": "https://files.pythonhosted.org/packages/e5/6d/b53b99a9f2766d095985947a5782f1702cabb129a34f7a802d7197af832f/tzdata-2026.3-py2.py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/tzdata/",
+      "upload_time": "2026-07-10T08:50:36.460750Z"
+    },
+    {
+      "name": "urllib3",
+      "normalized_name": "urllib3",
+      "version": "2.7.0",
+      "constraints": [
+        "<3,>=1.26"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "requests"
+      ],
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "urllib3-2.7.0-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 131087,
+        "sha256": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897",
+        "url": "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl"
+      },
+      "project_url": "https://pypi.org/project/urllib3/",
+      "upload_time": "2026-05-07T16:13:17.151740Z"
+    },
+    {
+      "name": "xxhash",
+      "normalized_name": "xxhash",
+      "version": "4.0.1",
+      "constraints": [
+        "*"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "datasets"
+      ],
+      "license": "BSD-2-Clause",
+      "requires_python": ">=3.9",
+      "selected_artifact": {
+        "filename": "xxhash-4.0.1-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 37073,
+        "sha256": "5c2d525a3afabcd8e3549d85fc7e111fde6bc302d06a1893fe73adb79823415e",
+        "url": "https://files.pythonhosted.org/packages/aa/02/f9413d94fae43cec6d1a74c4f12156c6f4a7f5fd50e1d34defebdee3dec9/xxhash-4.0.1-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/xxhash/",
+      "upload_time": "2026-08-17T08:22:04.886981Z"
+    },
+    {
+      "name": "yarl",
+      "normalized_name": "yarl",
+      "version": "1.24.5",
+      "constraints": [
+        "<2.0,>=1.17.0"
+      ],
+      "requested_extras": [],
+      "required_by": [
+        "aiohttp"
+      ],
+      "license": "Apache-2.0",
+      "requires_python": ">=3.10",
+      "selected_artifact": {
+        "filename": "yarl-1.24.5-cp312-cp312-win_amd64.whl",
+        "packagetype": "bdist_wheel",
+        "build_from_source": false,
+        "size_bytes": 97618,
+        "sha256": "a929d878fec099030c292803b31e5d5540a7b6a31e6a3cc76cb4685fc2a2f51b",
+        "url": "https://files.pythonhosted.org/packages/c4/27/41eb51bbd1b8d89546b83897cfb0164f1e109304fd408dbb151b639eec0f/yarl-1.24.5-cp312-cp312-win_amd64.whl"
+      },
+      "project_url": "https://pypi.org/project/yarl/",
+      "upload_time": "2026-07-20T02:05:55.570286Z"
+    }
+  ]
+}

@@ -79,8 +79,9 @@
 .proto-brand small {
   color: var(--proto-ink-faint);
   font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.13em;
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  white-space: pre-wrap;
 }
 
 .proto-brand__mark {

@@ -25,8 +25,9 @@ test("DDUP brand uses the project wordmark and a vector double-D mark", async ()
   ]);
 
   assert.equal((shell.match(/<span>DDUP<\/span>/g) || []).length, 2);
-  assert.match(shell, /PERSONAL CONTEXT WORKBENCH/);
+  assert.match(shell, /Good Good Study  Day Day Up/);
   assert.equal((prototype.match(/<strong>DDUP<\/strong>/g) || []).length, 2);
+  assert.match(prototype, /Good Good Study  Day Day Up/);
   assert.equal((prototype.match(/src="\/workbench-mark\.svg"/g) || []).length, 2);
   assert.match(mark, /linearGradient id="dd-up"/);
   assert.match(mark, /M16\.5 16\.5v31/);

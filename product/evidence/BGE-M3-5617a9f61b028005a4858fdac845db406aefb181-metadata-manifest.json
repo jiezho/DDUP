@@ -1,0 +1,111 @@
+{
+  "schema_version": "dd-up-huggingface-model-metadata-v1",
+  "generated_at": "2026-08-25T09:00:09.444874+00:00",
+  "status": "metadata_only_not_downloaded",
+  "model_id": "BAAI/bge-m3",
+  "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+  "license": "mit",
+  "source_api": "https://huggingface.co/api/models/BAAI/bge-m3?blobs=true",
+  "summary": {
+    "required_file_count": 12,
+    "required_file_bytes": 2295419991,
+    "required_file_mib": 2189.08,
+    "required_file_gib": 2.138
+  },
+  "network_effects": {
+    "model_metadata_read": true,
+    "model_files_downloaded": false
+  },
+  "verification_gate": [
+    "Download only from the fixed revision URL after separate approval.",
+    "Recompute SHA-256 for every downloaded file before use.",
+    "For LFS files, require the local SHA-256 to equal declared_lfs_sha256.",
+    "For non-LFS files, record the newly computed local SHA-256 in the run manifest."
+  ],
+  "files": [
+    {
+      "path": "1_Pooling/config.json",
+      "size_bytes": 191,
+      "git_blob_sha1": "9bd85925f325e25246d94c4918dc02ab98f2a1b7",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "colbert_linear.pt",
+      "size_bytes": 2100674,
+      "git_blob_sha1": "4a8e5127e62c8cbb2cb5a37a3cb34b27b2dfc3aa",
+      "declared_lfs_sha256": "19bfbae397c2b7524158c919d0e9b19393c5639d098f0a66932c91ed8f5f9abb",
+      "local_sha256": null
+    },
+    {
+      "path": "config.json",
+      "size_bytes": 687,
+      "git_blob_sha1": "e6eda1c72da8f9dc30fdd9b69c73d35af3b7a7ad",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "config_sentence_transformers.json",
+      "size_bytes": 123,
+      "git_blob_sha1": "1fba91c78a6c8e17227058ab6d4d3acb5d8630a9",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "modules.json",
+      "size_bytes": 349,
+      "git_blob_sha1": "952a9b81c0bfd99800fabf352f69c7ccd46c5e43",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "pytorch_model.bin",
+      "size_bytes": 2271145830,
+      "git_blob_sha1": "88e71f33b1af45aa960f3fbf6883edc6f014452a",
+      "declared_lfs_sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38",
+      "local_sha256": null
+    },
+    {
+      "path": "sentence_bert_config.json",
+      "size_bytes": 54,
+      "git_blob_sha1": "0140ba1eac83a3c9b857d64baba91969d988624b",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "sentencepiece.bpe.model",
+      "size_bytes": 5069051,
+      "git_blob_sha1": "7a3f40a75f870bc1f21700cd414dc2acc431583c",
+      "declared_lfs_sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+      "local_sha256": null
+    },
+    {
+      "path": "sparse_linear.pt",
+      "size_bytes": 3516,
+      "git_blob_sha1": "19175a7f93e1a1f8b98d5f5f367062d9bd287d87",
+      "declared_lfs_sha256": "45c93804d2142b8f6d7ec6914ae23a1eee9c6a1d27d83d908a20d2afb3595ad9",
+      "local_sha256": null
+    },
+    {
+      "path": "special_tokens_map.json",
+      "size_bytes": 964,
+      "git_blob_sha1": "b1879d702821e753ffe4245048eee415d54a9385",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    },
+    {
+      "path": "tokenizer.json",
+      "size_bytes": 17098108,
+      "git_blob_sha1": "c8fd8778874b9aa8bdafaa3bbd760f236d237dd6",
+      "declared_lfs_sha256": "21106b6d7dab2952c1d496fb21d5dc9db75c28ed361a05f5020bbba27810dd08",
+      "local_sha256": null
+    },
+    {
+      "path": "tokenizer_config.json",
+      "size_bytes": 444,
+      "git_blob_sha1": "dc69ac559dcba2694012009aaa108c614541789a",
+      "declared_lfs_sha256": null,
+      "local_sha256": null
+    }
+  ]
+}

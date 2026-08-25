@@ -233,7 +233,7 @@ export function PrototypeApp() {
       <aside className={`proto-sidebar${mobileOpen ? " proto-sidebar--open" : ""}`}>
         <div className="proto-brand">
           <span className="proto-brand__mark"><img alt="" aria-hidden="true" src="/workbench-mark.svg" /></span>
-          <span><strong>DDUP</strong><small>PERSONAL CONTEXT</small></span>
+          <span><strong>DDUP</strong><small>{"Good Good Study  Day Day Up"}</small></span>
           <button aria-label="关闭导航" className="proto-icon-btn proto-sidebar__close" onClick={() => setMobileOpen(false)} type="button"><IconX /></button>
         </div>
 
