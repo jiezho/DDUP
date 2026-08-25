@@ -15,6 +15,8 @@
     "test": "npm run build && node --test --test-concurrency=1 tests/*.test.mjs",
     "preprivacy:scan": "node scripts/check-runtime.mjs",
     "privacy:scan": "node scripts/privacy-scan.mjs",
+    "brand:render": "node scripts/render-brand-assets.mjs",
+    "eval:retrieval-baseline": "node scripts/evaluate-context-fts-baseline.mjs",
     "demo:generate": "node scripts/generate-demo-douyin.mjs",
     "prebuild": "node scripts/check-runtime.mjs",
     "build": "node scripts/build-hosted.mjs",

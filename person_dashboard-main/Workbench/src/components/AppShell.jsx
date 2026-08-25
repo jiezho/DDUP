@@ -6,6 +6,7 @@ import {
   IconBooks,
   IconBulb,
   IconBriefcase2,
+  IconChartBar,
   IconClipboardList,
   IconCommand,
   IconHome,
@@ -44,6 +45,9 @@ const primaryNavigation = [
     : []),
   { to: "/topics", label: "灵感库", icon: IconBulb },
   { to: "/content", label: "内容中心", icon: IconClipboardList },
+];
+
+const mediaNavigation = [
   { to: "/douyin", label: "抖音数据", icon: IconBrandTiktok },
 ];
 
@@ -72,7 +76,7 @@ export function AppShell({ children, onOpenSearch, sync }) {
         </button>
         <span className="mobile-header__brand">
           <img alt="" aria-hidden="true" src="/workbench-mark.svg" />
-          <span>个人 AI</span>
+          <span>DDUP</span>
         </span>
         <button
           aria-label="搜索"
@@ -98,7 +102,7 @@ export function AppShell({ children, onOpenSearch, sync }) {
           <div className="sidebar__brand-row">
             <NavLink className="sidebar__brand" onClick={() => setMobileOpen(false)} to="/">
               <img alt="" aria-hidden="true" src="/workbench-mark.svg" />
-              <span>个人 AI</span>
+              <span>DDUP</span>
             </NavLink>
             <button
               aria-label="关闭导航"
@@ -109,7 +113,7 @@ export function AppShell({ children, onOpenSearch, sync }) {
               <IconX aria-hidden="true" />
             </button>
           </div>
-          <div className="sidebar__tag">PERSONAL AI WORKBENCH</div>
+          <div className="sidebar__tag">PERSONAL CONTEXT WORKBENCH</div>
 
           <nav aria-label="主要导航" className="sidebar__nav">
             {primaryNavigation.map((item) => {
@@ -129,6 +133,30 @@ export function AppShell({ children, onOpenSearch, sync }) {
                 </NavLink>
               );
             })}
+            <div className="sidebar__nav-group">
+              <div className="sidebar__nav-group-label">
+                <IconChartBar aria-hidden="true" className="sidebar__nav-icon" stroke={1.7} />
+                <span>媒体数据</span>
+              </div>
+              <div className="sidebar__nav-children">
+                {mediaNavigation.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      className={({ isActive }) =>
+                        `sidebar__nav-item sidebar__nav-item--child${isActive ? " sidebar__nav-item--active" : ""}`
+                      }
+                      key={item.to}
+                      onClick={() => setMobileOpen(false)}
+                      to={item.to}
+                    >
+                      <Icon aria-hidden="true" className="sidebar__nav-icon" stroke={1.7} />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
           </nav>
         </div>
 

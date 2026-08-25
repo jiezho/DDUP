@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G5a 已确认。核心项目闭环、受控 Markdown 来源和权限优先全文检索已经实现；混合/向量检索、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G5a 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、混合检索契约与 60 条合成评测基线已经实现；真实向量检索、重排、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -74,8 +74,9 @@ flowchart TB
 | 今日与复盘 | 最多三项任务聚焦、任务真源同步、日终复盘 | 已实现首版 |
 | 受控来源 | 虚构 Markdown 导入、SHA-256 文件真源、SourceVersion、Document | 已实现首版 |
 | 上下文检索 | Project/Task/Capture/Document 统一 FTS5，空间/项目/类型/日期过滤 | 已实现首版 |
-| 混合与向量检索 | BGE-M3、重排和向量存储采用松耦合评测方案 | G5a 已确认，尚未实现 |
+| 混合与向量检索 | Adapter、Chunk、SearchEvidence、RRF 与合成评测已落地；BGE-M3 尚未下载 | 契约/基线已实现，真实模型待确认 |
 | 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中，等待 G5b |
+| 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
 | DeepSeek Harness | 只读隔离 Runtime POC 候选 | `poc_not_connected` |
 | Hermes | 可选 Runtime / 消息网关候选 | `candidate_not_connected` |
@@ -90,6 +91,10 @@ flowchart TB
 ### 项目工作台
 
 ![项目工作台桌面端](research/screenshots/workbench-mvp/project-workbench-desktop.png)
+
+### 媒体数据 / 抖音
+
+![媒体数据桌面端](research/screenshots/workbench-mvp/media-data-desktop.png)
 
 更多 PC 与移动端截图见 [`research/screenshots/workbench-mvp/`](research/screenshots/workbench-mvp/)。
 
@@ -127,7 +132,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19、测试 178/178、生产构建、隐私扫描和 Playwright Chromium 端到端测试均已通过。构建仍有主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
+当前验证快照：Node 24.19、测试 185/185、生产构建、隐私扫描和 Playwright Chromium 端到端测试均已通过。构建仍有主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
 
 ## 六、仓库结构
 
@@ -162,6 +167,7 @@ DDUP/
 - [权限、安全与审计设计](product/权限安全与审计设计.md)
 - [Agent Runtime 与工具契约](product/AgentRuntime与工具契约.md)
 - [知识库检索与引用设计](product/知识库检索与引用设计.md)
+- [检索评测基线报告](product/检索评测基线报告.md)
 - [架构决策记录 ADR 索引](product/ADR/README.md)
 
 ### Runtime 与专项评估
@@ -177,17 +183,17 @@ DDUP/
 - [Node SQLite 可靠性 Spike](product/Node_SQLite可靠性Spike报告.md)
 - [Fastify 与 Playwright 依赖审查](product/Fastify与Playwright依赖审查.md)
 - [旧版 XLSX 导入依赖处置（待确认）](product/旧版XLSX导入依赖处置_待确认.md)
+- [模型与推理运行时依赖审查（待确认）](product/模型与推理运行时依赖审查_待确认.md)
 
 文档中的能力状态统一使用“已实现、原型演示、设计方案、POC 候选、后续计划”。没有代码、测试和运行证据的能力不得描述为已集成或生产可用。
 
 ## 八、后续路线
 
-1. 建立混合检索 Adapter、Chunk 和 SearchEvidence 契约；
-2. 生成模型与推理运行时依赖专项审查，未经确认不下载模型；
-3. 建立至少 60 条全合成检索 qrels 和 FTS 对照；
-4. 隔离评测 BGE-M3、RRF 和可选 reranker，通过 G5b 决定 Go/Stop；
-5. 通过引用、拒答和泄漏门后，再开放生成式引用问答；
-6. 随后进入 Native Runtime、Tool Gateway、Harness/Hermes POC 和移动连接器阶段。
+1. 用户确认模型与推理运行时专项审查；确认前不下载模型；
+2. 确认后先冻结依赖闭包和精确下载量，再单独确认大体积下载；
+3. 隔离评测 BGE-M3 与 RRF；只有融合达门后才审查 reranker；
+4. 通过 G5b 的引用、拒答和泄漏门后，再开放生成式引用问答；
+5. 随后进入 Native Runtime、Tool Gateway、Harness/Hermes POC 和移动连接器阶段。
 
 ## 九、隐私与发布边界
 
@@ -195,4 +201,3 @@ DDUP/
 - 不得提交真实账号、公司资料、消息、浏览记录、凭据、密钥、运行数据库和私人本地路径；
 - 浏览器 Profile、依赖目录、构建产物、源 ZIP 和运行状态已由 `.gitignore` 排除；
 - 当前版本在许可证和发布门完全统一前，仅用于本地开发、研究与内部演示。
-

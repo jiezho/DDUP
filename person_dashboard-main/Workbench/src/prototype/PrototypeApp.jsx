@@ -232,8 +232,8 @@ export function PrototypeApp() {
     <div className="prototype-root">
       <aside className={`proto-sidebar${mobileOpen ? " proto-sidebar--open" : ""}`}>
         <div className="proto-brand">
-          <span className="proto-brand__mark"><IconSparkles aria-hidden="true" /></span>
-          <span><strong>个人 AI</strong><small>CONTEXT WORKBENCH</small></span>
+          <span className="proto-brand__mark"><img alt="" aria-hidden="true" src="/workbench-mark.svg" /></span>
+          <span><strong>DDUP</strong><small>PERSONAL CONTEXT</small></span>
           <button aria-label="关闭导航" className="proto-icon-btn proto-sidebar__close" onClick={() => setMobileOpen(false)} type="button"><IconX /></button>
         </div>
 
@@ -272,8 +272,8 @@ export function PrototypeApp() {
         <header className="proto-topbar">
           <div className="proto-mobile-brand">
             <button aria-label="打开导航" className="proto-icon-btn" onClick={() => setMobileOpen(true)} type="button"><IconMenu2 /></button>
-            <span className="proto-brand__mark"><IconSparkles /></span>
-            <strong>个人 AI</strong>
+            <span className="proto-brand__mark"><img alt="" aria-hidden="true" src="/workbench-mark.svg" /></span>
+            <strong>DDUP</strong>
           </div>
           <button className="proto-search-trigger" onClick={() => setSearchOpen(true)} type="button">
             <IconSearch aria-hidden="true" />

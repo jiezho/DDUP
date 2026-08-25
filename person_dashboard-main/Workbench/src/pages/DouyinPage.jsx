@@ -39,7 +39,7 @@ export function DouyinPage() {
     return (
       <div className="page">
         <PageHeader
-          eyebrow="DOUYIN DATA"
+          eyebrow="MEDIA DATA · DOUYIN"
           title="抖音数据"
           description="账号趋势、全量作品、单条生命周期与数据资产覆盖。"
         />
@@ -57,7 +57,7 @@ export function DouyinPage() {
     return (
       <div className="page">
         <PageHeader
-          eyebrow="DOUYIN DATA"
+          eyebrow="MEDIA DATA · DOUYIN"
           title="抖音数据"
           description="账号趋势、全量作品、单条生命周期与数据资产覆盖。"
         />
@@ -75,7 +75,7 @@ export function DouyinPage() {
   return (
     <div className="page page--douyin">
       <PageHeader
-        eyebrow="DOUYIN DATA SYSTEM"
+        eyebrow="MEDIA DATA · DOUYIN"
         title="抖音数据"
         description="从账号到单条作品的可审计数据层。累计快照、自然日新增与小时生命周期分别展示，不混用口径。"
       />
