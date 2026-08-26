@@ -1,0 +1,53 @@
+{
+  "schema_version": "dd-up-sidecar-short-endurance-v1",
+  "generated_at": "2026-08-26T04:42:26.767Z",
+  "status": "failed_keep_experimental_disabled",
+  "data_classification": "explicitly_synthetic",
+  "endpoint_scope": "127.0.0.1_loopback_only",
+  "authentication": {
+    "unauthorized_health_status": 401
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu"
+  },
+  "workload": {
+    "warmup_requests": 2,
+    "sequential_requests": 8,
+    "concurrent_rounds": 1,
+    "concurrency": 2,
+    "request_timeout_ms": 120000,
+    "candidate_count": 4,
+    "total_measured_requests": 10
+  },
+  "measurements": {
+    "elapsed_ms": 602201.12,
+    "throughput_requests_per_second": 0.017,
+    "sequential": {
+      "requests": 8,
+      "p50_ms": 561.1,
+      "p95_ms": 120006.08,
+      "max_ms": 120006.08,
+      "errors": 4
+    },
+    "concurrent": {
+      "requests": 2,
+      "p50_ms": 120001.94,
+      "p95_ms": 120002.11,
+      "max_ms": 120002.11,
+      "errors": 2
+    },
+    "total_errors": 6,
+    "error_codes": [
+      "request_timeout"
+    ],
+    "identity_stable_after_run": true
+  },
+  "interpretation_limits": [
+    "short_local_cpu_sample_not_production_capacity",
+    "model_runtime_serializes_inference_so_concurrent_requests_queue",
+    "no_memory_leak_or_long_duration_stability_conclusion",
+    "no_real_data_no_generated_answer_no_production_enablement"
+  ]
+}

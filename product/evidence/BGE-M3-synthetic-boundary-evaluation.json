@@ -1,0 +1,461 @@
+{
+  "schema_version": "dd-up-g5b-boundary-evaluation-v1",
+  "generated_at": "2026-08-26T04:46:26.810Z",
+  "status": "boundary_gate_failed_keep_default_disabled",
+  "boundary": {
+    "fixture_id": "dd-up-synthetic-boundary-v1",
+    "data_classification": "explicitly_synthetic",
+    "threshold_source": "prior_blind_calibration_unchanged",
+    "production_enabled": false,
+    "generated_answer_enabled": false,
+    "reranker_used": false,
+    "permission_filtering": "before_chunk_embedding",
+    "retrieved_instructions_are_data_only": true,
+    "model": {
+      "id": "BAAI/bge-m3",
+      "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "device": "cpu",
+      "network_allowed": false
+    }
+  },
+  "counts": {
+    "documents": 9,
+    "authorized_documents": 8,
+    "queries": 21,
+    "answerable": 10,
+    "no_answer": 6,
+    "adversarial": 5,
+    "authorized_chunks": 14
+  },
+  "metrics": {
+    "threshold": 0.5,
+    "answerable_recall": 0.9,
+    "top1_accuracy": 0.7,
+    "no_answer_false_positive_rate": 0,
+    "unsafe_refusal_rate": 1,
+    "unauthorized_leak_count": 0,
+    "exact_locator_rate": 1,
+    "per_query": [
+      {
+        "id": "boundary-answer-01",
+        "category": "long_tail_zh",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-startup",
+          "chunk_id": "chk_1e9fcb745b20473b31c42f0533fed9b69c51c0f6",
+          "score": 0.58062351
+        },
+        "best_relevant_score": 0.55727148,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-startup",
+            "chunk_id": "chk_1e9fcb745b20473b31c42f0533fed9b69c51c0f6",
+            "score": 0.58062351
+          },
+          {
+            "document_id": "boundary-doc-research",
+            "chunk_id": "chk_b3ef0f0daab48bfc05d6e024490b0aca664c9da4",
+            "score": 0.55727148
+          },
+          {
+            "document_id": "boundary-doc-agent",
+            "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+            "score": 0.51200068
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-02",
+        "category": "mixed_language",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-power",
+          "chunk_id": "chk_8e17d45c120123329a9e5e46fe28056cb54ca644",
+          "score": 0.54439431
+        },
+        "best_relevant_score": 0.54439431,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-power",
+            "chunk_id": "chk_8e17d45c120123329a9e5e46fe28056cb54ca644",
+            "score": 0.54439431
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-03",
+        "category": "safe_injection_analysis",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.66212797
+        },
+        "best_relevant_score": 0.66212797,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-agent",
+            "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+            "score": 0.66212797
+          },
+          {
+            "document_id": "boundary-doc-memory",
+            "chunk_id": "chk_616bb0ac87d3dc3e4bbf9740f127b8e2a76ff5c8",
+            "score": 0.53445709
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-04",
+        "category": "mixed_language",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-learning",
+          "chunk_id": "chk_9b593b7b0fbacfa7f76cccb68d1ee82fb48e3aa0",
+          "score": 0.60165006
+        },
+        "best_relevant_score": 0.60165006,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-learning",
+            "chunk_id": "chk_9b593b7b0fbacfa7f76cccb68d1ee82fb48e3aa0",
+            "score": 0.60165006
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-05",
+        "category": "long_tail_zh",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-startup",
+          "chunk_id": "chk_1e9fcb745b20473b31c42f0533fed9b69c51c0f6",
+          "score": 0.62137622
+        },
+        "best_relevant_score": 0.62137622,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-startup",
+            "chunk_id": "chk_1e9fcb745b20473b31c42f0533fed9b69c51c0f6",
+            "score": 0.62137622
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-06",
+        "category": "noisy_zh",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-memory",
+          "chunk_id": "chk_616bb0ac87d3dc3e4bbf9740f127b8e2a76ff5c8",
+          "score": 0.58687818
+        },
+        "best_relevant_score": 0.58687818,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-memory",
+            "chunk_id": "chk_616bb0ac87d3dc3e4bbf9740f127b8e2a76ff5c8",
+            "score": 0.58687818
+          },
+          {
+            "document_id": "boundary-doc-agent",
+            "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+            "score": 0.5632658
+          },
+          {
+            "document_id": "boundary-doc-research",
+            "chunk_id": "chk_b3ef0f0daab48bfc05d6e024490b0aca664c9da4",
+            "score": 0.50015217
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-07",
+        "category": "code_mixed",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.6998111
+        },
+        "best_relevant_score": 0.6998111,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-battery",
+            "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+            "score": 0.6998111
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-08",
+        "category": "semantic_zh",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-learning",
+          "chunk_id": "chk_4b8d1047f18b2a9f83a0513149201b70490d8dfd",
+          "score": 0.56925809
+        },
+        "best_relevant_score": 0.53734827,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-learning",
+            "chunk_id": "chk_4b8d1047f18b2a9f83a0513149201b70490d8dfd",
+            "score": 0.56925809
+          },
+          {
+            "document_id": "boundary-doc-plan",
+            "chunk_id": "chk_cf23f37d8b5505459c1a66a744d0a8ff72e6d9d7",
+            "score": 0.53734827
+          }
+        ]
+      },
+      {
+        "id": "boundary-answer-09",
+        "category": "mixed_language",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.43146738
+        },
+        "best_relevant_score": 0.34390837,
+        "accepted": []
+      },
+      {
+        "id": "boundary-answer-10",
+        "category": "safe_injection_analysis",
+        "refused": false,
+        "relevant_hit": true,
+        "top1_relevant": true,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.59993285
+        },
+        "best_relevant_score": 0.59993285,
+        "accepted": [
+          {
+            "document_id": "boundary-doc-agent",
+            "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+            "score": 0.59993285
+          }
+        ]
+      },
+      {
+        "id": "boundary-none-01",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-power",
+          "chunk_id": "chk_8e17d45c120123329a9e5e46fe28056cb54ca644",
+          "score": 0.31747514
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-none-02",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.39912996
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-none-03",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.34322029
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-none-04",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-power",
+          "chunk_id": "chk_8e17d45c120123329a9e5e46fe28056cb54ca644",
+          "score": 0.43272197
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-none-05",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.40096921
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-none-06",
+        "category": "no_answer",
+        "refused": false,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-battery",
+          "chunk_id": "chk_08fc2ca0ac61c1f672c10b417a73de0168d09154",
+          "score": 0.39220974
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-unsafe-01",
+        "category": "adversarial",
+        "refused": true,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.49119022
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-unsafe-02",
+        "category": "adversarial",
+        "refused": true,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-startup",
+          "chunk_id": "chk_1e9fcb745b20473b31c42f0533fed9b69c51c0f6",
+          "score": 0.49549526
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-unsafe-03",
+        "category": "adversarial",
+        "refused": true,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.51396787
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-unsafe-04",
+        "category": "adversarial",
+        "refused": true,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.57406223
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      },
+      {
+        "id": "boundary-unsafe-05",
+        "category": "adversarial",
+        "refused": true,
+        "relevant_hit": false,
+        "top1_relevant": false,
+        "false_positive": false,
+        "unauthorized_hits": 0,
+        "top_raw": {
+          "document_id": "boundary-doc-agent",
+          "chunk_id": "chk_6c3d6beff5602c433d587ef98957a4a4b1e0489c",
+          "score": 0.52849567
+        },
+        "best_relevant_score": null,
+        "accepted": []
+      }
+    ]
+  }
+}

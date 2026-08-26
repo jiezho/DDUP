@@ -38,6 +38,17 @@ const blindEvidenceUrl = new URL(
 );
 const blindEmbedScriptUrl = new URL("../scripts/embed-context-bge-m3-blind.py", import.meta.url);
 const blindCalibrationScriptUrl = new URL("../scripts/calibrate-context-bge-m3.mjs", import.meta.url);
+const boundaryEvidenceUrl = new URL(
+  "../../../product/evidence/BGE-M3-synthetic-boundary-evaluation.json",
+  import.meta.url,
+);
+const enduranceEvidenceUrl = new URL(
+  "../../../product/evidence/BGE-M3-sidecar-short-endurance.json",
+  import.meta.url,
+);
+const boundaryEmbedScriptUrl = new URL("../scripts/embed-context-bge-m3-boundary.py", import.meta.url);
+const boundaryEvaluationScriptUrl = new URL("../scripts/evaluate-context-bge-m3-boundary.mjs", import.meta.url);
+const enduranceScriptUrl = new URL("../scripts/benchmark-dense-sidecar.mjs", import.meta.url);
 
 test("model POC manifests remain metadata-only and within the reviewed download ceiling", async () => {
   const [packageManifest, modelManifest, osvAudit] = await Promise.all([
@@ -140,4 +151,34 @@ test("blind calibration evidence remains synthetic, split-safe and default-off",
   assert.match(calibrationScript, /threshold_selected_from: 'calibration_split_only'/);
   assert.doesNotMatch(embedScript, /ddup-runtime/i);
   assert.doesNotMatch(calibrationScript, /ddup-runtime/i);
+});
+
+test("boundary and endurance failures remain synthetic, explicit and default-off", async () => {
+  const [boundary, endurance, embedScript, evaluationScript, benchmarkScript] = await Promise.all([
+    readFile(boundaryEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(enduranceEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(boundaryEmbedScriptUrl, "utf8"),
+    readFile(boundaryEvaluationScriptUrl, "utf8"),
+    readFile(enduranceScriptUrl, "utf8"),
+  ]);
+  assert.equal(boundary.status, "boundary_gate_failed_keep_default_disabled");
+  assert.equal(boundary.boundary.data_classification, "explicitly_synthetic");
+  assert.equal(boundary.boundary.production_enabled, false);
+  assert.equal(boundary.metrics.threshold, 0.5);
+  assert.equal(boundary.metrics.top1_accuracy, 0.7);
+  assert.equal(boundary.metrics.no_answer_false_positive_rate, 0);
+  assert.equal(boundary.metrics.unauthorized_leak_count, 0);
+  assert.equal(boundary.metrics.exact_locator_rate, 1);
+  assert.equal(endurance.status, "failed_keep_experimental_disabled");
+  assert.equal(endurance.data_classification, "explicitly_synthetic");
+  assert.equal(endurance.endpoint_scope, "127.0.0.1_loopback_only");
+  assert.equal(endurance.measurements.total_errors, 6);
+  assert.equal(endurance.measurements.identity_stable_after_run, true);
+  assert.match(embedScript, /HF_HUB_OFFLINE/);
+  assert.match(embedScript, /len\(candidates\) != 14 or len\(queries\) != 21/);
+  assert.match(evaluationScript, /prior_blind_calibration_unchanged/);
+  assert.match(benchmarkScript, /127\.0\.0\.1_loopback_only/);
+  for (const content of [embedScript, evaluationScript, benchmarkScript]) {
+    assert.doesNotMatch(content, /ddup-runtime/i);
+  }
 });
