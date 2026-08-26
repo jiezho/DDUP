@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { createWorkbenchApp } from './app.mjs'
+import { hybridSearchRuntimeFromEnv } from './context/dense-sidecar-adapter.mjs'
 
 const host = '127.0.0.1'
 const port = Number.parseInt(process.env.WORKBENCH_PORT ?? '8787', 10)
@@ -17,7 +18,11 @@ if (typeof bootstrapToken !== 'string' || bootstrapToken.length < 32) {
 }
 
 mkdirSync(dataDirectory, { recursive: true })
-const app = createWorkbenchApp({ bootstrapToken, databasePath })
+const app = createWorkbenchApp({
+  bootstrapToken,
+  databasePath,
+  hybridSearch: hybridSearchRuntimeFromEnv(process.env),
+})
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, async () => {

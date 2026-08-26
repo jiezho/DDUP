@@ -23,6 +23,7 @@ export const CapabilitiesDataSchema = z.object({
   local_session: CapabilityStateSchema,
   projects: CapabilityStateSchema,
   knowledge: CapabilityStateSchema,
+  hybrid_search: CapabilityStateSchema,
   native_runtime: CapabilityStateSchema,
   deepseek_harness: CapabilityStateSchema,
   hermes: CapabilityStateSchema,

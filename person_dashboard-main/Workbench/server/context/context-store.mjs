@@ -113,6 +113,16 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
   if (!kernel) throw new TypeError('kernel is required')
   if (typeof sourceRoot !== 'string' || !sourceRoot) throw new TypeError('sourceRoot is required')
 
+  function authorizeSearch(session, { space_id: spaceId, project_id: projectId }) {
+    const actor = kernel.actorForSession(session)
+    kernel.visibleSpace(actor, spaceId)
+    if (projectId) {
+      const project = kernel.requireProject(actor, projectId)
+      if (project.space_id !== spaceId) throw publicError(ERROR_CODES.OBJECT_NOT_AVAILABLE, '请求的资源不可用。', { statusCode: 404 })
+    }
+    return actor
+  }
+
   function existingByDigest(spaceId, projectId, digest) {
     return database.prepare(`
       SELECT ${SOURCE_COLUMNS}
@@ -218,30 +228,33 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
   }
 
   function search(session, { space_id: spaceId, project_id: projectId, q, types, from, to, limit }) {
-    const actor = kernel.actorForSession(session)
-    kernel.visibleSpace(actor, spaceId)
-    if (projectId) {
-      const project = kernel.requireProject(actor, projectId)
-      if (project.space_id !== spaceId) throw publicError(ERROR_CODES.OBJECT_NOT_AVAILABLE, '请求的资源不可用。', { statusCode: 404 })
-    }
+    authorizeSearch(session, { space_id: spaceId, project_id: projectId })
     const typePlaceholders = types.map(() => '?').join(', ')
     const fromTime = from ? `${from}T00:00:00.000Z` : null
     const toTime = to ? `${to}T23:59:59.999Z` : null
     const useFts = [...q].length >= 3
-    const matchClause = useFts ? 'context_search MATCH ?' : '(title LIKE ? ESCAPE \'\\\' OR body LIKE ? ESCAPE \'\\\')'
+    const matchClause = useFts ? 'context_search MATCH ?' : '(context_search.title LIKE ? ESCAPE \'\\\' OR context_search.body LIKE ? ESCAPE \'\\\')'
     const escapedLike = `%${q.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`
     const matchParams = useFts ? [quotedFtsQuery(q)] : [escapedLike, escapedLike]
     const rows = database.prepare(`
-      SELECT object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at,
+      SELECT context_search.object_type, context_search.object_id, context_search.space_id,
+             context_search.project_id, context_search.title, context_search.body,
+             context_search.source_version_id, context_search.updated_at,
+             d.source_id AS source_id, d.id AS document_id,
              ${useFts ? 'bm25(context_search)' : 'NULL'} AS rank
       FROM context_search
+      LEFT JOIN documents d
+        ON context_search.object_type = 'document'
+        AND d.id = context_search.object_id
+        AND d.space_id = context_search.space_id
+        AND d.deleted_at IS NULL
       WHERE ${matchClause}
-        AND space_id = ?
-        AND (? IS NULL OR project_id = ?)
-        AND object_type IN (${typePlaceholders})
-        AND (? IS NULL OR updated_at >= ?)
-        AND (? IS NULL OR updated_at <= ?)
-      ORDER BY ${useFts ? 'rank ASC,' : ''} updated_at DESC, object_id
+        AND context_search.space_id = ?
+        AND (? IS NULL OR context_search.project_id = ?)
+        AND context_search.object_type IN (${typePlaceholders})
+        AND (? IS NULL OR context_search.updated_at >= ?)
+        AND (? IS NULL OR context_search.updated_at <= ?)
+      ORDER BY ${useFts ? 'rank ASC,' : ''} context_search.updated_at DESC, context_search.object_id
       LIMIT ?
     `).all(...matchParams, spaceId, projectId ?? null, projectId ?? null, ...types, fromTime, fromTime, toTime, toTime, limit)
     const items = rows.map((row) => {
@@ -255,6 +268,8 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
         updated_at: row.updated_at,
         score: row.rank == null ? null : Number(row.rank),
         excerpt: match.quote,
+        source_id: row.source_id ?? null,
+        document_id: row.document_id ?? null,
         match: { field: match.field, strategy: useFts ? 'fts5_trigram' : 'bounded_like' },
         locator: row.object_type === 'document'
           ? { type: 'char_range', source_version_id: row.source_version_id, start: match.start, end: match.end, quote: match.quote }
@@ -272,5 +287,38 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
     }
   }
 
-  return { importMarkdown, listSources, search }
+  function listAuthorizedDenseCorpus(session, { space_id: spaceId, project_id: projectId, types, from, to }, { limit = 200 } = {}) {
+    authorizeSearch(session, { space_id: spaceId, project_id: projectId })
+    if (!types.includes('document')) return []
+    const fromTime = from ? `${from}T00:00:00.000Z` : null
+    const toTime = to ? `${to}T23:59:59.999Z` : null
+    const safeLimit = Math.min(Math.max(Number(limit) || 1, 1), 200)
+    const rows = database.prepare(`
+      SELECT d.id, d.space_id, d.project_id, d.source_id, d.source_version_id,
+             d.title, substr(d.body_text, 1, 2000) AS bounded_body, d.updated_at
+      FROM documents d
+      WHERE d.space_id = ? AND d.deleted_at IS NULL
+        AND (? IS NULL OR d.project_id = ?)
+        AND (? IS NULL OR d.updated_at >= ?)
+        AND (? IS NULL OR d.updated_at <= ?)
+      ORDER BY d.updated_at DESC, d.id
+      LIMIT ?
+    `).all(spaceId, projectId ?? null, projectId ?? null, fromTime, fromTime, toTime, toTime, safeLimit)
+    return rows.map((row) => ({
+      object_type: 'document',
+      object_id: row.id,
+      space_id: row.space_id,
+      project_id: row.project_id,
+      source_id: row.source_id,
+      source_version_id: row.source_version_id,
+      document_id: row.id,
+      title: row.title,
+      updated_at: row.updated_at,
+      snippet: row.bounded_body.slice(0, 180).replace(/\s+/g, ' '),
+      locator: { type: 'char_range', start_char: 0, end_char: row.bounded_body.length },
+      embedding_text: `${row.title}\n${row.bounded_body}`,
+    }))
+  }
+
+  return { authorizeSearch, importMarkdown, listAuthorizedDenseCorpus, listSources, search }
 }

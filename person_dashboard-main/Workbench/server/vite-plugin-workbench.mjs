@@ -48,6 +48,7 @@ import {
 import { createVaultSyncService } from "./vault-sync.mjs";
 import { loadAttentionStrategy } from "./public-config.mjs";
 import { createWorkbenchApp } from "./app.mjs";
+import { hybridSearchRuntimeFromEnv } from "./context/dense-sidecar-adapter.mjs";
 
 const workbenchRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const defaultVaultRoot = path.resolve(
@@ -805,6 +806,7 @@ export function workbenchApiPlugin({
         allowedHosts: ["127.0.0.1", "localhost", "terminal.local"],
         bootstrapToken: localDomainBootstrapToken,
         databasePath: path.join(dataDirectory, "workbench.db"),
+        hybridSearch: hybridSearchRuntimeFromEnv(process.env),
       });
       await localDomainApi.ready();
     }

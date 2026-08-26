@@ -17,7 +17,7 @@ function parse(schema, value) {
   }
 }
 
-export function registerContextRoutes(app, { contextStore, requireSession, requireCsrf }) {
+export function registerContextRoutes(app, { contextStore, protectedSearchService, requireSession, requireCsrf }) {
   app.get('/api/v1/sources', { preHandler: requireSession }, async (request) => {
     const query = parse(ListSourcesQuerySchema, request.query)
     return okEnvelope(request.id, { items: contextStore.listSources(request.workbenchSession, query) }, { scope: { space_id: query.space_id } })
@@ -38,7 +38,7 @@ export function registerContextRoutes(app, { contextStore, requireSession, requi
 
   app.post('/api/v1/context/search', { preHandler: requireSession }, async (request) => {
     const query = parse(ContextSearchQuerySchema, request.body)
-    const data = contextStore.search(request.workbenchSession, query)
+    const data = await protectedSearchService.search(request.workbenchSession, query)
     return okEnvelope(request.id, data, { scope: data.scope })
   })
 }

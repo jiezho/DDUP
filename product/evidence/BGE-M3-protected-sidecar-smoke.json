@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-26T02:02:40.625Z",
+  "status": "passed",
+  "data_class": "synthetic_only",
+  "endpoint_scope": "127.0.0.1_loopback_only",
+  "authentication": {
+    "unauthorized_health_status": 401,
+    "authorized_health_status": 200
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu"
+  },
+  "ranking": {
+    "query_id": "synthetic-traceable-research-log",
+    "expected_first": "synthetic-research-log",
+    "result_ids": [
+      "synthetic-research-log",
+      "synthetic-fitness-plan"
+    ],
+    "scores": [
+      0.738625,
+      0.515309
+    ]
+  },
+  "exclusions": [
+    "no_real_data",
+    "no_generated_answer",
+    "no_production_enablement"
+  ]
+}

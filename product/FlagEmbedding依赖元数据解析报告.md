@@ -54,4 +54,4 @@ OSV 原始审查证据：`product/evidence/FlagEmbedding-1.4.2-py312-win_amd64-o
 
 ## 5. 下一步
 
-实际下载已通过 `模型POC实际下载授权.md` 的 G5a-DL 确认，并已按仓库外、hash-pinned、固定 revision、synthetic-only 边界完成。隔离 POC 不等于正式依赖或产品集成；下一步等待 G5b。
+实际下载已通过 `模型POC实际下载授权.md` 的 G5a-DL 确认，并已按仓库外、hash-pinned、固定 revision、synthetic-only 边界完成。G5b 已于 2026-08-26 条件式 Go；隔离运行时只接入默认关闭的受保护实验适配路径，不等于正式依赖或生产能力。

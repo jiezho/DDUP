@@ -1,12 +1,14 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.5.0
+  version: 1.6.0
   description: >-
     Local-loopback MVP contract. Foundation session/security and the durable
     project, milestone, task, manual discussion-to-decision, explicit text/link
     capture, daily focus/review, controlled Markdown source intake, and authorized
-    context full-text search slices are implemented; other product domains remain out of scope.
+    context full-text search slices are implemented. A default-off protected hybrid-search path may
+    call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
+    falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
 servers:
   - url: http://127.0.0.1:8787
 paths:
@@ -585,8 +587,11 @@ paths:
       operationId: searchAuthorizedContext
       description: >-
         Read-only search command. Space/project/type/date authorization filters are applied in the
-        database query before titles, snippets, counts, or locators are returned. The current baseline
-        is FTS5 trigram with a bounded short-query fallback; it has no semantic recall or reranking.
+        database query before titles, snippets, counts, locators, or document text are returned or sent
+        to a local sidecar. FTS5 trigram with a bounded short-query fallback remains the default. An
+        explicitly enabled experimental path can add BGE-M3 dense ranking and RRF, with deterministic
+        intent refusal, evidence thresholding, fixed model identity, and automatic FTS fallback. It
+        never produces a generated answer and does not include reranking.
       security: [{ localSession: [] }]
       requestBody:
         required: true

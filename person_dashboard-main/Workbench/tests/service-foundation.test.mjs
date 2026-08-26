@@ -128,6 +128,7 @@ test('protected endpoints require the session and report only implemented capabi
     local_session: 'available',
     projects: 'prototype',
     knowledge: 'prototype',
+    hybrid_search: 'disabled',
     native_runtime: 'not_implemented',
     deepseek_harness: 'poc_not_connected',
     hermes: 'candidate_not_connected',

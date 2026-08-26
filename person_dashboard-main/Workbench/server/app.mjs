@@ -7,6 +7,7 @@ import { ERROR_CODES, WorkbenchError, publicError } from '../shared/contracts/er
 import { CapabilitiesDataSchema, HealthDataSchema } from '../shared/contracts/system.mjs'
 import { registerContextRoutes } from './context/context-routes.mjs'
 import { createContextStore } from './context/context-store.mjs'
+import { createProtectedSearchService } from './context/protected-search-service.mjs'
 import {
   createLocalSessionStore,
   parseHost,
@@ -35,6 +36,7 @@ export function createWorkbenchApp({
   sourceStoragePath = null,
   now = Date.now,
   sessionTtlMs = 8 * 60 * 60 * 1000,
+  hybridSearch = { enabled: false, adapter: null, minScore: 0.72 },
 } = {}) {
   const allowed = new Set(allowedHosts.map((host) => host.toLowerCase()))
   const sessions = createLocalSessionStore({ bootstrapToken, now, ttlMs: sessionTtlMs })
@@ -46,6 +48,9 @@ export function createWorkbenchApp({
         kernel: projectStore.kernel,
         sourceRoot: sourceStoragePath ?? join(dirname(databasePath), 'sources'),
       })
+    : null
+  const protectedSearchService = contextStore
+    ? createProtectedSearchService({ contextStore, hybridSearch })
     : null
   const app = Fastify({
     bodyLimit: 1024 * 1024,
@@ -158,6 +163,7 @@ export function createWorkbenchApp({
         local_session: sessions.isBootstrapAvailable() ? 'not_implemented' : 'available',
         projects: projectStore ? 'available' : 'prototype',
         knowledge: 'prototype',
+        hybrid_search: protectedSearchService?.enabled ? 'prototype' : 'disabled',
         native_runtime: 'not_implemented',
         deepseek_harness: 'poc_not_connected',
         hermes: 'candidate_not_connected',
@@ -170,7 +176,7 @@ export function createWorkbenchApp({
     registerProjectRoutes(app, { projectStore, requireSession, requireCsrf })
   }
   if (contextStore) {
-    registerContextRoutes(app, { contextStore, requireSession, requireCsrf })
+    registerContextRoutes(app, { contextStore, protectedSearchService, requireSession, requireCsrf })
   }
 
   app.setNotFoundHandler(async (request, reply) => {

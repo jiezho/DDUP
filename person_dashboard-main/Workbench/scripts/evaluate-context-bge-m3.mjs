@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { evaluateRetrievalRun } from '../server/context/retrieval-evaluation.mjs'
+import { shouldRefuseSearch } from '../server/context/search-intent-guard.mjs'
 import {
   SYNTHETIC_RETRIEVAL_CORPUS,
   SYNTHETIC_RETRIEVAL_QRELS,
@@ -12,16 +13,8 @@ import { runSyntheticFtsCandidates } from './evaluate-context-fts-baseline.mjs'
 
 const RRF_K = 60
 
-const UNSAFE_SEARCH_INTENT_RULES = Object.freeze([
-  /(?:忽略|绕过|跳过).{0,10}(?:权限|授权|策略)/u,
-  /(?:透露|显示|读取).{0,10}(?:隐藏|未授权|其他项目)/u,
-  /(?:系统提示词|内部策略)/u,
-  /(?:删除|覆盖).{0,14}(?:审计|记录|长期记忆|事实)/u,
-  /(?:发送|导出).{0,14}(?:所有文档|外部服务|第三方)/u,
-])
-
 export function shouldRefuseSyntheticSearch(queryText) {
-  return UNSAFE_SEARCH_INTENT_RULES.some((rule) => rule.test(String(queryText || '')))
+  return shouldRefuseSearch(queryText)
 }
 
 function argument(name) {

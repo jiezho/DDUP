@@ -1,15 +1,15 @@
 # BGE-M3 隔离 POC 运行报告
 
-> 版本：V1.0  
-> 日期：2026-08-25  
-> 状态：隔离 POC 已完成，**未接入 Workbench、未生产启用**  
+> 版本：V1.1
+> 日期：2026-08-26
+> 状态：隔离 POC 与受保护 sidecar 冒烟已完成，**仅有默认关闭的实验适配路径，未生产启用**
 > 数据边界：12 篇文档、60 条查询均为明确标记的全合成数据
 
 ## 1. 结论
 
 G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60 条合成检索对照已完成。BGE-M3 在本机 CPU 环境中能产生 1024 维归一化向量，RRF 候选相对 FTS 基线取得明显检索增益。
 
-当前结论不是“可以上线”：未经保护的 dense/RRF 会向 6 条对抗请求返回候选，原始 RRF 产生 60 个禁返命中；确定性意图拦截候选能把该数值降为 0，但它尚未接入正式检索。6 条无答案查询仍全部返回最相似候选，误召回率 100%。因此只建议进入带保护和回退的检索工程阶段，生成式回答继续关闭，等待 G5b 确认。
+当前结论不是“可以上线”：未经保护的 dense/RRF 会向 6 条对抗请求返回候选，原始 RRF 产生 60 个禁返命中，且 6 条无答案查询均返回近邻。G5b 于 2026-08-26 条件式 Go 后，Workbench 已增加权限先行、确定性意图拒绝、证据阈值和 FTS 回退的默认关闭实验路径；生成式回答仍关闭，独立盲测与阈值校准仍未完成。
 
 ## 2. 下载、安装与供应链证据
 
@@ -58,7 +58,15 @@ G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60
 
 - Node → Python 的 Windows 标准输入必须显式固定 UTF-8；未固定时中文会按系统编码误解码。修正编码边界后，FlagEmbedding 官方批量接口正常通过。
 - 固定题集的 12 篇文档批量编码 0.965 s，60 条查询批量编码 0.960 s；这是短文本、小语料、本机单次观测，不代表正式索引吞吐或 p95。
-- 未下载 reranker、ONNX 重复权重、CUDA 包或其他模型；未启动模型服务。
+- 未下载 reranker、ONNX 重复权重、CUDA 包或其他模型；正式应用不会自行启动模型服务。
+
+### 5.1 G5b 后受保护 sidecar 冒烟
+
+- sidecar 固定监听 `127.0.0.1`，要求 32–256 字符 bearer token，只暴露 `/health` 与 `/rank`；
+- Workbench 校验固定模型 ID、revision、CPU 设备、超时、请求/响应大小和分值范围；
+- 2026-08-26 使用两条明确虚构候选验证：未授权健康检查为 401，授权检查为 200，研究记录候选排序第一；
+- 验证后 sidecar 已关闭；证据不保存 token、模型本地路径或真实正文；
+- 该结果证明适配边界可运行，不证明生产稳定性、真实语料效果或生成式回答安全。
 
 ## 6. 证据与复现入口
 
@@ -66,10 +74,12 @@ G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60
 - `product/evidence/BGE-M3-5617a9f61b028005a4858fdac845db406aefb181-cpu-smoke.json`；
 - `product/evidence/BGE-M3-5617a9f61b028005a4858fdac845db406aefb181-synthetic-retrieval-evaluation.json`；
 - `product/evidence/FlagEmbedding-1.4.2-py312-win_amd64-osv-audit-post-download.json`；
+- `product/evidence/BGE-M3-protected-sidecar-smoke.json`；
 - `person_dashboard-main/Workbench/scripts/download-model-poc-artifacts.py`；
 - `person_dashboard-main/Workbench/scripts/smoke-test-bge-m3.py`；
 - `person_dashboard-main/Workbench/scripts/evaluate-context-bge-m3.mjs`。
+- `person_dashboard-main/Workbench/scripts/run-bge-m3-sidecar.py` 与 `scripts/smoke-test-dense-sidecar.mjs`。
 
 ## 7. 建议
 
-建议 G5b 采用“有条件 Go”：只进入权限先行、意图拦截、无答案阈值/证据资格和 FTS 回退的混合检索工程，不开放回答，不把隔离依赖加入 Workbench 生产包。鉴于当前 nDCG 已接近 0.97，先做失败分析与更强盲测，不下载 reranker；若后续仍有稳定排序缺口，再单独审查其版本、体积和收益。
+G5b 已按上述“有条件 Go”确认并完成首个保护切片。下一步先做失败分析、更强盲测、阈值校准和定位验证，不下载 reranker；若后续仍有稳定排序缺口，再单独审查其版本、体积和收益。引用问答必须另行确认。
