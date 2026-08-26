@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G5b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索，以及 feature flag 下的受保护混合检索与 FTS 自动回退已经实现；BGE-M3 仍是仓库外、synthetic-only、CPU 实验 sidecar，默认关闭。重排、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G5b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索，以及 feature flag 下的受保护混合检索与 FTS 自动回退已经实现；独立合成盲测和 SourceVersion 精确 chunk 定位已通过。BGE-M3 仍是仓库外、synthetic-only、CPU 实验 sidecar，默认关闭。重排、引用问答、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -74,7 +74,7 @@ flowchart TB
 | 今日与复盘 | 最多三项任务聚焦、任务真源同步、日终复盘 | 已实现首版 |
 | 受控来源 | 虚构 Markdown 导入、SHA-256 文件真源、SourceVersion、Document | 已实现首版 |
 | 上下文检索 | Project/Task/Capture/Document 统一 FTS5，空间/项目/类型/日期过滤 | 已实现首版 |
-| 混合与向量检索 | 权限前置、确定性意图拦截、证据阈值、RRF、sidecar 身份校验与 FTS 回退 | 实验切片已实现，默认关闭；BGE-M3 不进入生产依赖 |
+| 混合与向量检索 | 权限前置、确定性意图拦截、稳定 chunk/字符定位、校准阈值、RRF、sidecar 身份校验与 FTS 回退 | 合成盲测通过，实验切片默认关闭；BGE-M3 不进入生产依赖 |
 | 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中；生成式回答继续关闭，需后续安全门 |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
@@ -132,7 +132,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19，完整测试 195/195、独立生产构建和隐私扫描通过；最近一次 UI E2E 为 Playwright Chromium 1/1。受保护混合检索另有仓库外 BGE-M3 回环冒烟证据。构建存在主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
+当前验证快照：Node 24.19，完整测试 203/203、独立生产构建和隐私扫描通过；最近一次 UI E2E 为 Playwright Chromium 1/1。受保护混合检索另有仓库外 BGE-M3 回环冒烟及独立合成盲测证据。构建存在主包大于 500 kB 的非阻塞提示，后续需要路由拆包和字体裁剪。
 
 ## 六、仓库结构
 
@@ -187,6 +187,7 @@ DDUP/
 - [FlagEmbedding 依赖元数据解析报告](product/FlagEmbedding依赖元数据解析报告.md)
 - [模型 POC 实际下载授权（G5a-DL 已确认）](product/模型POC实际下载授权.md)
 - [BGE-M3 隔离 POC 运行报告](product/BGE-M3隔离POC运行报告.md)
+- [BGE-M3 独立合成盲测与阈值校准报告](product/BGE-M3独立合成盲测与阈值校准报告.md)
 - [AI 评测方案与检索评测报告（G5b 已确认）](product/AI评测方案与检索评测报告.md)
 
 文档中的能力状态统一使用“已实现、原型演示、设计方案、POC 候选、后续计划”。没有代码、测试和运行证据的能力不得描述为已集成或生产可用。
@@ -194,8 +195,8 @@ DDUP/
 ## 八、后续路线
 
 1. 受保护 Hybrid SearchProvider 已按 G5b 落地但默认关闭；正式检索继续以 FTS 为稳定基线；
-2. 补充独立盲测、阈值校准和更完整的 SourceVersion 字符定位端到端验证，暂不下载 reranker；
-3. 通过拒答、引用、泄漏、回退和资源门后，再单独确认生成式引用问答；
+2. 扩展长文档、噪声和边界合成集，验证窄阈值间隔与持续运行资源，不下载 reranker；
+3. 通过更强提示注入、引用、泄漏、回退和资源门后，再单独确认生成式引用问答；
 4. 随后进入 Native Runtime、Tool Gateway、Harness/Hermes POC 和移动连接器阶段。
 
 ## 九、隐私与发布边界

@@ -120,11 +120,11 @@ export function createLoopbackDenseAdapter({
 
 export function hybridSearchRuntimeFromEnv(env = process.env, options = {}) {
   const mode = String(env.WORKBENCH_HYBRID_SEARCH_MODE || 'disabled').trim().toLowerCase()
-  if (mode === 'disabled') return Object.freeze({ enabled: false, adapter: null, minScore: 0.72 })
+  if (mode === 'disabled') return Object.freeze({ enabled: false, adapter: null, minScore: 0.50 })
   if (mode !== 'experimental') {
     throw new TypeError('WORKBENCH_HYBRID_SEARCH_MODE must be disabled or experimental.')
   }
-  const rawScore = env.WORKBENCH_DENSE_MIN_SCORE ?? '0.72'
+  const rawScore = env.WORKBENCH_DENSE_MIN_SCORE ?? '0.50'
   const minScore = Number(rawScore)
   if (!Number.isFinite(minScore) || minScore < 0 || minScore > 1) {
     throw new TypeError('WORKBENCH_DENSE_MIN_SCORE must be between 0 and 1.')

@@ -6,6 +6,7 @@ import remarkParse from 'remark-parse'
 import { unified } from 'unified'
 
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
+import { chunkDocumentBody } from './document-chunker.mjs'
 
 const SOURCE_COLUMNS = `
   s.id, s.space_id, s.project_id, s.kind, s.title, s.status,
@@ -295,7 +296,7 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
     const safeLimit = Math.min(Math.max(Number(limit) || 1, 1), 200)
     const rows = database.prepare(`
       SELECT d.id, d.space_id, d.project_id, d.source_id, d.source_version_id,
-             d.title, substr(d.body_text, 1, 2000) AS bounded_body, d.updated_at
+             d.title, d.body_text, d.updated_at
       FROM documents d
       WHERE d.space_id = ? AND d.deleted_at IS NULL
         AND (? IS NULL OR d.project_id = ?)
@@ -304,20 +305,38 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
       ORDER BY d.updated_at DESC, d.id
       LIMIT ?
     `).all(spaceId, projectId ?? null, projectId ?? null, fromTime, fromTime, toTime, toTime, safeLimit)
-    return rows.map((row) => ({
-      object_type: 'document',
-      object_id: row.id,
-      space_id: row.space_id,
-      project_id: row.project_id,
-      source_id: row.source_id,
-      source_version_id: row.source_version_id,
-      document_id: row.id,
-      title: row.title,
-      updated_at: row.updated_at,
-      snippet: row.bounded_body.slice(0, 180).replace(/\s+/g, ' '),
-      locator: { type: 'char_range', start_char: 0, end_char: row.bounded_body.length },
-      embedding_text: `${row.title}\n${row.bounded_body}`,
-    }))
+    const corpus = []
+    for (const row of rows) {
+      const chunks = chunkDocumentBody({
+        body: row.body_text,
+        spaceId: row.space_id,
+        projectId: row.project_id,
+        sourceId: row.source_id,
+        sourceVersionId: row.source_version_id,
+        documentId: row.id,
+      })
+      for (const chunk of chunks) {
+        corpus.push({
+          candidate_id: chunk.chunk_id,
+          object_type: 'document',
+          object_id: row.id,
+          space_id: row.space_id,
+          project_id: row.project_id,
+          source_id: row.source_id,
+          source_version_id: row.source_version_id,
+          document_id: row.id,
+          title: row.title,
+          updated_at: row.updated_at,
+          snippet: chunk.text,
+          locator: { type: 'char_range', start_char: chunk.start_char, end_char: chunk.end_char },
+          embedding_text: `${row.title}\n${chunk.text}`,
+          text_sha256: chunk.text_sha256,
+          chunker_version: chunk.chunker_version,
+        })
+        if (corpus.length >= safeLimit) return corpus
+      }
+    }
+    return corpus
   }
 
   return { authorizeSearch, importMarkdown, listAuthorizedDenseCorpus, listSources, search }

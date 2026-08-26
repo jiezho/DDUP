@@ -589,9 +589,10 @@ paths:
         Read-only search command. Space/project/type/date authorization filters are applied in the
         database query before titles, snippets, counts, locators, or document text are returned or sent
         to a local sidecar. FTS5 trigram with a bounded short-query fallback remains the default. An
-        explicitly enabled experimental path can add BGE-M3 dense ranking and RRF, with deterministic
-        intent refusal, evidence thresholding, fixed model identity, and automatic FTS fallback. It
-        never produces a generated answer and does not include reranking.
+        explicitly enabled experimental path can add BGE-M3 stable-chunk dense ranking and RRF, with
+        deterministic intent refusal, a synthetic-calibrated 0.50 evidence threshold, fixed model
+        identity, exact SourceVersion character locators, and automatic FTS fallback. It never produces
+        a generated answer and does not include reranking; the experimental feature remains default-off.
       security: [{ localSession: [] }]
       requestBody:
         required: true

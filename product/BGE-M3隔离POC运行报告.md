@@ -9,7 +9,7 @@
 
 G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60 条合成检索对照已完成。BGE-M3 在本机 CPU 环境中能产生 1024 维归一化向量，RRF 候选相对 FTS 基线取得明显检索增益。
 
-当前结论不是“可以上线”：未经保护的 dense/RRF 会向 6 条对抗请求返回候选，原始 RRF 产生 60 个禁返命中，且 6 条无答案查询均返回近邻。G5b 于 2026-08-26 条件式 Go 后，Workbench 已增加权限先行、确定性意图拒绝、证据阈值和 FTS 回退的默认关闭实验路径；生成式回答仍关闭，独立盲测与阈值校准仍未完成。
+当前结论不是“可以上线”：未经保护的 dense/RRF 会向 6 条对抗请求返回候选，原始 RRF 产生 60 个禁返命中，且 6 条无答案查询均返回近邻。G5b 于 2026-08-26 条件式 Go 后，Workbench 已增加权限先行、确定性意图拒绝、证据阈值和 FTS 回退的默认关闭实验路径；后续独立合成盲测和阈值校准已通过，但间隔很窄，生成式回答仍关闭。
 
 ## 2. 下载、安装与供应链证据
 
@@ -50,9 +50,7 @@ G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60
 
 带拦截候选的 RRF 相对 FTS：nDCG@10 提升 79.17%，Recall@20 提升 44.79 个百分点；零禁返命中、locator 合成检查 100%，满足 G5a-9 四项硬指标。该结论有三项限制：
 
-1. 意图拦截只是评测候选，尚未进入 `runAuthorizedHybridSearch`；
-2. locator 使用固定合成文档标记，不等价于真实 SourceVersion 字符范围的端到端验证；
-3. 无答案查询没有置信度或证据资格门，不能把近邻候选当作“找到答案”。
+以下是原始 POC 当时的三项限制：意图拦截尚未接入；locator 只是固定标记；无答案查询没有证据门。G5b 后三项已在默认关闭的实验路径中分别补为确定性前置拒绝、稳定 SourceVersion chunk 字符定位和 `0.50` 合成校准阈值；这不改变“原始 POC 不可直返”的结论，也不代表真实资料或回答能力已通过。
 
 ## 5. 兼容性与工程限制
 
@@ -75,10 +73,12 @@ G5a-DL 授权范围内的下载、哈希校验、离线安装、CPU 冒烟和 60
 - `product/evidence/BGE-M3-5617a9f61b028005a4858fdac845db406aefb181-synthetic-retrieval-evaluation.json`；
 - `product/evidence/FlagEmbedding-1.4.2-py312-win_amd64-osv-audit-post-download.json`；
 - `product/evidence/BGE-M3-protected-sidecar-smoke.json`；
+- `product/evidence/BGE-M3-synthetic-blind-threshold-calibration.json`；
 - `person_dashboard-main/Workbench/scripts/download-model-poc-artifacts.py`；
 - `person_dashboard-main/Workbench/scripts/smoke-test-bge-m3.py`；
 - `person_dashboard-main/Workbench/scripts/evaluate-context-bge-m3.mjs`。
 - `person_dashboard-main/Workbench/scripts/run-bge-m3-sidecar.py` 与 `scripts/smoke-test-dense-sidecar.mjs`。
+- `person_dashboard-main/Workbench/scripts/calibrate-context-bge-m3.mjs` 与 `scripts/embed-context-bge-m3-blind.py`。
 
 ## 7. 建议
 

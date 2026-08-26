@@ -10,6 +10,7 @@ import {
   createLoopbackDenseAdapter,
   hybridSearchRuntimeFromEnv,
 } from '../server/context/dense-sidecar-adapter.mjs'
+import { createProtectedSearchService } from '../server/context/protected-search-service.mjs'
 import { createUuidV7 } from '../shared/contracts/ids.mjs'
 
 const host = '127.0.0.1:8787'
@@ -17,7 +18,7 @@ const origin = `http://${host}`
 const bootstrapToken = 'synthetic-protected-hybrid-bootstrap-000000000000'
 const headers = (extra = {}) => ({ host, ...extra })
 
-async function fixture(t, adapter, minScore = 0.72) {
+async function fixture(t, adapter, minScore = 0.50) {
   const root = await mkdtemp(join(tmpdir(), 'workbench-protected-hybrid-test-'))
   const databasePath = join(root, 'workbench.db')
   const app = createWorkbenchApp({
@@ -102,7 +103,7 @@ test('protected hybrid search sends only authorized document text and ignores un
   assert.deepEqual(first.json().data.items, replay.json().data.items)
   assert.equal(observations.length, 2)
   assert.equal(observations.every((item) => item.candidates.length === 1), true)
-  assert.equal(observations.every((item) => item.candidates[0].candidate_id === allowed.document_id), true)
+  assert.equal(observations.every((item) => /^chk_[0-9a-f]{40}$/.test(item.candidates[0].candidate_id)), true)
   assert.equal(JSON.stringify(observations).includes('不得返回的其他范围标题'), false)
 
   const verify = new DatabaseSync(f.databasePath)
@@ -110,6 +111,51 @@ test('protected hybrid search sends only authorized document text and ignores un
     assert.equal(verify.prepare('SELECT count(*) AS count FROM audit_events').get().count, before)
   } finally {
     verify.close()
+  }
+})
+
+test('dense-only evidence returns an exact immutable SourceVersion character range', async (t) => {
+  const target = '负结果也必须关联固定数据版本、控制变量和复现实验条件。'
+  const adapter = {
+    async health() { return { status: 'ok' } },
+    async rank(input) {
+      const match = input.candidates.find((item) => item.text.includes(target))
+      assert.ok(match, 'target chunk must be inside the authorized candidate set')
+      return [{ candidate_id: match.candidate_id, score: 0.94 }]
+    },
+  }
+  const f = await fixture(t, adapter)
+  const project = await f.createProject('合成精确定位项目', 'hybrid-locator-project-000001')
+  const longPrefix = '本段为明确虚构的实验背景，只用于形成稳定分块边界。'.repeat(42)
+  const longSuffix = '后续工作仍需在独立合成数据上复核，不代表真实科研结论。'.repeat(42)
+  const source = await f.importDocument(
+    project.id,
+    '负结果复现规范',
+    `${longPrefix}\n\n${target}\n\n${longSuffix}`,
+    'hybrid-locator-source-0000001',
+  )
+  const response = await f.search({
+    space_id: f.spaceId,
+    project_id: project.id,
+    q: '未达到预期的试验如何归档',
+    types: ['document'],
+  })
+  assert.equal(response.statusCode, 200, response.body)
+  assert.equal(response.json().data.hybrid.state, 'active')
+  assert.equal(response.json().data.items.length, 1)
+  const item = response.json().data.items[0]
+  assert.equal(item.object_id, source.document_id)
+  assert.equal(item.citation.eligible, true)
+  assert.ok(item.locator.end > item.locator.start)
+
+  const database = new DatabaseSync(f.databasePath)
+  try {
+    const row = database.prepare('SELECT body_text, source_version_id FROM documents WHERE id = ?').get(source.document_id)
+    assert.equal(row.body_text.slice(item.locator.start, item.locator.end), item.locator.quote)
+    assert.equal(item.locator.source_version_id, row.source_version_id)
+    assert.match(item.locator.quote, /负结果也必须关联固定数据版本/)
+  } finally {
+    database.close()
   }
 })
 
@@ -124,7 +170,7 @@ test('default-off hybrid mode keeps the stable FTS result and never calls the de
     bootstrapToken,
     databasePath: join(root, 'workbench.db'),
     sourceStoragePath: join(root, 'sources'),
-    hybridSearch: { enabled: false, adapter, minScore: 0.72 },
+    hybridSearch: { enabled: false, adapter, minScore: 0.50 },
     now: () => Date.UTC(2026, 7, 26, 8),
   })
   t.after(async () => { await app.close(); await rm(root, { recursive: true, force: true }) })
@@ -226,10 +272,46 @@ test('model failure falls back to FTS and a later request recovers without stick
   assert.equal(healthCalls, 2)
 })
 
+test('dense corpus projection failure is isolated and returns the already-authorized FTS response', async () => {
+  let adapterCalls = 0
+  const lexical = {
+    items: [],
+    scope: { applied: {}, omitted: [], reason: 'synthetic authorized scope' },
+    baseline: { engine: 'sqlite_fts5_trigram', semantic: false, reranked: false },
+  }
+  const contextStore = {
+    authorizeSearch() {},
+    search() { return lexical },
+    listAuthorizedDenseCorpus() { throw new Error('synthetic derived projection unavailable') },
+  }
+  const adapter = {
+    async health() { adapterCalls += 1 },
+    async rank() { adapterCalls += 1; return [] },
+  }
+  const service = createProtectedSearchService({
+    contextStore,
+    hybridSearch: { enabled: true, adapter, minScore: 0.50 },
+  })
+  const result = await service.search({}, {
+    space_id: createUuidV7(),
+    project_id: null,
+    q: '合成索引恢复验证',
+    types: ['document'],
+    from: undefined,
+    to: undefined,
+    limit: 20,
+  })
+  assert.deepEqual(result.items, [])
+  assert.equal(result.hybrid.state, 'fallback')
+  assert.equal(result.hybrid.reason, 'dense_runtime_unavailable')
+  assert.equal(result.baseline.engine, 'sqlite_fts5_trigram')
+  assert.equal(adapterCalls, 0)
+})
+
 test('loopback adapter enforces reviewed identity, bounded payloads and explicit opt-in configuration', async () => {
   assert.throws(() => createLoopbackDenseAdapter({ endpoint: 'https://127.0.0.1:8792/' }), /loopback|127\.0\.0\.1/i)
   assert.throws(() => createLoopbackDenseAdapter({ endpoint: 'http://localhost:8792/' }), /127\.0\.0\.1/i)
-  assert.deepEqual(hybridSearchRuntimeFromEnv({}), { enabled: false, adapter: null, minScore: 0.72 })
+  assert.deepEqual(hybridSearchRuntimeFromEnv({}), { enabled: false, adapter: null, minScore: 0.50 })
   assert.throws(() => hybridSearchRuntimeFromEnv({ WORKBENCH_HYBRID_SEARCH_MODE: 'experimental' }), /127\.0\.0\.1|Invalid URL/i)
 
   const calls = []

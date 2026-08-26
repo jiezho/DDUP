@@ -36,7 +36,7 @@ export function createWorkbenchApp({
   sourceStoragePath = null,
   now = Date.now,
   sessionTtlMs = 8 * 60 * 60 * 1000,
-  hybridSearch = { enabled: false, adapter: null, minScore: 0.72 },
+  hybridSearch = { enabled: false, adapter: null, minScore: 0.50 },
 } = {}) {
   const allowed = new Set(allowedHosts.map((host) => host.toLowerCase()))
   const sessions = createLocalSessionStore({ bootstrapToken, now, ttlMs: sessionTtlMs })

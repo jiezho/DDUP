@@ -54,17 +54,19 @@ function lexicalProvider(items) {
 }
 
 function denseProvider(corpus, rankings, minScore) {
-  const byId = new Map(corpus.map((item) => [item.object_id, item]))
+  const byId = new Map(corpus.map((item) => [item.candidate_id, item]))
   return {
     kind: 'dense',
     async search() {
       const seen = new Set()
+      const seenDocuments = new Set()
       const candidates = []
       for (const item of rankings) {
         if (seen.has(item.candidate_id) || item.score < minScore) continue
         const source = byId.get(item.candidate_id)
-        if (!source) continue
+        if (!source || seenDocuments.has(source.document_id)) continue
         seen.add(item.candidate_id)
+        seenDocuments.add(source.document_id)
         candidates.push({
           object_type: 'document',
           object_id: source.object_id,
@@ -133,7 +135,7 @@ export function createProtectedSearchService({ contextStore, hybridSearch = {} }
   if (!contextStore) throw new TypeError('contextStore is required')
   const enabled = hybridSearch.enabled === true
   const adapter = hybridSearch.adapter ?? null
-  const minScore = Number(hybridSearch.minScore ?? 0.72)
+  const minScore = Number(hybridSearch.minScore ?? 0.50)
   if (!Number.isFinite(minScore) || minScore < 0 || minScore > 1) {
     throw new TypeError('hybridSearch.minScore must be between 0 and 1')
   }
@@ -162,13 +164,13 @@ export function createProtectedSearchService({ contextStore, hybridSearch = {} }
     if (!input.types.includes('document')) return fallback(lexical, 'document_type_not_requested')
     if (!adapter) return fallback(lexical, 'dense_adapter_unavailable')
 
-    const corpus = contextStore.listAuthorizedDenseCorpus(session, input, { limit: 200 })
-    if (corpus.length === 0) return fallback(lexical, 'no_authorized_documents')
     try {
+      const corpus = contextStore.listAuthorizedDenseCorpus(session, input, { limit: 200 })
+      if (corpus.length === 0) return fallback(lexical, 'no_authorized_documents')
       await adapter.health()
       const rankings = await adapter.rank({
         query: input.q,
-        candidates: corpus.map((item) => ({ candidate_id: item.object_id, text: item.embedding_text })),
+        candidates: corpus.map((item) => ({ candidate_id: item.candidate_id, text: item.embedding_text })),
         limit: DEFAULT_FUSION_CONFIG.candidate_limit,
       })
       const dense = denseProvider(corpus, rankings, minScore)

@@ -458,7 +458,9 @@ Workbench/shared/contracts/
 - migration 006 已建立 Source/SourceVersion/Document 与可重建 `context_search` FTS5 trigram 索引；项目、任务、Capture 和 Document 通过数据库触发器保持统一检索投影；
 - `/api/v1/sources`、`/sources/imports/markdown` 与 `POST /api/v1/context/search` 已实现，项目/类型/日期/空间过滤在标题、片段与定位返回前执行；短于 3 字符的查询使用有界 LIKE 回退；
 - Document 命中返回固定 `source_version_id` 与字符范围/短摘录；该定位是引用基础，不等于已实现 Citation 或引用问答；
-- G5b 后，`POST /api/v1/context/search` 增加向后兼容的 `hybrid` 状态：默认 `disabled`；实验模式只把权限过滤后的 Document 正文发送给 token 保护的回环 sidecar，并在危险意图、无合格证据、超时或模型不可用时拒绝或回退 FTS；
+- G5b 后，`POST /api/v1/context/search` 增加向后兼容的 `hybrid` 状态：默认 `disabled`；实验模式把权限过滤后的 Document 稳定 chunks 发送给 token 保护的回环 sidecar，并在危险意图、无合格证据、派生投影损坏、超时或模型不可用时拒绝或回退 FTS；
+- dense 命中返回固定 `source_version_id + start/end + quote`；chunk ID 绑定 SourceVersion、Document、字符范围、处理版本和正文哈希，同一文档的多个 dense chunk 只保留最高名次；
+- synthetic calibration/blind 把实验阈值从无有效召回的 `0.72` 修正为 `0.50`，但总开关和生成式回答仍关闭；该分值不是通用置信度；
 - sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；查询结果不生成 Answer，也不写知识真源；
 - OpenAPI 已同步至 1.6.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 

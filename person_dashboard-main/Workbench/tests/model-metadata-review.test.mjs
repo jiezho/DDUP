@@ -32,6 +32,12 @@ const pocSummaryUrl = new URL(
 );
 const downloaderUrl = new URL("../scripts/download-model-poc-artifacts.py", import.meta.url);
 const smokeScriptUrl = new URL("../scripts/smoke-test-bge-m3.py", import.meta.url);
+const blindEvidenceUrl = new URL(
+  "../../../product/evidence/BGE-M3-synthetic-blind-threshold-calibration.json",
+  import.meta.url,
+);
+const blindEmbedScriptUrl = new URL("../scripts/embed-context-bge-m3-blind.py", import.meta.url);
+const blindCalibrationScriptUrl = new URL("../scripts/calibrate-context-bge-m3.mjs", import.meta.url);
 
 test("model POC manifests remain metadata-only and within the reviewed download ceiling", async () => {
   const [packageManifest, modelManifest, osvAudit] = await Promise.all([
@@ -110,4 +116,28 @@ test("the model POC scripts keep hard origin, size, offline and repository-isola
   assert.match(smokeScript, /local_files_only=True/);
   assert.doesNotMatch(downloader, /ddup-runtime/i);
   assert.doesNotMatch(smokeScript, /ddup-runtime/i);
+});
+
+test("blind calibration evidence remains synthetic, split-safe and default-off", async () => {
+  const [evidence, embedScript, calibrationScript] = await Promise.all([
+    readFile(blindEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(blindEmbedScriptUrl, "utf8"),
+    readFile(blindCalibrationScriptUrl, "utf8"),
+  ]);
+  assert.equal(evidence.status, "blind_gate_passed_candidate_remains_experimental");
+  assert.equal(evidence.boundary.data_classification, "explicitly_synthetic");
+  assert.equal(evidence.boundary.production_enabled, false);
+  assert.equal(evidence.boundary.generated_answer_enabled, false);
+  assert.equal(evidence.boundary.threshold_selected_from, "calibration_split_only");
+  assert.equal(evidence.selected_threshold, 0.5);
+  assert.equal(evidence.blind.no_answer_false_positive_rate, 0);
+  assert.equal(evidence.blind.unsafe_refusal_rate, 1);
+  assert.equal(evidence.blind.unauthorized_leak_count, 0);
+  assert.ok(evidence.score_envelope.blind.separation_margin > 0);
+  assert.match(embedScript, /HF_HUB_OFFLINE/);
+  assert.match(embedScript, /local_files_only=True/);
+  assert.match(embedScript, /len\(corpus\) != 10 or len\(queries\) != 30/);
+  assert.match(calibrationScript, /threshold_selected_from: 'calibration_split_only'/);
+  assert.doesNotMatch(embedScript, /ddup-runtime/i);
+  assert.doesNotMatch(calibrationScript, /ddup-runtime/i);
 });
