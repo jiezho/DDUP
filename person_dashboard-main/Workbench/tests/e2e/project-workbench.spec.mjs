@@ -181,12 +181,23 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await expect(page.getByText('Markdown 已写入受控来源目录，并建立可追溯 SourceVersion 与全文索引。')).toBeVisible()
   await expect(page.getByText('合成上下文证据包', { exact: true })).toBeVisible()
 
+  const packageForm = page.getByRole('form', { name: '创建上下文篮' })
+  await packageForm.getByLabel('名称').fill('合成方法论论证篮')
+  await packageForm.getByLabel('使用目的').fill('聚焦验收固定证据范围与版本追溯。')
+  await packageForm.getByRole('button', { name: '创建上下文篮' }).click()
+  await expect(page.getByText('已创建空的显式上下文篮；不会自动纳入任何知识。')).toBeVisible()
+  await expect(page.getByText('这是一个空篮')).toBeVisible()
+
   const contextSearch = page.getByRole('form', { name: '统一上下文检索' })
   await contextSearch.getByLabel('检索关键词').fill('完全虚构')
   await contextSearch.getByRole('button', { name: '执行检索' }).click()
   const documentResult = page.locator('.context-results article').filter({ hasText: '合成上下文证据包' })
   await expect(documentResult).toBeVisible()
   await expect(documentResult.getByText(/原文字符/)).toBeVisible()
+  await documentResult.getByRole('button', { name: '加入上下文篮' }).click()
+  await expect(documentResult.getByRole('button', { name: '已在篮中' })).toBeDisabled()
+  await expect(page.locator('.context-package-items').getByText('合成上下文证据包')).toBeVisible()
+  await expect(page.getByText('已加入当前上下文篮，范围和版本均已锁定。')).toBeVisible()
   await expect(page.getByText(/过滤在正文返回前执行/).first()).toBeVisible()
   await page.screenshot({ path: resolve(screenshotRoot, 'context-library-desktop.png'), fullPage: true })
 

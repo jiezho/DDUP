@@ -249,6 +249,20 @@ OpenAPI 1.5.0 已实现 `POST /api/v1/sources/imports/markdown`：浏览器只�
 | GET | `/api/v1/context/packages/{id}` | 仅返回当前仍可访问的 manifest 摘要 |
 | POST | `/api/v1/context/answers` | 创建 Native RAG Run；返回 `202` + `run_id` |
 
+#### 7.3.1 当前显式 ContextPackage 切片
+
+OpenAPI 1.7.0 已实现以下回环 API：
+
+| Method | Path | 当前行为 |
+|---|---|---|
+| GET/POST | `/api/v1/context/packages` | 按空间/状态列表；或创建带用途和可选有效期的空 allowlist |
+| GET | `/api/v1/context/packages/{packageId}` | 解析当前仍可访问的项，同时返回排除数量和原因；不泄露失效项正文 |
+| POST | `/api/v1/context/packages/{packageId}/items` | 加入一个 Project/Task/Capture 引用，或固定 SourceVersion 的 Document 字符范围 |
+| DELETE | `/api/v1/context/packages/{packageId}/items/{itemId}` | 只移除包引用，不删除业务对象 |
+| POST | `/api/v1/context/packages/{packageId}/transitions` | 当前只支持 `archive`；归档包不再解析正文 |
+
+创建/加入/移除/归档要求 `Idempotency-Key`；修改和归档还要求 `If-Match`。包项只持久化 ID、类型与定位，不持久化 title/quote/body。过期、归档、对象缺失或 SourceVersion 漂移会在读取时排除。本切片不调用 Answer 或 Runtime。
+
 搜索请求：
 
 ```json
@@ -464,4 +478,4 @@ Workbench/shared/contracts/
 - sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；单模型槽忙时 `/rank` 返回 `503 {"error":"runtime_busy"}`，Workbench 视为可恢复运行时故障并回退已授权 FTS；查询结果不生成 Answer，也不写知识真源；
 - OpenAPI 已同步至 1.6.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 
-尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/ContextPackage/Answer、重排、AI Decision Candidate、Run/Approval、SSE 业务事件、备份恢复 API 和完整审计 UI。受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。
+尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/Answer、动态 Context ScopeRule、重排、AI Decision Candidate、Run/Approval、SSE 业务事件、备份恢复 API 和完整审计 UI。受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。

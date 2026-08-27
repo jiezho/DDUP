@@ -1,0 +1,219 @@
+{
+  "schema_version": "dd-up-bge-m3-boundary-windowing-v1",
+  "generated_at": "2026-08-27T03:31:45.842Z",
+  "status": "smoke_completed",
+  "data_classification": "explicitly_synthetic",
+  "boundary": {
+    "fixture_id": "dd-up-synthetic-boundary-v1",
+    "fixed_threshold": 0.5,
+    "production_enabled": false,
+    "generated_answer_enabled": false,
+    "reranker_used": false,
+    "permission_filtering": "before_chunk_embedding",
+    "chunk_identity_changed": false
+  },
+  "model": {
+    "id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu",
+    "network_allowed": false
+  },
+  "workload": {
+    "query_count": 3,
+    "authorized_chunks": 14
+  },
+  "query_encode_ms": 401.07,
+  "arms": {
+    "full_128": {
+      "configuration": {
+        "id": "full_128",
+        "kind": "full",
+        "max_length": 128
+      },
+      "encoded_passages": 14,
+      "passage_encode_ms": 2819.93,
+      "failed_query_top1_accuracy": 0,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-startup",
+          "top1_relevant": false,
+          "top1_score": 0.58062351
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-learning",
+          "top1_relevant": false,
+          "top1_score": 0.56925809
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-battery",
+          "top1_relevant": false,
+          "top1_score": 0.43146738
+        }
+      ]
+    },
+    "full_256": {
+      "configuration": {
+        "id": "full_256",
+        "kind": "full",
+        "max_length": 256
+      },
+      "encoded_passages": 14,
+      "passage_encode_ms": 4669.98,
+      "failed_query_top1_accuracy": 0,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-startup",
+          "top1_relevant": false,
+          "top1_score": 0.57752585
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-learning",
+          "top1_relevant": false,
+          "top1_score": 0.59607011
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-battery",
+          "top1_relevant": false,
+          "top1_score": 0.43876863
+        }
+      ]
+    },
+    "full_512": {
+      "configuration": {
+        "id": "full_512",
+        "kind": "full",
+        "max_length": 512
+      },
+      "encoded_passages": 14,
+      "passage_encode_ms": 9305.86,
+      "failed_query_top1_accuracy": 1,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.64416653
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-plan",
+          "top1_relevant": true,
+          "top1_score": 0.64255661
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.4704881
+        }
+      ]
+    },
+    "window_160_40": {
+      "configuration": {
+        "id": "window_160_40",
+        "kind": "window",
+        "window_chars": 160,
+        "overlap_chars": 40,
+        "max_length": 128
+      },
+      "encoded_passages": 73,
+      "passage_encode_ms": 10327.14,
+      "failed_query_top1_accuracy": 1,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.74116397
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-plan",
+          "top1_relevant": true,
+          "top1_score": 0.72103429
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.54068017
+        }
+      ]
+    },
+    "window_240_60": {
+      "configuration": {
+        "id": "window_240_60",
+        "kind": "window",
+        "window_chars": 240,
+        "overlap_chars": 60,
+        "max_length": 128
+      },
+      "encoded_passages": 48,
+      "passage_encode_ms": 7686.7,
+      "failed_query_top1_accuracy": 1,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.70595837
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-plan",
+          "top1_relevant": true,
+          "top1_score": 0.72031307
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.495372
+        }
+      ]
+    },
+    "window_320_80": {
+      "configuration": {
+        "id": "window_320_80",
+        "kind": "window",
+        "window_chars": 320,
+        "overlap_chars": 80,
+        "max_length": 128
+      },
+      "encoded_passages": 38,
+      "passage_encode_ms": 6033.03,
+      "failed_query_top1_accuracy": 1,
+      "per_query": [
+        {
+          "id": "boundary-answer-01",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.67976761
+        },
+        {
+          "id": "boundary-answer-08",
+          "top1_document_id": "boundary-doc-plan",
+          "top1_relevant": true,
+          "top1_score": 0.64741093
+        },
+        {
+          "id": "boundary-answer-09",
+          "top1_document_id": "boundary-doc-research",
+          "top1_relevant": true,
+          "top1_score": 0.45299798
+        }
+      ]
+    }
+  },
+  "interpretation_limits": [
+    "frozen_synthetic_boundary_only",
+    "windowing_changes_embedding_compute_cost",
+    "no_real_data_no_generated_answer_no_production_enablement"
+  ]
+}

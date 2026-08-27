@@ -58,3 +58,49 @@ export const ContextSearchQuerySchema = z
     message: '结束日期不能早于开始日期。',
     path: ['to'],
   })
+
+export const CreateContextPackageSchema = z
+  .object({
+    space_id: UuidV7Schema,
+    name: z.string().trim().min(1).max(120),
+    purpose: z.string().trim().min(1).max(500),
+    expires_at: z.string().datetime({ offset: true }).nullable().default(null),
+  })
+  .strict()
+
+export const ListContextPackagesQuerySchema = z
+  .object({
+    space_id: UuidV7Schema,
+    status: z.enum(['active', 'expired', 'archived']).default('active'),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict()
+
+export const ContextPackageSpaceQuerySchema = z
+  .object({ space_id: UuidV7Schema })
+  .strict()
+
+export const AddContextPackageItemSchema = z
+  .object({
+    space_id: UuidV7Schema,
+    object_type: z.enum(CONTEXT_OBJECT_TYPES),
+    object_id: UuidV7Schema,
+    source_version_id: UuidV7Schema.nullable().default(null),
+    start_char: z.number().int().min(0).nullable().default(null),
+    end_char: z.number().int().positive().nullable().default(null),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const hasLocator = value.source_version_id !== null || value.start_char !== null || value.end_char !== null
+    if (value.object_type === 'document') {
+      if (value.source_version_id === null || value.start_char === null || value.end_char === null || value.end_char <= value.start_char) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ['source_version_id'], message: '文档上下文必须绑定固定版本和有效字符范围。' })
+      }
+    } else if (hasLocator) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['source_version_id'], message: '非文档对象不能伪装成正文引用。' })
+    }
+  })
+
+export const ArchiveContextPackageSchema = z
+  .object({ space_id: UuidV7Schema, action: z.literal('archive') })
+  .strict()

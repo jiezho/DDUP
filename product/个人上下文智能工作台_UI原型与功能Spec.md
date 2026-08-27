@@ -338,13 +338,15 @@ stateDiagram-v2
 
 ### 4.4 P-CONTEXT 个人上下文知识库
 
-#### 当前实现状态（2026-08-25）
+#### 当前实现状态（2026-08-27）
 
 - 正式页面 `/context` 已落地，不再仅是 `/prototype` 中的静态演示；
 - 当前支持受控虚构 Markdown 导入、Source/SourceVersion/Document 版本对象、来源列表和 Project/Task/Capture/Document 统一全文检索；
 - 搜索先限定当前会话可访问的空间，再组合项目、对象类型和日期过滤；Document 命中固定到 `source_version_id + char_range`；
+- 已实现显式 ContextPackage：用户先填写名称、用途和可选有效期，再从授权检索结果逐项加入；文档项锁定 SourceVersion 和字符范围，其他项只保存对象引用；
+- 上下文篮创建、加入、移除和归档均有版本锁、幂等、Audit/Outbox；过期、归档、缺失或版本漂移项保持排除，不返回正文；
 - PC 与 390 px 移动布局已经浏览器走查并保存合成数据截图；
-- 知识网络、混合/语义检索、重排、带引用回答和上下文篮仍是设计方案，不得在界面或交付说明中表述为已实现。
+- 知识网络、默认启用的混合/语义检索、重排和带引用回答仍未实现；上下文篮当前也不会触发模型运行。
 
 #### 页面目标
 
@@ -855,7 +857,7 @@ erDiagram
 | Projects | `GET/POST /api/projects`、`GET/PATCH /api/projects/:id` |
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
-| Context | 已实现 `POST /api/v1/context/search`、`GET /api/v1/sources`、`POST /api/v1/sources/imports/markdown`；目标 `POST /api/v1/context/answers` 尚未实现 |
+| Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |
@@ -904,7 +906,7 @@ erDiagram
 | 今日 | 聚合布局、任务、项目焦点、简报、待复核 | 实时聚合、任务回链、简报生成 |
 | 项目组合 | 卡片、筛选外观、新建模板 | 查询、权限、归档、真实筛选 |
 | 项目详情 | 六标签、讨论转决策、风险和里程碑 | CRUD、版本、关联、协作 |
-| 上下文知识库 | 原型已表现全范围、知识网络、来源质量和 AI 入口；正式页已实现受控 Markdown、权限优先全文索引、组合过滤及字符定位 | 混合/语义检索、图谱、引用回答、上下文篮和更完整来源生命周期 |
+| 上下文知识库 | 正式页已实现受控 Markdown、权限优先全文索引、组合过滤、字符定位和显式上下文篮；PC/390 px E2E 已覆盖 | 图谱、重排、引用回答、默认启用的语义检索和更完整来源生命周期 |
 | 科研 | Claim/证据、文献和实验视图 | DOI 导入、实验日志、写作校验 |
 | AI Lab | 阶段管道、机会和评测布局 | 信号采集、评测运行、决策门持久化 |
 | 雷达 | 领域筛选、来源/影响卡片 | 抓取、去重、聚类、订阅 |

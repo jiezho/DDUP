@@ -208,13 +208,51 @@ export function saveDailyReview(date, spaceId, input, version = null) {
 
 export async function loadContextLibrary() {
   const workspace = await loadProjectWorkspace();
-  const query = new URLSearchParams({ space_id: workspace.space.id, status: "ready", limit: "200" });
-  const sources = await call(`/api/v1/sources?${query.toString()}`);
-  return { ...workspace, sources: sources.data.items };
+  const sourceQuery = new URLSearchParams({ space_id: workspace.space.id, status: "ready", limit: "200" });
+  const packageQuery = new URLSearchParams({ space_id: workspace.space.id, status: "active", limit: "50" });
+  const [sources, contextPackages] = await Promise.all([
+    call(`/api/v1/sources?${sourceQuery.toString()}`),
+    call(`/api/v1/context/packages?${packageQuery.toString()}`),
+  ]);
+  const firstPackage = contextPackages.data.items[0] || null;
+  const activePackage = firstPackage
+    ? await loadContextPackage(firstPackage.id, workspace.space.id)
+    : null;
+  return { ...workspace, sources: sources.data.items, contextPackages: contextPackages.data.items, activePackage };
 }
 
 export function importMarkdownSource(input) {
   return write("/api/v1/sources/imports/markdown", { body: input });
+}
+
+export async function loadContextPackage(packageId, spaceId) {
+  const query = new URLSearchParams({ space_id: spaceId });
+  const response = await call(`/api/v1/context/packages/${encodeURIComponent(packageId)}?${query.toString()}`);
+  return response.data;
+}
+
+export function createContextPackage(input) {
+  return write("/api/v1/context/packages", { body: input });
+}
+
+export function addContextPackageItem(packageId, version, input) {
+  return write(`/api/v1/context/packages/${encodeURIComponent(packageId)}/items`, { body: input, version });
+}
+
+export function removeContextPackageItem(packageId, itemId, spaceId, version) {
+  const query = new URLSearchParams({ space_id: spaceId });
+  return write(`/api/v1/context/packages/${encodeURIComponent(packageId)}/items/${encodeURIComponent(itemId)}?${query.toString()}`, {
+    method: "DELETE",
+    body: {},
+    version,
+  });
+}
+
+export function archiveContextPackage(packageId, spaceId, version) {
+  return write(`/api/v1/context/packages/${encodeURIComponent(packageId)}/transitions`, {
+    body: { space_id: spaceId, action: "archive" },
+    version,
+  });
 }
 
 export async function searchContext({ spaceId, query, projectId = "", types = [], from = "", to = "", limit = 20 }) {

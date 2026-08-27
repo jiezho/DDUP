@@ -7,6 +7,7 @@ import { ERROR_CODES, WorkbenchError, publicError } from '../shared/contracts/er
 import { CapabilitiesDataSchema, HealthDataSchema } from '../shared/contracts/system.mjs'
 import { registerContextRoutes } from './context/context-routes.mjs'
 import { createContextStore } from './context/context-store.mjs'
+import { createContextPackageStore } from './context/context-package-store.mjs'
 import { createProtectedSearchService } from './context/protected-search-service.mjs'
 import {
   createLocalSessionStore,
@@ -51,6 +52,9 @@ export function createWorkbenchApp({
     : null
   const protectedSearchService = contextStore
     ? createProtectedSearchService({ contextStore, hybridSearch })
+    : null
+  const contextPackageStore = database
+    ? createContextPackageStore({ database, kernel: projectStore.kernel })
     : null
   const app = Fastify({
     bodyLimit: 1024 * 1024,
@@ -176,7 +180,7 @@ export function createWorkbenchApp({
     registerProjectRoutes(app, { projectStore, requireSession, requireCsrf })
   }
   if (contextStore) {
-    registerContextRoutes(app, { contextStore, protectedSearchService, requireSession, requireCsrf })
+    registerContextRoutes(app, { contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf })
   }
 
   app.setNotFoundHandler(async (request, reply) => {

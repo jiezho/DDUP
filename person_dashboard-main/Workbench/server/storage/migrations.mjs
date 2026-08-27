@@ -470,6 +470,61 @@ CREATE TRIGGER documents_context_ad AFTER DELETE ON documents BEGIN
 END;
 `
 
+const migration007 = `
+CREATE TABLE context_packages (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+  purpose TEXT NOT NULL CHECK (length(purpose) BETWEEN 1 AND 500),
+  status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+  expires_at TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX context_packages_space_status_idx
+ON context_packages(space_id, status, updated_at DESC, id DESC)
+WHERE deleted_at IS NULL;
+
+CREATE TABLE context_package_items (
+  id TEXT PRIMARY KEY,
+  package_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  object_type TEXT NOT NULL CHECK (object_type IN ('project', 'task', 'capture', 'document')),
+  object_id TEXT NOT NULL,
+  source_version_id TEXT,
+  start_char INTEGER,
+  end_char INTEGER,
+  added_at TEXT NOT NULL,
+  added_by TEXT NOT NULL REFERENCES principals(id),
+  FOREIGN KEY (package_id, space_id) REFERENCES context_packages(id, space_id),
+  CHECK (
+    (object_type = 'document' AND source_version_id IS NOT NULL AND start_char >= 0 AND end_char > start_char)
+    OR
+    (object_type <> 'document' AND source_version_id IS NULL AND start_char IS NULL AND end_char IS NULL)
+  )
+) STRICT;
+
+CREATE UNIQUE INDEX context_package_items_identity_idx
+ON context_package_items(
+  package_id,
+  object_type,
+  object_id,
+  COALESCE(source_version_id, ''),
+  COALESCE(start_char, -1),
+  COALESCE(end_char, -1)
+);
+
+CREATE INDEX context_package_items_package_idx
+ON context_package_items(space_id, package_id, added_at, id);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -510,5 +565,11 @@ export const MIGRATIONS = Object.freeze([
     name: 'source_document_and_context_search',
     sql: migration006,
     checksum: checksum(migration006),
+  }),
+  Object.freeze({
+    version: 7,
+    name: 'explicit_context_packages',
+    sql: migration007,
+    checksum: checksum(migration007),
   }),
 ])
