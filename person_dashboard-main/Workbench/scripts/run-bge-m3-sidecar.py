@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 import threading
+from collections import OrderedDict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,7 +20,12 @@ MODEL_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
 MAX_REQUEST_BYTES = 1024 * 1024
 MAX_CANDIDATES = 200
 MAX_TEXT_CHARS = 2300
+MAX_CACHED_VECTORS = 512
 IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
+
+
+class RuntimeBusyError(RuntimeError):
+    """The single CPU inference slot is already serving another request."""
 
 
 def configure_offline_environment() -> None:
@@ -64,6 +71,8 @@ class ModelRuntime:
 
         self._np = np
         self._lock = threading.Lock()
+        # Process-local derived vectors only: plaintext candidate text is never retained.
+        self._vector_cache: OrderedDict[str, object] = OrderedDict()
         self._model = BGEM3FlagModel(
             str(model_root),
             devices="cpu",
@@ -79,22 +88,51 @@ class ModelRuntime:
             passage_max_length=128,
         )
 
+    @staticmethod
+    def _cache_key(candidate: dict[str, str]) -> str:
+        digest = hashlib.sha256(candidate["text"].encode("utf-8")).hexdigest()
+        return f'{candidate["candidate_id"]}:{digest}'
+
+    def _document_vectors(self, candidates: list[dict[str, str]]):
+        keys = [self._cache_key(item) for item in candidates]
+        missing_indexes = [index for index, key in enumerate(keys) if key not in self._vector_cache]
+        if missing_indexes:
+            encoded = self._np.asarray(self._model.encode(
+                [candidates[index]["text"] for index in missing_indexes],
+                batch_size=4,
+                max_length=128,
+                return_dense=True,
+                return_sparse=False,
+                return_colbert_vecs=False,
+            )["dense_vecs"], dtype=self._np.float32)
+            for offset, index in enumerate(missing_indexes):
+                self._vector_cache[keys[index]] = encoded[offset].copy()
+        vectors = []
+        for key in keys:
+            vector = self._vector_cache[key]
+            self._vector_cache.move_to_end(key)
+            vectors.append(vector)
+        while len(self._vector_cache) > MAX_CACHED_VECTORS:
+            self._vector_cache.popitem(last=False)
+        return self._np.stack(vectors)
+
     def rank(self, query: str, candidates: list[dict[str, str]], limit: int) -> list[dict[str, object]]:
-        with self._lock:
+        if not self._lock.acquire(blocking=False):
+            raise RuntimeBusyError("runtime busy")
+        try:
             query_vector = self._np.asarray(self._model.encode_queries(
                 [query], batch_size=1, max_length=128,
                 return_dense=True, return_sparse=False, return_colbert_vecs=False,
             )["dense_vecs"], dtype=self._np.float32)[0]
-            document_vectors = self._np.asarray(self._model.encode(
-                [item["text"] for item in candidates], batch_size=4, max_length=128,
-                return_dense=True, return_sparse=False, return_colbert_vecs=False,
-            )["dense_vecs"], dtype=self._np.float32)
-        ranked = [
-            {"candidate_id": item["candidate_id"], "score": float(self._np.dot(query_vector, document_vectors[index]))}
-            for index, item in enumerate(candidates)
-        ]
-        ranked.sort(key=lambda item: (-item["score"], item["candidate_id"]))
-        return ranked[:limit]
+            document_vectors = self._document_vectors(candidates)
+            ranked = [
+                {"candidate_id": item["candidate_id"], "score": float(self._np.dot(query_vector, document_vectors[index]))}
+                for index, item in enumerate(candidates)
+            ]
+            ranked.sort(key=lambda item: (-item["score"], item["candidate_id"]))
+            return ranked[:limit]
+        finally:
+            self._lock.release()
 
 
 def handler_factory(runtime: ModelRuntime, token: str):
@@ -148,6 +186,9 @@ def handler_factory(runtime: ModelRuntime, token: str):
                 results = runtime.rank(query, candidates, limit)
             except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
                 self.send_json(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "invalid_request"})
+                return
+            except RuntimeBusyError:
+                self.send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "runtime_busy"})
                 return
             except Exception:
                 self.send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "runtime_unavailable"})

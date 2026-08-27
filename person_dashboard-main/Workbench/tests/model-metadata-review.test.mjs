@@ -49,6 +49,16 @@ const enduranceEvidenceUrl = new URL(
 const boundaryEmbedScriptUrl = new URL("../scripts/embed-context-bge-m3-boundary.py", import.meta.url);
 const boundaryEvaluationScriptUrl = new URL("../scripts/evaluate-context-bge-m3-boundary.mjs", import.meta.url);
 const enduranceScriptUrl = new URL("../scripts/benchmark-dense-sidecar.mjs", import.meta.url);
+const sidecarScriptUrl = new URL("../scripts/run-bge-m3-sidecar.py", import.meta.url);
+const campaignDiagnosticUrl = new URL("../scripts/diagnose-dense-sidecar-campaign.mjs", import.meta.url);
+const d2CampaignEvidenceUrl = new URL(
+  "../../../product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/D2-http-cached-passages-main.json",
+  import.meta.url,
+);
+const d3CampaignEvidenceUrl = new URL(
+  "../../../product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/D3-http-bounded-backpressure-main.json",
+  import.meta.url,
+);
 
 test("model POC manifests remain metadata-only and within the reviewed download ceiling", async () => {
   const [packageManifest, modelManifest, osvAudit] = await Promise.all([
@@ -181,4 +191,28 @@ test("boundary and endurance failures remain synthetic, explicit and default-off
   for (const content of [embedScript, evaluationScript, benchmarkScript]) {
     assert.doesNotMatch(content, /ddup-runtime/i);
   }
+});
+
+test("sidecar degradation repair remains bounded, synthetic and default-off", async () => {
+  const [sidecarScript, diagnosticScript, d2, d3] = await Promise.all([
+    readFile(sidecarScriptUrl, "utf8"),
+    readFile(campaignDiagnosticUrl, "utf8"),
+    readFile(d2CampaignEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(d3CampaignEvidenceUrl, "utf8").then(JSON.parse),
+  ]);
+  assert.match(sidecarScript, /MAX_CACHED_VECTORS = 512/);
+  assert.match(sidecarScript, /hashlib\.sha256/);
+  assert.match(sidecarScript, /acquire\(blocking=False\)/);
+  assert.match(sidecarScript, /"error": "runtime_busy"/);
+  assert.doesNotMatch(sidecarScript, /ddup-runtime/i);
+  assert.match(diagnosticScript, /explicitly_synthetic/);
+  assert.match(diagnosticScript, /127\.0\.0\.1_loopback_only/);
+  assert.doesNotMatch(diagnosticScript, /ddup-runtime/i);
+  assert.equal(d2.status, "passed_sequential_campaign_slice");
+  assert.equal(d2.measurements.ranked_count, 8);
+  assert.equal(d2.measurements.error_count, 0);
+  assert.equal(d3.status, "passed_concurrent_campaign_slice");
+  assert.equal(d3.measurements.ranked_count, 1);
+  assert.equal(d3.measurements.busy_count, 1);
+  assert.equal(d3.measurements.error_count, 0);
 });

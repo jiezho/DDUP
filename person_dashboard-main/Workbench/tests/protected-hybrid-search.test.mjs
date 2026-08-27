@@ -336,3 +336,20 @@ test('loopback adapter enforces reviewed identity, bounded payloads and explicit
   assert.equal(calls.every((call) => call.init.headers.Authorization === `Bearer ${authToken}`), true)
   assert.equal(calls[1].init.redirect, 'error')
 })
+
+test('loopback adapter turns bounded runtime busy into a recoverable adapter failure', async () => {
+  const adapter = createLoopbackDenseAdapter({
+    endpoint: 'http://127.0.0.1:8792/',
+    authToken: 'synthetic-sidecar-token-000000000000000000000',
+    fetchImpl: async () => ({
+      ok: false,
+      status: 503,
+      async text() { return JSON.stringify({ error: 'runtime_busy' }) },
+    }),
+  })
+  await assert.rejects(() => adapter.rank({
+    query: '合成并发查询',
+    candidates: [{ candidate_id: 'synthetic-document-id', text: '明确虚构的本地候选。' }],
+    limit: 1,
+  }), /sidecar request failed/i)
+})

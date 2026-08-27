@@ -1,0 +1,79 @@
+{
+  "schema_version": "dd-up-bge-m3-repeated-encoding-diagnostic-v1",
+  "generated_at": "2026-08-27T01:31:57Z",
+  "status": "completed",
+  "data_classification": "explicitly_synthetic",
+  "mode": "uncached",
+  "model": {
+    "id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu",
+    "network_allowed": false
+  },
+  "configuration": {
+    "iterations_requested": 2,
+    "candidate_count": 4,
+    "query_max_length": 128,
+    "passage_max_length": 128,
+    "torch_threads": 12,
+    "torch_interop_threads": 12
+  },
+  "samples": [
+    {
+      "iteration": 1,
+      "query_ms": 216.46,
+      "passage_ms": 318.84,
+      "total_ms": 535.3,
+      "expected_top1": true,
+      "resources_before": {
+        "rss_bytes": 821579776,
+        "child_rss_bytes": 0,
+        "os_threads": 58,
+        "child_processes": 0
+      },
+      "resources_after": {
+        "rss_bytes": 2047868928,
+        "child_rss_bytes": 0,
+        "os_threads": 59,
+        "child_processes": 0
+      }
+    },
+    {
+      "iteration": 2,
+      "query_ms": 99.05,
+      "passage_ms": 326.07,
+      "total_ms": 425.12,
+      "expected_top1": true,
+      "resources_before": {
+        "rss_bytes": 2047873024,
+        "child_rss_bytes": 0,
+        "os_threads": 59,
+        "child_processes": 0
+      },
+      "resources_after": {
+        "rss_bytes": 2047877120,
+        "child_rss_bytes": 0,
+        "os_threads": 59,
+        "child_processes": 0
+      }
+    }
+  ],
+  "limits": [
+    "direct_python_model_loop_not_http_throughput",
+    "short_local_cpu_sample",
+    "no_real_data_no_generated_answer_no_production_enablement"
+  ],
+  "model_load_ms": 1724.44,
+  "resources_after_load": {
+    "rss_bytes": 820695040,
+    "child_rss_bytes": 0,
+    "os_threads": 58,
+    "child_processes": 0
+  },
+  "resources_final": {
+    "rss_bytes": 2047877120,
+    "child_rss_bytes": 0,
+    "os_threads": 59,
+    "child_processes": 0
+  }
+}

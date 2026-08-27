@@ -1,22 +1,22 @@
 # BGE-M3 边界检索与 sidecar 短时稳定性报告
 
-> 版本：V1.0  
-> 日期：2026-08-26  
-> 状态：边界检索门与短时稳定性门均未通过，保持纯 FTS 默认路径  
+> 版本：V1.1
+> 日期：2026-08-27
+> 状态：sidecar 退化机制已修复并通过短样本复测；边界检索质量门仍未通过，保持纯 FTS 默认路径
 > 数据边界：9 篇文档、21 条查询和性能请求均为明确虚构数据
 
 ## 1. 结论
 
 本轮把已校准的实验阈值 `0.50` 原样应用到一组新的冻结边界集，没有使用边界结果重新调参。结果为回答召回 90%、Top-1 70%、无答案误召回 0、危险查询拒绝 100%、禁返命中 0、精确字符定位 100%。回答召回和 Top-1 未同时达到 80% 硬门，因此边界检索判定失败。
 
-同一仓库外、CPU-only BGE-M3 sidecar 的 10 次计量短样本中有 6 次在 120 秒超时，两个同时提交的请求均超时。结束前模型身份健康检查仍一致，进程停止后回环端口已释放。该结果不支持持续运行或并发可用性声明。
+初始仓库外、CPU-only BGE-M3 sidecar 的 10 次计量短样本中有 6 次在 120 秒超时，两个同时提交的请求均超时。2026-08-27 的 D1–D3 诊断进一步确认：同线程直接重复编码 8/8 完成，主要可控耗时来自重复 passage 编码；加入仅存派生向量的临时缓存后，HTTP 串行 8/8 完成，P50 255.74 ms；双并发时一条 262.62 ms 完成，另一条 3.22 ms 有界返回 busy。运行机制的短样本阻塞已解除，但这不修复 Top-1 质量失败，也不构成长时或生产容量证明。
 
 据此维持以下决定：
 
 - `WORKBENCH_HYBRID_SEARCH_MODE` 默认保持 `disabled`，正式检索继续使用 FTS5；
 - 不降低 `0.50` 阈值，不用本边界集重新校准，不下载 reranker；
 - 不开放生成式 Answer/Citation，不接真实资料，不把 sidecar 纳入生产依赖；
-- 下一步先诊断持续调用退化和候选重复编码，再决定是否继续该运行方式。
+- sidecar 可继续作为默认关闭的本地 POC；下一步转向长文相邻主题错排与英文长尾漏召回，不以运行修复替代质量门。
 
 ## 2. 冻结边界集
 
@@ -71,10 +71,10 @@
 
 ## 5. 后续诊断顺序
 
-1. 用更小冻结负载分离“重复 query 编码”“重复 passage 编码”和请求队列，记录每次调用序号、成功/超时与进程 RSS；
-2. 为 sidecar 增加有界排队/忙碌拒绝策略，避免请求无限等待，并验证失败可被 Workbench 可靠回退为 FTS；
-3. 评估预计算授权 chunk 向量、查询时只编码 query 的方案；该方案涉及索引生命周期与存储，实施前仍遵守既有依赖和数据门；
-4. 只有边界 Top-1、持续调用、并发/背压、资源预算和回退同时通过，才提交新的启用决定。
+1. D1–D3 已完成：定位重复 passage 编码、加入最多 512 条临时向量缓存，并用非阻塞 busy 消除无界排队；
+2. 继续分析长文相邻主题错排与英文长尾漏召回；不降低既有 `0.50` 阈值，不把运行通过解释成质量通过；
+3. 若需要进一步降低冷缓存时延，再评估“离线预计算授权 chunk 向量、查询时只编码 query”的替代方案；该方案涉及索引生命周期与存储，实施前另行设计与评审；
+4. 只有边界 Top-1、长时稳定、资源预算和回退同时通过，才提交新的启用决定。
 
 ## 6. 证据与复现
 
@@ -84,6 +84,9 @@
 - `person_dashboard-main/Workbench/scripts/evaluate-context-bge-m3-boundary.mjs`；
 - `person_dashboard-main/Workbench/scripts/embed-context-bge-m3-boundary.py`；
 - `person_dashboard-main/Workbench/scripts/benchmark-dense-sidecar.mjs`；
+- `product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/REPORT.md`；
+- `product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/D2-http-cached-passages-main.json`；
+- `product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/D3-http-bounded-backpressure-main.json`；
 - `person_dashboard-main/Workbench/tests/boundary-retrieval-evaluation.test.mjs`。
 
 复现要求使用已审查的固定 BGE-M3 revision、仓库外离线环境、CPU 与回环临时 token。证据不得包含模型本地路径、token 或真实正文。

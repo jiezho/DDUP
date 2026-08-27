@@ -461,7 +461,7 @@ Workbench/shared/contracts/
 - G5b 后，`POST /api/v1/context/search` 增加向后兼容的 `hybrid` 状态：默认 `disabled`；实验模式把权限过滤后的 Document 稳定 chunks 发送给 token 保护的回环 sidecar，并在危险意图、无合格证据、派生投影损坏、超时或模型不可用时拒绝或回退 FTS；
 - dense 命中返回固定 `source_version_id + start/end + quote`；chunk ID 绑定 SourceVersion、Document、字符范围、处理版本和正文哈希，同一文档的多个 dense chunk 只保留最高名次；
 - synthetic calibration/blind 把实验阈值从无有效召回的 `0.72` 修正为 `0.50`，但总开关和生成式回答仍关闭；该分值不是通用置信度；
-- sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；查询结果不生成 Answer，也不写知识真源；
+- sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；单模型槽忙时 `/rank` 返回 `503 {"error":"runtime_busy"}`，Workbench 视为可恢复运行时故障并回退已授权 FTS；查询结果不生成 Answer，也不写知识真源；
 - OpenAPI 已同步至 1.6.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 
 尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/ContextPackage/Answer、重排、AI Decision Candidate、Run/Approval、SSE 业务事件、备份恢复 API 和完整审计 UI。受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。

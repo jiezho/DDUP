@@ -1,0 +1,54 @@
+{
+  "schema_version": "dd-up-sidecar-degradation-campaign-v1",
+  "generated_at": "2026-08-27T02:06:30.793Z",
+  "status": "passed_concurrent_campaign_slice",
+  "slice_mode": "concurrent",
+  "data_classification": "explicitly_synthetic",
+  "endpoint_scope": "127.0.0.1_loopback_only",
+  "authentication": {
+    "unauthorized_health_status": 401
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu"
+  },
+  "workload": {
+    "cache_prime": 1,
+    "measured_requests": 2,
+    "request_timeout_ms": 10000,
+    "candidate_count": 4
+  },
+  "measurements": {
+    "cache_prime": {
+      "latency_ms": 1520.17,
+      "status": 200,
+      "outcome": "ranked"
+    },
+    "requests": [
+      {
+        "latency_ms": 262.62,
+        "status": 200,
+        "outcome": "ranked"
+      },
+      {
+        "latency_ms": 3.22,
+        "status": 503,
+        "outcome": "busy"
+      }
+    ],
+    "elapsed_ms": 262.63,
+    "p50_ms": 3.22,
+    "p95_ms": 262.62,
+    "max_ms": 262.62,
+    "ranked_count": 1,
+    "busy_count": 1,
+    "error_count": 0,
+    "identity_stable_after_run": true
+  },
+  "interpretation_limits": [
+    "short_local_cpu_sample_not_production_capacity",
+    "process_local_vector_cache_is_ephemeral_and_stores_no_plaintext",
+    "no_real_data_no_generated_answer_no_production_enablement"
+  ]
+}
