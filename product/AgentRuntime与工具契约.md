@@ -334,6 +334,8 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 - 状态可为 `available` 仅限实际实现且测试通过的能力。
 - 不用模拟成功掩盖未实现模型/持久化；合成响应明确标识。
 
+2026-08-28 已完成第一阶段：`native-v1` 仅验证确定性 queued/running/succeeded/failed/cancelled 生命周期、ContextPackage 摘要、顺序 JSON 事件回放、幂等、AI policy、跨空间拒绝、取消和重启读取。其 descriptor 明确 `streaming/tool_calls/approvals/steering/resume/checkpoints/artifacts/usage=false`；因此“available”不代表 RAG、回答或 Tool 能力。RT-02、RT-09、RT-10、RT-12、RT-13、RT-14 的当前子集已有测试，RT-01 中 Tool/Artifact 部分及其余矩阵继续由 S5-02/S5-03 完成。
+
 ### 11.2 DeepSeek Harness
 
 - 状态：`poc`，固定版本、独立进程/容器、只读 L0 + L1 Candidate 起步。

@@ -295,12 +295,16 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ### 9.1 Run
 
+> 2026-08-28 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态与重启回放；它不调用模型、不生成回答、不调用 Tool。事件接口当前返回按 `after_seq` 分页的 JSON 快照，SSE、steer、resume、Checkpoint 和 Tool/Approval 仍是后续设计。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
+
 | Method | Path | 说明 |
 |---|---|---|
 | GET | `/api/v1/runtimes` | 已注册 Runtime 能力和 `available/poc/candidate/disabled` |
+| GET | `/api/v1/runtimes/{runtimeKey}/health` | 仅检查已连接适配器；未连接候选返回 `RUNTIME_UNAVAILABLE` |
+| GET | `/api/v1/runs` | 按授权空间/状态列出安全 Run 摘要（已实现） |
 | POST | `/api/v1/runs` | 创建 Run；Profile 明确绑定一个主 Runtime |
 | GET | `/api/v1/runs/{id}` | 状态、范围、用量、安全摘要 |
-| GET | `/api/v1/runs/{id}/events` | SSE，可用 Last-Event-ID 恢复 |
+| GET | `/api/v1/runs/{id}/events` | 当前为有界 JSON 回放；目标为 SSE + Last-Event-ID 恢复 |
 | POST | `/api/v1/runs/{id}/steer` | 追加用户方向；不直接批准 Tool |
 | POST | `/api/v1/runs/{id}/cancel` | 幂等取消 |
 | POST | `/api/v1/runs/{id}/resume` | 从 Workbench checkpoint 创建/恢复；Runtime 支持时可用 |
@@ -334,6 +338,8 @@ OpenAPI 1.7.0 已实现以下回环 API：
 首期不提供通过 API 修改监听地址、读取密钥或返回物理备份路径的能力。
 
 ## 10. SSE 事件契约
+
+本节是 S5-03 目标契约；S5-01 仅实现相同 `run_id + seq` 顺序语义的 JSON 事件回放，不能描述为 SSE 已上线。
 
 ### 10.1 帧格式
 

@@ -543,7 +543,7 @@ stateDiagram-v2
 
 | Runtime | 原型状态 | 用户可见定位 | 操作 |
 |---|---|---|---|
-| Native RAG | 可用 | 轻量问答 | 查看能力 |
+| Native Runtime | 生命周期可用 | 确定性本地 Run；当前无回答/Tool | 查看能力 |
 | DeepSeek Harness | 隔离 POC | 研究执行器 | 查看 POC 边界 |
 | Hermes Agent | 候选，未连接 | 移动网关/备选执行器 | 查看评估，不提供启用 |
 
@@ -858,6 +858,7 @@ erDiagram
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
 | Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
+| Agent Runtime | 已实现 `native-v1` 确定性生命周期、持久化 JSON 事件回放和取消；正式运行中心、SSE、Checkpoint、Tool/Approval 与模型回答尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |
@@ -865,7 +866,6 @@ erDiagram
 | Learning | `/api/learning/tracks`、`plans`、`practices`、`assessments` |
 | Planning | `/api/goals`、`/api/reviews`、`/api/habits` |
 | Governance | `/api/spaces`、`/api/connectors`、`/api/audit-events` |
-| Agent Runtime | `GET /api/runtimes`、`POST /api/runs`、`GET /api/runs/:id/events`、`POST /api/runs/:id/approve|steer|cancel` |
 
 ### 12.1 乐观更新
 

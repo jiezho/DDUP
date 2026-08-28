@@ -525,6 +525,53 @@ CREATE INDEX context_package_items_package_idx
 ON context_package_items(space_id, package_id, added_at, id);
 `
 
+const migration008 = `
+CREATE TABLE agent_runs (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  context_package_id TEXT NOT NULL,
+  context_package_version INTEGER NOT NULL CHECK (context_package_version >= 1),
+  context_digest TEXT NOT NULL CHECK (length(context_digest) = 64),
+  runtime_key TEXT NOT NULL,
+  runtime_version TEXT NOT NULL,
+  profile_key TEXT NOT NULL,
+  profile_version INTEGER NOT NULL CHECK (profile_version >= 1),
+  goal TEXT NOT NULL CHECK (length(goal) BETWEEN 1 AND 2000),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
+  max_steps INTEGER NOT NULL CHECK (max_steps BETWEEN 1 AND 10),
+  max_tool_calls INTEGER NOT NULL CHECK (max_tool_calls BETWEEN 0 AND 20),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  started_at TEXT,
+  ended_at TEXT,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  error_code TEXT,
+  FOREIGN KEY (context_package_id, space_id) REFERENCES context_packages(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX agent_runs_space_status_idx
+ON agent_runs(space_id, status, updated_at DESC, id DESC);
+
+CREATE TABLE run_events (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  seq INTEGER NOT NULL CHECK (seq >= 1),
+  event_version INTEGER NOT NULL CHECK (event_version = 1),
+  event_type TEXT NOT NULL,
+  occurred_at TEXT NOT NULL,
+  payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  UNIQUE (run_id, seq)
+) STRICT;
+
+CREATE INDEX run_events_run_seq_idx
+ON run_events(space_id, run_id, seq);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -571,5 +618,11 @@ export const MIGRATIONS = Object.freeze([
     name: 'explicit_context_packages',
     sql: migration007,
     checksum: checksum(migration007),
+  }),
+  Object.freeze({
+    version: 8,
+    name: 'native_runtime_run_lifecycle',
+    sql: migration008,
+    checksum: checksum(migration008),
   }),
 ])

@@ -1,12 +1,15 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.7.0
+  version: 1.8.0
   description: >-
     Local-loopback MVP contract. Foundation session/security and the durable
     project, milestone, task, manual discussion-to-decision, explicit text/link
     capture, daily focus/review, controlled Markdown source intake, and authorized
-    context full-text search and explicit context-package slices are implemented. A default-off protected hybrid-search path may
+    context full-text search, explicit context-package slices, and a deterministic
+    local Native Runtime lifecycle are implemented. The Native Runtime persists only
+    scope digests and safe replay events; it generates no answer and invokes no tools.
+    A default-off protected hybrid-search path may
     call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
     falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
 servers:
@@ -708,6 +711,94 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/runtimes:
+    get:
+      operationId: listRuntimes
+      description: Lists the implemented Native adapter and disconnected Harness/Hermes candidates without probing them.
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/v1/runtimes/{runtimeKey}/health:
+    get:
+      operationId: getRuntimeHealth
+      description: Returns a redacted health snapshot only for an available adapter; disconnected candidates return RUNTIME_UNAVAILABLE.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runtimeKey, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/runs:
+    get:
+      operationId: listAgentRuns
+      description: Lists safe run metadata inside one authorized space.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [queued, running, succeeded, failed, cancelled] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createAgentRun
+      description: Starts the deterministic local Native lifecycle against one active, version-matched ContextPackage. No answer or tool call is produced in this slice.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentRunCreate" }
+      responses:
+        "202": { $ref: "#/components/responses/Success" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}:
+    get:
+      operationId: getAgentRun
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}/events:
+    get:
+      operationId: replayAgentRunEvents
+      description: Returns a bounded JSON replay page after a sequence number. SSE streaming is not implemented in this slice.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: after_seq, schema: { type: integer, minimum: 0, default: 0 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}/cancel:
+    post:
+      operationId: cancelAgentRun
+      description: Idempotently cancels a non-terminal Native run using optimistic versioning.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentRunCancel" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     localSession:
@@ -778,6 +869,31 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   schemas:
+    AgentRunCreate:
+      type: object
+      additionalProperties: false
+      required: [space_id, context_package_id, context_package_version, goal]
+      properties:
+        space_id: { type: string, format: uuid }
+        context_package_id: { type: string, format: uuid }
+        context_package_version: { type: integer, minimum: 1 }
+        runtime_key: { type: string, enum: [native-v1], default: native-v1 }
+        profile_key: { type: string, enum: [native-safe-readonly-v1], default: native-safe-readonly-v1 }
+        profile_version: { type: integer, enum: [1], default: 1 }
+        goal: { type: string, minLength: 1, maxLength: 2000 }
+        budget:
+          type: object
+          additionalProperties: false
+          properties:
+            max_steps: { type: integer, minimum: 1, maximum: 10, default: 3 }
+            max_tool_calls: { type: integer, enum: [0], default: 0 }
+    AgentRunCancel:
+      type: object
+      additionalProperties: false
+      required: [space_id]
+      properties:
+        space_id: { type: string, format: uuid }
+        reason: { type: string, enum: [user_requested, budget_stop, superseded], default: user_requested }
     ProjectStatus:
       type: string
       enum: [draft, active, paused, completed, archived]

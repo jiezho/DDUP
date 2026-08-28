@@ -17,6 +17,10 @@ import {
 } from './http/local-security.mjs'
 import { registerProjectRoutes } from './projects/project-routes.mjs'
 import { createProjectStore } from './projects/project-store.mjs'
+import { createNativeRuntime } from './runtime/native-runtime.mjs'
+import { createRuntimeRegistry } from './runtime/runtime-registry.mjs'
+import { registerRuntimeRoutes } from './runtime/runtime-routes.mjs'
+import { createRunStore } from './runtime/run-store.mjs'
 import { openWorkbenchDatabase } from './storage/database.mjs'
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -38,6 +42,7 @@ export function createWorkbenchApp({
   now = Date.now,
   sessionTtlMs = 8 * 60 * 60 * 1000,
   hybridSearch = { enabled: false, adapter: null, minScore: 0.50 },
+  nativeRuntimeMode = 'complete',
 } = {}) {
   const allowed = new Set(allowedHosts.map((host) => host.toLowerCase()))
   const sessions = createLocalSessionStore({ bootstrapToken, now, ttlMs: sessionTtlMs })
@@ -55,6 +60,11 @@ export function createWorkbenchApp({
     : null
   const contextPackageStore = database
     ? createContextPackageStore({ database, kernel: projectStore.kernel })
+    : null
+  const nativeRuntime = createNativeRuntime({ mode: nativeRuntimeMode, now })
+  const runtimeRegistry = createRuntimeRegistry({ nativeRuntime })
+  const runStore = database
+    ? createRunStore({ database, kernel: projectStore.kernel, contextPackageStore, runtimeRegistry })
     : null
   const app = Fastify({
     bodyLimit: 1024 * 1024,
@@ -168,7 +178,7 @@ export function createWorkbenchApp({
         projects: projectStore ? 'available' : 'prototype',
         knowledge: 'prototype',
         hybrid_search: protectedSearchService?.enabled ? 'prototype' : 'disabled',
-        native_runtime: 'not_implemented',
+        native_runtime: runStore ? 'available' : 'not_implemented',
         deepseek_harness: 'poc_not_connected',
         hermes: 'candidate_not_connected',
         persistence: projectStore ? 'available' : 'not_implemented',
@@ -181,6 +191,9 @@ export function createWorkbenchApp({
   }
   if (contextStore) {
     registerContextRoutes(app, { contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf })
+  }
+  if (runStore) {
+    registerRuntimeRoutes(app, { runtimeRegistry, runStore, requireSession, requireCsrf })
   }
 
   app.setNotFoundHandler(async (request, reply) => {
