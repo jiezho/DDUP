@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G5b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮和 Native 确定性 Run 生命周期已实现；受保护混合检索仍为默认关闭的实验路径。sidecar 历史超时已通过临时候选向量缓存与有界背压完成短样本修复，但扩展边界 Top-1 仍仅 70%。BGE-M3 仍是仓库外、synthetic-only、CPU 实验 sidecar，并因质量 Stop 保持默认关闭。生成式回答、Tool/Approval、SSE、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G5b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮、Native 确定性 Run 生命周期及 Task Candidate Tool/Approval 首版已实现；受保护混合检索仍为默认关闭的实验路径。sidecar 历史超时已通过临时候选向量缓存与有界背压完成短样本修复，但扩展边界 Top-1 仍仅 70%。BGE-M3 仍是仓库外、synthetic-only、CPU 实验 sidecar，并因质量 Stop 保持默认关闭。生成式回答、通用 Tool/Approval、SSE、DeepSeek Harness 与 Hermes 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -75,7 +75,7 @@ flowchart TB
 | 受控来源 | 虚构 Markdown 导入、SHA-256 文件真源、SourceVersion、Document | 已实现首版 |
 | 上下文检索 | Project/Task/Capture/Document 统一 FTS5，空间/项目/类型/日期过滤 | 已实现首版 |
 | 上下文篮 | 显式空 allowlist、用途/有效期、固定 SourceVersion 字符范围、版本/幂等/审计、过期与归档排除 | 已连接 Native 生命周期；未连接 Answer |
-| Native Runtime | `native-v1` 确定性 queued/running/终态、持久化 JSON 事件回放、取消、幂等、空间/AI policy 与重启恢复 | 已实现生命周期首版；不生成回答、不调用 Tool |
+| Native Runtime / Tool Gateway | `native-v1` 确定性生命周期；Task Candidate L1；L2 审批、拒绝与幂等应用；scope digest、防替换、越权审计和重启恢复 | 已实现 Task Candidate 首版；不生成回答；无外部动作 |
 | 混合与向量检索 | 权限前置、确定性意图拦截、稳定 chunk/字符定位、校准阈值、RRF、临时候选向量缓存、有界 busy、sidecar 身份校验与 FTS 回退 | 运行机制短样本修复通过，但边界 Top-1 质量门失败；默认关闭，BGE-M3 不进入生产依赖 |
 | 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中；生成式回答继续关闭，需后续安全门 |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
@@ -134,7 +134,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19；2026-08-28 完整回归与生产构建 219/219 通过，隐私扫描通过。Native Runtime 专项 5/5，覆盖正常、失败、策略拒绝、跨空间、重复请求、取消和真实重启回放；本次无 UI 变更，沿用 ContextPackage 页面既有 Playwright Chromium E2E 1/1 证据。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
+当前验证快照：Node 24.19；2026-08-28 完整回归与生产构建 222/222 通过，隐私扫描通过。Native Runtime 生命周期专项 5/5、Task Candidate/Approval 专项 3/3，覆盖正常、失败、策略拒绝、跨空间、重复请求、取消、审批过期、防替换和真实重启回放；本次无 UI 变更，沿用 ContextPackage 页面既有 Playwright Chromium E2E 1/1 证据。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
 
 ## 六、仓库结构
 
@@ -170,7 +170,7 @@ DDUP/
 - [Agent Runtime 与工具契约](product/AgentRuntime与工具契约.md)
 - [知识库检索与引用设计](product/知识库检索与引用设计.md)
 - [检索评测基线报告](product/检索评测基线报告.md)
-- [架构决策记录 ADR 索引](product/ADR/README.md)（含 ADR-014 显式上下文篮、ADR-015 Native Runtime 生命周期）
+- [架构决策记录 ADR 索引](product/ADR/README.md)（含 ADR-014 显式上下文篮、ADR-015 Native Runtime、ADR-016 候选审批分离）
 
 ### Runtime 与专项评估
 
@@ -200,7 +200,7 @@ DDUP/
 1. 受保护 Hybrid SearchProvider 已按 G5b 落地但默认关闭；正式检索继续以 FTS 为稳定基线；
 2. sidecar 重复 passage 编码与无界等待已完成短样本修复；下一步聚焦长文相邻主题错排、英文长尾漏召回和长时稳定，不下载 reranker；
 3. 显式 ContextPackage 已作为独立范围层落地；下一步只能在质量、提示注入、泄漏、回退、背压和资源门全部通过后，才将其连接生成式引用问答；
-4. 不受质量门阻塞的后续为 Native Runtime 生命周期和 Tool Gateway 最小读取契约；Harness/Hermes 仍保持隔离 POC/候选。
+4. Native Runtime 生命周期与 Task Candidate Tool/Approval 首版已落地；下一步是运行历史/待确认正式 UI、SSE 与 Checkpoint，Harness/Hermes 仍保持隔离 POC/候选。
 
 ## 九、隐私与发布边界
 

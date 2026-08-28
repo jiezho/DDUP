@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { isUuidV7 } from './ids.mjs'
+import { TaskCandidateProposalSchema } from './tool-gateway.mjs'
 
 export const RUNTIME_KEYS = Object.freeze(['native-v1', 'deepseek-harness-poc', 'hermes-candidate'])
 export const RUN_STATUSES = Object.freeze(['queued', 'running', 'succeeded', 'failed', 'cancelled'])
@@ -17,11 +18,19 @@ export const CreateRunSchema = z.object({
   profile_key: z.literal(NATIVE_PROFILE.key).default(NATIVE_PROFILE.key),
   profile_version: z.literal(NATIVE_PROFILE.version).default(NATIVE_PROFILE.version),
   goal: z.string().trim().min(1).max(2000),
+  task_candidate: TaskCandidateProposalSchema.optional(),
   budget: z.object({
     max_steps: z.number().int().min(1).max(10).default(3),
-    max_tool_calls: z.literal(0).default(0),
+    max_tool_calls: z.number().int().min(0).max(1).default(0),
   }).strict().default({ max_steps: 3, max_tool_calls: 0 }),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (value.task_candidate && value.budget.max_tool_calls !== 1) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['budget', 'max_tool_calls'], message: '任务候选运行必须显式允许一次 L1 ToolCall。' })
+  }
+  if (!value.task_candidate && value.budget.max_tool_calls !== 0) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['budget', 'max_tool_calls'], message: '没有候选请求时不得预留 ToolCall。' })
+  }
+})
 
 export const ListRunsQuerySchema = z.object({
   space_id: UuidV7Schema,

@@ -572,6 +572,81 @@ CREATE INDEX run_events_run_seq_idx
 ON run_events(space_id, run_id, seq);
 `
 
+const migration009 = `
+CREATE TABLE candidates (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  candidate_type TEXT NOT NULL CHECK (candidate_type = 'task'),
+  project_id TEXT NOT NULL,
+  proposal_json TEXT NOT NULL CHECK (json_valid(proposal_json)),
+  proposal_digest TEXT NOT NULL CHECK (length(proposal_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'applied', 'failed')),
+  applied_object_id TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX candidates_space_status_idx
+ON candidates(space_id, status, updated_at DESC, id DESC);
+
+CREATE TABLE approvals (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  subject_type TEXT NOT NULL CHECK (subject_type = 'candidate'),
+  subject_id TEXT NOT NULL,
+  action_level TEXT NOT NULL CHECK (action_level = 'L2'),
+  scope_digest TEXT NOT NULL CHECK (length(scope_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'cancelled')),
+  reason_code TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  resolved_at TEXT,
+  resolved_by TEXT REFERENCES principals(id),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (subject_id, space_id) REFERENCES candidates(id, space_id),
+  UNIQUE (id, space_id),
+  UNIQUE (subject_id)
+) STRICT;
+
+CREATE INDEX approvals_space_status_idx
+ON approvals(space_id, status, expires_at, id);
+
+CREATE TABLE tool_calls (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  runtime_tool_call_id TEXT NOT NULL,
+  tool_key TEXT NOT NULL,
+  tool_version TEXT NOT NULL,
+  action_level TEXT NOT NULL CHECK (action_level IN ('L0', 'L1', 'L2', 'L3', 'L4')),
+  arguments_digest TEXT NOT NULL CHECK (length(arguments_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('requested', 'succeeded', 'approval_required', 'denied', 'failed')),
+  candidate_id TEXT,
+  approval_id TEXT,
+  error_code TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  FOREIGN KEY (candidate_id, space_id) REFERENCES candidates(id, space_id),
+  FOREIGN KEY (approval_id, space_id) REFERENCES approvals(id, space_id),
+  UNIQUE (run_id, runtime_tool_call_id)
+) STRICT;
+
+CREATE INDEX tool_calls_run_idx
+ON tool_calls(space_id, run_id, created_at, id);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -624,5 +699,11 @@ export const MIGRATIONS = Object.freeze([
     name: 'native_runtime_run_lifecycle',
     sql: migration008,
     checksum: checksum(migration008),
+  }),
+  Object.freeze({
+    version: 9,
+    name: 'tool_gateway_candidates_and_approvals',
+    sql: migration009,
+    checksum: checksum(migration009),
   }),
 ])

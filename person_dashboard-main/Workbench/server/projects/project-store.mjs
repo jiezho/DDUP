@@ -898,6 +898,31 @@ export function createProjectStore({ database, now = Date.now, idGenerator = cre
     `).all(project.id, project.space_id).map((row) => ({ ...row }))
   }
 
+  function createTaskInTransaction(actor, projectId, input, { requestId = null, sourceKind = 'manual' } = {}) {
+    const project = writableProject(actor, projectId)
+    validateTaskLinks(project, input)
+    const timestamp = isoNow(now)
+    const task = {
+      id: newId(), space_id: project.space_id, project_id: project.id,
+      milestone_id: input.milestone_id, parent_task_id: input.parent_task_id,
+      title: input.title, description: input.description, status: 'inbox', priority: input.priority,
+      due_at: input.due_at ? new Date(input.due_at).toISOString() : null, due_date: input.due_date,
+      source_kind: sourceKind, completed_at: null, created_at: timestamp, created_by: actor.id,
+      updated_at: timestamp, updated_by: actor.id, version: 1, deleted_at: null, deleted_by: null,
+    }
+    database.prepare(`
+      INSERT INTO tasks (${TASK_COLUMNS})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 1, NULL, NULL)
+    `).run(
+      task.id, task.space_id, task.project_id, task.milestone_id, task.parent_task_id,
+      task.title, task.description, task.status, task.priority, task.due_at, task.due_date,
+      task.source_kind, timestamp, actor.id, timestamp, actor.id,
+    )
+    appendAudit({ spaceId: task.space_id, actor, action: 'task.create', objectType: 'task', objectId: task.id, requestId, changed: ['description', 'due_at', 'due_date', 'milestone_id', 'parent_task_id', 'priority', 'project_id', 'source_kind', 'title'] })
+    appendOutbox({ spaceId: task.space_id, aggregate: task, aggregateType: 'task', eventType: 'task.created' })
+    return task
+  }
+
   function createTask(session, projectId, input, { idempotencyKey, requestId }) {
     const actor = actorForSession(session)
     return executeIdempotent({
@@ -907,28 +932,7 @@ export function createProjectStore({ database, now = Date.now, idGenerator = cre
       request: input,
       statusCode: 201,
       operation() {
-        const project = writableProject(actor, projectId)
-        validateTaskLinks(project, input)
-        const timestamp = isoNow(now)
-        const task = {
-          id: newId(), space_id: project.space_id, project_id: project.id,
-          milestone_id: input.milestone_id, parent_task_id: input.parent_task_id,
-          title: input.title, description: input.description, status: 'inbox', priority: input.priority,
-          due_at: input.due_at ? new Date(input.due_at).toISOString() : null, due_date: input.due_date,
-          source_kind: 'manual', completed_at: null, created_at: timestamp, created_by: actor.id,
-          updated_at: timestamp, updated_by: actor.id, version: 1, deleted_at: null, deleted_by: null,
-        }
-        database.prepare(`
-          INSERT INTO tasks (${TASK_COLUMNS})
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 1, NULL, NULL)
-        `).run(
-          task.id, task.space_id, task.project_id, task.milestone_id, task.parent_task_id,
-          task.title, task.description, task.status, task.priority, task.due_at, task.due_date,
-          task.source_kind, timestamp, actor.id, timestamp, actor.id,
-        )
-        appendAudit({ spaceId: task.space_id, actor, action: 'task.create', objectType: 'task', objectId: task.id, requestId, changed: ['description', 'due_at', 'due_date', 'milestone_id', 'parent_task_id', 'priority', 'project_id', 'title'] })
-        appendOutbox({ spaceId: task.space_id, aggregate: task, aggregateType: 'task', eventType: 'task.created' })
-        return task
+        return createTaskInTransaction(actor, projectId, input, { requestId, sourceKind: 'manual' })
       },
     })
   }
@@ -1387,11 +1391,13 @@ export function createProjectStore({ database, now = Date.now, idGenerator = cre
       actorForSession,
       appendAudit,
       appendOutbox,
+      createTaskInTransaction,
       executeIdempotent,
       newId,
       nowIso: () => isoNow(now),
       requireProject,
       visibleSpace,
+      writableProject,
     }),
     listProjects,
     listDecisions,

@@ -18,9 +18,11 @@ import {
 import { registerProjectRoutes } from './projects/project-routes.mjs'
 import { createProjectStore } from './projects/project-store.mjs'
 import { createNativeRuntime } from './runtime/native-runtime.mjs'
+import { registerGovernanceRoutes } from './runtime/governance-routes.mjs'
 import { createRuntimeRegistry } from './runtime/runtime-registry.mjs'
 import { registerRuntimeRoutes } from './runtime/runtime-routes.mjs'
 import { createRunStore } from './runtime/run-store.mjs'
+import { createToolGateway } from './runtime/tool-gateway.mjs'
 import { openWorkbenchDatabase } from './storage/database.mjs'
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -63,8 +65,9 @@ export function createWorkbenchApp({
     : null
   const nativeRuntime = createNativeRuntime({ mode: nativeRuntimeMode, now })
   const runtimeRegistry = createRuntimeRegistry({ nativeRuntime })
+  const toolGateway = database ? createToolGateway({ database, projectStore }) : null
   const runStore = database
-    ? createRunStore({ database, kernel: projectStore.kernel, contextPackageStore, runtimeRegistry })
+    ? createRunStore({ database, kernel: projectStore.kernel, contextPackageStore, runtimeRegistry, toolGateway })
     : null
   const app = Fastify({
     bodyLimit: 1024 * 1024,
@@ -194,6 +197,7 @@ export function createWorkbenchApp({
   }
   if (runStore) {
     registerRuntimeRoutes(app, { runtimeRegistry, runStore, requireSession, requireCsrf })
+    registerGovernanceRoutes(app, { toolGateway, requireSession, requireCsrf })
   }
 
   app.setNotFoundHandler(async (request, reply) => {

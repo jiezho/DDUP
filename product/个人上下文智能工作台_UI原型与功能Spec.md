@@ -543,7 +543,7 @@ stateDiagram-v2
 
 | Runtime | 原型状态 | 用户可见定位 | 操作 |
 |---|---|---|---|
-| Native Runtime | 生命周期可用 | 确定性本地 Run；当前无回答/Tool | 查看能力 |
+| Native Runtime | 生命周期与 Task Candidate 可用 | 确定性本地 Run；无模型回答；仅一条 L1 Tool | 查看能力 |
 | DeepSeek Harness | 隔离 POC | 研究执行器 | 查看 POC 边界 |
 | Hermes Agent | 候选，未连接 | 移动网关/备选执行器 | 查看评估，不提供启用 |
 
@@ -858,7 +858,7 @@ erDiagram
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
 | Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
-| Agent Runtime | 已实现 `native-v1` 确定性生命周期、持久化 JSON 事件回放和取消；正式运行中心、SSE、Checkpoint、Tool/Approval 与模型回答尚未实现 |
+| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON 事件回放、取消、Task Candidate L1 与 L2 Approval/apply；正式运行中心/待确认 UI、SSE、Checkpoint、其他 Tool 与模型回答尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |

@@ -81,7 +81,7 @@ test('runtime registry exposes only the implemented native adapter as connected 
   assert.equal(native.status, 'available')
   assert.equal(native.connected, true)
   assert.equal(native.capabilities.cancellation, true)
-  assert.equal(native.capabilities.tool_calls, false)
+  assert.equal(native.capabilities.tool_calls, true)
   assert.equal(items.find((item) => item.runtime_key === 'deepseek-harness-poc').connected, false)
   assert.equal(items.find((item) => item.runtime_key === 'hermes-candidate').connected, false)
 

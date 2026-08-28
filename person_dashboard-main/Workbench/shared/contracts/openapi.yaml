@@ -1,14 +1,16 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.8.0
+  version: 1.9.0
   description: >-
     Local-loopback MVP contract. Foundation session/security and the durable
     project, milestone, task, manual discussion-to-decision, explicit text/link
     capture, daily focus/review, controlled Markdown source intake, and authorized
     context full-text search, explicit context-package slices, and a deterministic
     local Native Runtime lifecycle are implemented. The Native Runtime persists only
-    scope digests and safe replay events; it generates no answer and invokes no tools.
+    scope digests and safe replay events; it generates no answer. Its only Runtime-callable
+    tool creates a non-authoritative task candidate. Applying that candidate requires a separate
+    local L2 approval with a scope digest and creates no external effect.
     A default-off protected hybrid-search path may
     call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
     falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
@@ -799,6 +801,108 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/tools:
+    get:
+      operationId: listRegisteredTools
+      description: Lists the fixed local Tool Gateway allowlist and action levels; it exposes no executable credentials or dynamic installation.
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/v1/candidates:
+    get:
+      operationId: listCandidates
+      description: Lists non-authoritative candidates inside one authorized space.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, applied, failed] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/candidates/{candidateId}:
+    get:
+      operationId: getCandidate
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/candidates/{candidateId}/approvals:
+    post:
+      operationId: requestCandidateApproval
+      description: Creates one expiring L2 approval bound to the task proposal digest; it does not apply the candidate.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CandidateApprovalRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/candidates/{candidateId}/apply:
+    post:
+      operationId: applyTaskCandidate
+      description: Revalidates candidate bytes, approval scope, expiry, space, project state and candidate version before creating one local task.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CandidateApply" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/approvals:
+    get:
+      operationId: listApprovals
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, expired, cancelled] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/v1/approvals/{approvalId}:
+    get:
+      operationId: getApproval
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: approvalId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/approvals/{approvalId}/resolve:
+    post:
+      operationId: resolveApproval
+      description: Records an explicit local-owner approve or reject decision; approval is still separate from candidate application.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: approvalId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApprovalResolve" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     localSession:
@@ -881,12 +985,22 @@ components:
         profile_key: { type: string, enum: [native-safe-readonly-v1], default: native-safe-readonly-v1 }
         profile_version: { type: integer, enum: [1], default: 1 }
         goal: { type: string, minLength: 1, maxLength: 2000 }
+        task_candidate:
+          type: object
+          additionalProperties: false
+          required: [project_id, title]
+          properties:
+            project_id: { type: string, format: uuid }
+            title: { type: string, minLength: 1, maxLength: 240 }
+            description: { type: string, maxLength: 20000, default: "" }
+            priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+            due_date: { type: [string, "null"], pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
         budget:
           type: object
           additionalProperties: false
           properties:
             max_steps: { type: integer, minimum: 1, maximum: 10, default: 3 }
-            max_tool_calls: { type: integer, enum: [0], default: 0 }
+            max_tool_calls: { type: integer, minimum: 0, maximum: 1, default: 0 }
     AgentRunCancel:
       type: object
       additionalProperties: false
@@ -894,6 +1008,27 @@ components:
       properties:
         space_id: { type: string, format: uuid }
         reason: { type: string, enum: [user_requested, budget_stop, superseded], default: user_requested }
+    CandidateApprovalRequest:
+      type: object
+      additionalProperties: false
+      required: [space_id]
+      properties:
+        space_id: { type: string, format: uuid }
+        reason_code: { type: string, enum: [apply_task_candidate], default: apply_task_candidate }
+    CandidateApply:
+      type: object
+      additionalProperties: false
+      required: [space_id, approval_id]
+      properties:
+        space_id: { type: string, format: uuid }
+        approval_id: { type: string, format: uuid }
+    ApprovalResolve:
+      type: object
+      additionalProperties: false
+      required: [space_id, decision]
+      properties:
+        space_id: { type: string, format: uuid }
+        decision: { type: string, enum: [approve, reject] }
     ProjectStatus:
       type: string
       enum: [draft, active, paused, completed, archived]

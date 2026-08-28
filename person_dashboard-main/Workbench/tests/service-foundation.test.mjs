@@ -213,6 +213,14 @@ test('machine-readable API contract contains the implemented foundation and proj
     '/api/v1/runs/{runId}:',
     '/api/v1/runs/{runId}/events:',
     '/api/v1/runs/{runId}/cancel:',
+    '/api/v1/tools:',
+    '/api/v1/candidates:',
+    '/api/v1/candidates/{candidateId}:',
+    '/api/v1/candidates/{candidateId}/approvals:',
+    '/api/v1/candidates/{candidateId}/apply:',
+    '/api/v1/approvals:',
+    '/api/v1/approvals/{approvalId}:',
+    '/api/v1/approvals/{approvalId}/resolve:',
   ]) {
     assert.match(openapi, new RegExp(route.replaceAll('/', '\\/')))
   }

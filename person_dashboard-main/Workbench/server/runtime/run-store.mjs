@@ -26,8 +26,8 @@ function runFromRow(row) {
   return row ? { ...row, terminal: TERMINAL_RUN_STATUSES.includes(row.status) } : null
 }
 
-export function createRunStore({ database, kernel, contextPackageStore, runtimeRegistry } = {}) {
-  if (!database || !kernel || !contextPackageStore || !runtimeRegistry) throw new TypeError('run store dependencies are required')
+export function createRunStore({ database, kernel, contextPackageStore, runtimeRegistry, toolGateway } = {}) {
+  if (!database || !kernel || !contextPackageStore || !runtimeRegistry || !toolGateway) throw new TypeError('run store dependencies are required')
 
   function requireRun(actor, runId, spaceId) {
     kernel.visibleSpace(actor, spaceId)
@@ -144,6 +144,7 @@ export function createRunStore({ database, kernel, contextPackageStore, runtimeR
           const result = adapter.start({
             workbench_run_id: run.id,
             goal: run.goal,
+            task_candidate: input.task_candidate,
             context: {
               digest: contextDigest,
               included_count: contextManifest.included.length,
@@ -151,16 +152,46 @@ export function createRunStore({ database, kernel, contextPackageStore, runtimeR
             },
           })
           for (const event of result.events ?? []) appendEvent(run, event.type, event.payload)
+          const toolCalls = result.tool_calls ?? []
+          if (toolCalls.length > run.max_tool_calls) {
+            throw publicError(ERROR_CODES.BUDGET_EXCEEDED, 'Runtime 返回的 ToolCall 超过本次预算。', { statusCode: 409 })
+          }
+          const candidateIds = []
+          for (const call of toolCalls) {
+            appendEvent(run, 'tool.requested', {
+              runtime_tool_call_id: call.runtime_tool_call_id,
+              tool_key: call.tool_key,
+              tool_version: call.tool_version,
+              action_level: 'L1',
+            })
+            const toolResult = toolGateway.executeCandidateTaskCall(session, run, call, { requestId })
+            candidateIds.push(toolResult.candidate.id)
+            appendEvent(run, 'candidate.created', { candidate_id: toolResult.candidate.id, candidate_type: 'task' })
+            appendEvent(run, 'tool.completed', {
+              runtime_tool_call_id: call.runtime_tool_call_id,
+              tool_key: call.tool_key,
+              candidate_id: toolResult.candidate.id,
+              replayed: toolResult.replayed,
+            })
+          }
           if (result.outcome === 'running') return requireRun(actor, run.id, run.space_id)
           const endedAt = kernel.nowIso()
           database.prepare("UPDATE agent_runs SET status = 'succeeded', ended_at = ?, updated_at = ?, updated_by = ?, version = version + 1 WHERE id = ?")
             .run(endedAt, endedAt, actor.id, run.id)
           run.status = 'succeeded'; run.ended_at = endedAt; run.updated_at = endedAt; run.version += 1
-          appendEvent(run, 'run.succeeded', { artifact_ids: [], candidate_ids: [], generated_answer: false })
+          appendEvent(run, 'run.succeeded', { artifact_ids: [], candidate_ids: candidateIds, generated_answer: false })
           kernel.appendOutbox({ spaceId: run.space_id, aggregate: run, aggregateType: 'agent_run', eventType: 'agent_run.succeeded' })
         } catch (error) {
           const endedAt = kernel.nowIso()
-          const errorCode = [ERROR_CODES.RUNTIME_PROTOCOL_ERROR, ERROR_CODES.RUNTIME_UNAVAILABLE].includes(error?.code)
+          const errorCode = [
+            ERROR_CODES.RUNTIME_PROTOCOL_ERROR,
+            ERROR_CODES.RUNTIME_UNAVAILABLE,
+            ERROR_CODES.BUDGET_EXCEEDED,
+            ERROR_CODES.TOOL_NOT_REGISTERED,
+            ERROR_CODES.TOOL_SCHEMA_INVALID,
+            ERROR_CODES.TOOL_CALL_CONFLICT,
+            ERROR_CODES.TOOL_NOT_ALLOWED,
+          ].includes(error?.code)
             ? error.code
             : ERROR_CODES.RUNTIME_PROTOCOL_ERROR
           database.prepare("UPDATE agent_runs SET status = 'failed', ended_at = ?, updated_at = ?, updated_by = ?, version = version + 1, error_code = ? WHERE id = ?")

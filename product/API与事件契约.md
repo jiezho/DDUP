@@ -228,7 +228,7 @@ Cookie、CSRF、Origin 和 Host 的具体生成/校验属于服务安全实现�
 
 #### 7.1.1 当前同步 Markdown 切片
 
-OpenAPI 1.5.0 已实现 `POST /api/v1/sources/imports/markdown`：浏览器只提交明确选择的 `.md/.markdown` 文件名与正文，不提交本地路径；服务端在 1 MiB 上限内规范化并同步完成内容哈希存储、Source/SourceVersion/Document 与 FTS 索引，因此成功返回 `201`。相同内容在同空间/项目范围内去重；数据库失败会回滚记录并补偿删除本次新建且未引用的 blob。其他格式、异步 Job、重试解析和 Source 生命周期端点仍是后续设计，不得由该同步切片外推。
+OpenAPI（当前版本 1.9.0）已实现 `POST /api/v1/sources/imports/markdown`：浏览器只提交明确选择的 `.md/.markdown` 文件名与正文，不提交本地路径；服务端在 1 MiB 上限内规范化并同步完成内容哈希存储、Source/SourceVersion/Document 与 FTS 索引，因此成功返回 `201`。相同内容在同空间/项目范围内去重；数据库失败会回滚记录并补偿删除本次新建且未引用的 blob。其他格式、异步 Job、重试解析和 Source 生命周期端点仍是后续设计，不得由该同步切片外推。
 
 ### 7.2 Knowledge 与 Citation
 
@@ -295,7 +295,7 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ### 9.1 Run
 
-> 2026-08-28 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态与重启回放；它不调用模型、不生成回答、不调用 Tool。事件接口当前返回按 `after_seq` 分页的 JSON 快照，SSE、steer、resume、Checkpoint 和 Tool/Approval 仍是后续设计。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
+> 2026-08-28 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态与重启回放；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。事件接口当前返回按 `after_seq` 分页的 JSON 快照，SSE、steer、resume 和 Checkpoint 仍是后续设计。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
 
 | Method | Path | 说明 |
 |---|---|---|
@@ -311,18 +311,19 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ### 9.2 Candidate 与 Approval
 
+当前实现只覆盖 Task Candidate：创建审批、批准/拒绝与应用是三个独立命令；批准本身不写 Task。应用前再次校验 proposal bytes/digest、Approval scope/expiry、候选版本、空间权限和项目状态。Knowledge/Decision 等 Candidate、撤销与正式待确认中心 UI 尚未实现。
+
 | Method | Path | 说明 |
 |---|---|---|
 | GET | `/api/v1/candidates` | 按状态/type/run/project 查询 |
 | GET | `/api/v1/candidates/{id}` | Proposal、diff、来源、过期与风险 |
-| POST | `/api/v1/candidates/{id}/approve` | 创建/解决 Approval；不等于已应用 |
-| POST | `/api/v1/candidates/{id}/reject` | 记录原因；不执行业务写 |
+| POST | `/api/v1/candidates/{id}/approvals` | 为当前 proposal digest 创建一个有时效的 L2 Approval；不等于已应用 |
 | POST | `/api/v1/candidates/{id}/apply` | 校验批准 scope、版本和幂等后应用 |
 | GET | `/api/v1/approvals` | 待确认中心列表 |
 | GET | `/api/v1/approvals/{id}` | 精确动作、等级、目标、diff、过期 |
 | POST | `/api/v1/approvals/{id}/resolve` | `approve/reject`；L3/L4 强制显式确认字段 |
 
-批准后请求参数/目标/version 改变时，`scope_digest` 不匹配，返回 `SOURCE_VERSION_CHANGED` 或 `APPROVAL_REQUIRED` 并创建新 Approval。
+批准后候选正文、目标或 proposal digest 改变时，`scope_digest` 不匹配并返回 `APPROVAL_SCOPE_MISMATCH`；当前 Task Candidate 必须重新生成，不能复用原 Approval。
 
 ### 9.3 Audit、Backup 与 System
 

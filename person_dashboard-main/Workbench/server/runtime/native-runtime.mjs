@@ -3,7 +3,7 @@ import { NATIVE_PROFILE } from '../../shared/contracts/runtime.mjs'
 
 const CAPABILITIES = Object.freeze({
   streaming: false,
-  tool_calls: false,
+  tool_calls: true,
   approvals: false,
   steering: false,
   cancellation: true,
@@ -38,7 +38,7 @@ export function createNativeRuntime({ mode = 'complete', now = Date.now } = {}) 
       runtime_version: descriptor.runtime_version,
       details: [],
     }),
-    start: ({ context }) => {
+    start: ({ context, task_candidate: taskCandidate }) => {
       if (mode === 'hold') return { outcome: 'running', events: [] }
       if (mode === 'fail') {
         throw publicError(ERROR_CODES.RUNTIME_PROTOCOL_ERROR, '本地确定性 Runtime 演练失败。', { statusCode: 503, retryable: true })
@@ -54,6 +54,13 @@ export function createNativeRuntime({ mode = 'complete', now = Date.now } = {}) 
             generated_answer: false,
           },
         }],
+        tool_calls: taskCandidate ? [{
+          runtime_tool_call_id: 'native-task-candidate-1',
+          tool_key: 'candidate.task.create.v1',
+          tool_version: '1.0.0',
+          arguments: taskCandidate,
+          purpose_code: 'user_structured_request',
+        }] : [],
       }
     },
     cancel: () => ({ outcome: 'cancelled' }),
