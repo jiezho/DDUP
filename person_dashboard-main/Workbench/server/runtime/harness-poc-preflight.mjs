@@ -24,7 +24,7 @@ const capabilities = Object.freeze({
 
 const descriptor = Object.freeze({
   runtime_key: 'deepseek-harness-poc',
-  adapter_version: '0.1.0-preflight',
+  adapter_version: '0.2.0-preflight',
   runtime_name: 'DeepSeek Harness',
   runtime_version: null,
   status: 'poc',
@@ -33,9 +33,11 @@ const descriptor = Object.freeze({
   data_residency: 'local_process',
   supported_profiles: [HARNESS_POC_PROFILE.key],
   connected: false,
-  readiness: 'protocol_preflight_ready',
+  readiness: 'client_preflight_passed_server_missing',
   limitation_codes: Object.freeze([
-    'DEPENDENCY_NOT_APPROVED',
+    'OFFICIAL_RUNTIME_SERVER_NOT_INSTALLED',
+    'G6A_WINDOWS_DISTRIBUTION_GAP',
+    'LIFECYCLE_SCRIPTS_DISABLED',
     'NO_PROTOCOL_NEGOTIATION',
     'NO_SESSION_CANCEL',
     'NO_RUNTIME_APPROVAL_REQUESTS',
@@ -123,4 +125,3 @@ export function inspectHarnessPocFrame(line, { maxFrameBytes = MAX_FRAME_BYTES }
     }),
   })
 }
-

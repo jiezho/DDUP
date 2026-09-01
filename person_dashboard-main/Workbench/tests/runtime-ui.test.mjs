@@ -14,7 +14,7 @@ test('formal runtime center is routed, navigable and bound to implemented APIs',
   assert.match(app, /path="\/runtime" element=\{<RuntimePage/)
   assert.match(shell, /to: "\/runtime", label: "AI 运行中心"/)
   assert.match(page, /title="AI 运行中心"/)
-  assert.match(page, /协议预检已准备 · 尚未安装/)
+  assert.match(page, /客户端预检通过 · 服务端未安装/)
   assert.match(page, /保持候选 · 未接入/)
   assert.match(page, /没有生成模型回答/)
   assert.match(page, /候选不会直接写入项目/)

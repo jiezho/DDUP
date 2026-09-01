@@ -12,13 +12,15 @@ test('Harness preflight descriptor remains disconnected and advertises only evid
   const value = harnessPocDescriptor()
   assert.equal(value.runtime_key, 'deepseek-harness-poc')
   assert.equal(value.connected, false)
-  assert.equal(value.readiness, 'protocol_preflight_ready')
+  assert.equal(value.readiness, 'client_preflight_passed_server_missing')
   assert.equal(value.protocol, 'stdio_jsonrpc')
   assert.deepEqual(value.supported_profiles, [HARNESS_POC_PROFILE.key])
   assert.equal(value.capabilities.streaming, true)
   assert.equal(value.capabilities.cancellation, false)
   assert.equal(value.capabilities.approvals, false)
   assert.equal(value.capabilities.tool_calls, false)
+  assert.ok(value.limitation_codes.includes('OFFICIAL_RUNTIME_SERVER_NOT_INSTALLED'))
+  assert.ok(value.limitation_codes.includes('G6A_WINDOWS_DISTRIBUTION_GAP'))
 })
 
 test('Harness preflight accepts only the official wire identity reviewed for G6a', () => {
@@ -75,4 +77,3 @@ test('Harness preflight fails closed on malformed, oversized, request, and unsup
     (error) => error.code === 'RUNTIME_PROTOCOL_ERROR',
   )
 })
-

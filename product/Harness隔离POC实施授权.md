@@ -1,11 +1,12 @@
-# G6a：DeepSeek Harness 隔离 POC 实施授权（待确认）
+# G6a：DeepSeek Harness 隔离 POC 实施授权
 
-> 文档状态：待确认  
+> 文档状态：已确认，已执行并按 Stop 条件收口
 > 生成日期：2026-09-01  
+> 确认日期：2026-09-01
 > 确认门：G6a  
-> 当前事实：Workbench 已完成 Harness 协议预检代码与合成测试；官方运行时尚未下载、安装或连接
+> 当前事实：固定的 CLI 与 TypeScript 客户端已在独立实验目录完成禁脚本安装与审计；当前 Windows 发行物不包含可启动的官方 SDK 服务端/Profile，Workbench 继续保持未连接
 
-## 0. 需要确认的决定
+## 0. 最终确认决定
 
 | 编号 | 决定 | 推荐默认项 | 替代方案 | 不确认的影响 |
 |---|---|---|---|---|
@@ -18,7 +19,7 @@
 | G6a-7 | 数据范围 | **仅使用独立临时目录和明确 synthetic fixture；不读取 Workbench SQLite、Vault 或真实项目数据** | 直接接个人上下文 | POC 未通过前会扩大隐私与权限风险 |
 | G6a-8 | 能力状态 | **通过完整 G6a 验收前保持 `poc_not_connected`，不能创建正式 Run** | 安装后即显示可用 | 会把“装上了”误报为“安全可用” |
 
-建议确认口径：`G6a 全部按推荐项确认。`
+最终确认：用户于 2026-09-01 确认“G6a 全部按推荐项确认”。G6a-1 至 G6a-8 均采用表中推荐项。该确认只授权无凭据、无付费调用、synthetic-only 的隔离 POC，不授权接入真实模型、真实资料或 Workbench 正式 Run。
 
 ## 1. 为什么现在需要单独确认
 
@@ -89,3 +90,13 @@
 - 启动仅访问 synthetic 临时目录的本地子进程；
 - 不会写入 Workbench 业务数据库，不会访问真实知识库，不会配置真实模型凭据，不会监听局域网或公网。
 
+## 7. 执行结果
+
+G6a 已按确认边界执行，结果为“供应链与客户端传输预检通过，官方 Windows 运行时连接 Stop”：
+
+- 固定两包的版本、registry integrity、独立 lock、1 GiB 预算和点时漏洞审计通过；
+- 生命周期脚本保持禁用，无真实凭据、模型请求、Workbench 数据或外部监听；
+- 官方 TypeScript 客户端对 synthetic stdio fixture 的握手、通知和协议级退出通过；
+- `@deepseek-ai/dsh@0.1.1-rc.2` 的已发布模板只有 `web/headless`，不含 `sdk/sdk-minimal`；批准包中也没有 JSON-RPC 服务端可执行程序；
+- Windows 无对应的官方 PyPI runtime wheel；补装 Node 服务端/示例组合并执行 PTY/子进程脚本超出 G6a 范围；
+- 因此不改变 `connected=false/poc_not_connected`，不创建 Harness 正式 Run。完整证据见 `Harness隔离POC运行报告.md`。

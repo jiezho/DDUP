@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G5b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。DeepSeek Harness 已完成零依赖协议预检，但官方运行时下载/安装仍等待 G6a；Hermes 仍为未连接候选。生成式回答、通用 Tool/Approval 与 Runtime 私有 resume 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G6a 已确认并执行。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。DeepSeek Harness 固定包审计和官方客户端传输预检已通过，但当前 Windows 发行物缺少可启动的 SDK 服务端/Profile，G6a 按 Stop 收口并保持不可创建正式 Run。Hermes 仍为未连接候选。生成式回答、通用 Tool/Approval 与 Runtime 私有 resume 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -80,7 +80,7 @@ flowchart TB
 | 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中；生成式回答继续关闭，需后续安全门 |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
-| DeepSeek Harness | stdio JSON-RPC 握手、帧门和脱敏摘要预检已实现；官方运行时尚未安装，Registry 中不可运行 | `protocol_preflight_ready / poc_not_connected` |
+| DeepSeek Harness | 固定包供应链与官方客户端 synthetic 传输预检通过；Windows 官方 SDK 服务端/Profile 缺失，Registry 中不可运行 | `client_preflight_passed_server_missing / poc_not_connected` |
 | Hermes | 可选 Runtime / 消息网关候选；Registry 中可见但不可运行 | `candidate_not_connected` |
 | 飞书 / 移动连接器 | 高频捕获、任务、讨论、提醒和复盘 | 后续计划 |
 
@@ -134,7 +134,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19；2026-09-01 完整回归与生产构建 230/230 通过，隐私扫描通过。Native Runtime 生命周期专项 7/7、Task Candidate/Approval 专项 3/3、运行中心静态契约专项 2/2、Harness 协议预检专项 4/4，覆盖正常、失败、策略拒绝、跨空间、重复请求、取消、审批过期、防替换、真实重启收敛、检查点、SSE 断点续传、安全重试谱系，以及 Harness 握手、帧上限、脱敏摘要与未知事件失败关闭；运行中心桌面端/390px Playwright Chromium E2E 1/1 通过并保存合成截图。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
+当前验证快照：Node 24.19；2026-09-01 完整回归与生产构建 230/230 通过，隐私扫描通过。Native Runtime 生命周期专项 7/7、Task Candidate/Approval 专项 3/3、运行中心静态契约专项 2/2、Harness 协议预检专项 4/4、G6a 隔离客户端/CLI POC 2/2，覆盖正常、失败、策略拒绝、跨空间、重复请求、取消、审批过期、防替换、真实重启收敛、检查点、SSE 断点续传、安全重试谱系，以及 Harness 握手、帧上限、脱敏摘要、未知事件失败关闭、无凭据客户端传输和缺失服务端失败关闭；运行中心桌面端/390px Playwright Chromium E2E 1/1 通过并保存合成截图。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
 
 ## 六、仓库结构
 
@@ -175,7 +175,8 @@ DDUP/
 ### Runtime 与专项评估
 
 - [DeepSeek Harness 与 Hermes 融合方案](product/Agent运行时融合方案_DeepSeek_Harness与Hermes.md)
-- [DeepSeek Harness 隔离 POC 实施授权（G6a 待确认）](product/Harness隔离POC实施授权_待确认.md)
+- [DeepSeek Harness 隔离 POC 实施授权（G6a 已确认）](product/Harness隔离POC实施授权.md)
+- [DeepSeek Harness 隔离 POC 运行报告（Windows Runtime Stop）](product/Harness隔离POC运行报告.md)
 - [DeepSeek Harness 项目适用性评估](research/DeepSeek_Harness_项目适用性评估.md)
 - [Hermes Agent 项目适用性评估](research/Hermes_Agent_项目适用性评估.md)
 - [个人 AI 助手与知识库调研报告](research/个人AI助手与知识库调研报告.md)
@@ -201,7 +202,7 @@ DDUP/
 1. 受保护 Hybrid SearchProvider 已按 G5b 落地但默认关闭；正式检索继续以 FTS 为稳定基线；
 2. sidecar 重复 passage 编码与无界等待已完成短样本修复；下一步聚焦长文相邻主题错排、英文长尾漏召回和长时稳定，不下载 reranker；
 3. 显式 ContextPackage 已作为独立范围层落地；下一步只能在质量、提示注入、泄漏、回退、背压和资源门全部通过后，才将其连接生成式引用问答；
-4. Native Runtime 生命周期、Task Candidate Tool/Approval、运行中心、SSE、Checkpoint 与安全重试已落地；Harness 零依赖协议预检已完成，下一步需通过 G6a 后才可下载固定官方运行时；Hermes 保持未连接候选。
+4. Native Runtime 生命周期、Task Candidate Tool/Approval、运行中心、SSE、Checkpoint 与安全重试已落地；Harness G6a 供应链与客户端预检已完成，因 Windows 官方服务端发行缺口按 Stop 收口并保持不可运行；Hermes 保持未连接候选。
 
 ## 九、隐私与发布边界
 

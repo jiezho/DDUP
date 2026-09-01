@@ -85,7 +85,7 @@ test('runtime registry exposes only the implemented native adapter as connected 
   assert.equal(native.capabilities.checkpoints, true)
   const harness = items.find((item) => item.runtime_key === 'deepseek-harness-poc')
   assert.equal(harness.connected, false)
-  assert.equal(harness.readiness, 'protocol_preflight_ready')
+  assert.equal(harness.readiness, 'client_preflight_passed_server_missing')
   assert.equal(harness.protocol, 'stdio_jsonrpc')
   assert.equal(harness.capabilities.cancellation, false)
   assert.equal(items.find((item) => item.runtime_key === 'hermes-candidate').connected, false)

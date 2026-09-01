@@ -1,0 +1,19 @@
+{
+  "name": "@ddup/harness-isolated-poc",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Synthetic-only, credential-free DeepSeek Harness protocol POC isolated from Workbench production dependencies.",
+  "type": "module",
+  "scripts": {
+    "audit:supply-chain": "node scripts/supply-chain-audit.mjs",
+    "preflight:cli": "node scripts/official-cli-preflight.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-sdk-client": "0.1.1-rc.2"
+  }
+}
