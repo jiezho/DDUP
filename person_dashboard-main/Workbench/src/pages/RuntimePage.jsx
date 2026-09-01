@@ -225,6 +225,8 @@ export function RuntimePage() {
     [includedProjectIds, workspace.projects],
   );
   const nativeRuntime = workspace.runtimes.find((runtime) => runtime.runtime_key === "native-v1");
+  const harnessRuntime = workspace.runtimes.find((runtime) => runtime.runtime_key === "deepseek-harness-poc");
+  const hermesRuntime = workspace.runtimes.find((runtime) => runtime.runtime_key === "hermes-candidate");
   const pendingCount = workspace.candidates.filter((candidate) => ["pending", "approved"].includes(candidate.status)).length;
 
   const submitRun = async (event) => {
@@ -325,6 +327,11 @@ export function RuntimePage() {
       </section>
 
       <p className="runtime-boundary"><IconShieldCheck />Runtime 只能读取显式上下文篮；记忆和输出只能形成候选，批准与应用由 Workbench 分离控制。</p>
+      <section aria-label="运行时准备状态" className="runtime-readiness">
+        <article><span>当前执行器</span><strong>Native</strong><small>{nativeRuntime?.connected ? "已连接并通过本地验证" : "当前不可用"}</small></article>
+        <article><span>隔离 POC</span><strong>DeepSeek Harness</strong><small>{harnessRuntime?.readiness === "protocol_preflight_ready" ? "协议预检已准备 · 尚未安装" : "尚未连接"}</small></article>
+        <article><span>备选评估</span><strong>Hermes</strong><small>{hermesRuntime?.connected ? "连接状态可用" : "保持候选 · 未接入"}</small></article>
+      </section>
       {notice ? <p aria-live="polite" className="runtime-notice">{notice}</p> : null}
 
       {workspace.status === "error" ? (

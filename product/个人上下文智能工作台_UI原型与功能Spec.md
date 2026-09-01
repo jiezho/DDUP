@@ -544,7 +544,7 @@ stateDiagram-v2
 | Runtime | 原型状态 | 用户可见定位 | 操作 |
 |---|---|---|---|
 | Native Runtime | 生命周期与 Task Candidate 可用 | 确定性本地 Run；无模型回答；仅一条 L1 Tool | 查看能力 |
-| DeepSeek Harness | 隔离 POC | 研究执行器 | 查看 POC 边界 |
+| DeepSeek Harness | 协议预检已准备、官方运行时尚未安装 | 研究执行器候选 | 查看 POC 边界，不提供启动 |
 | Hermes Agent | 候选，未连接 | 移动网关/备选执行器 | 查看评估，不提供启用 |
 
 #### 交互规则
@@ -858,7 +858,7 @@ erDiagram
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
 | Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
-| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE 事件回放、取消、Checkpoint、异常重启收敛、受限安全重试、正式运行中心，以及 Task Candidate L1 与 L2 Approval/apply；其他 Tool、Runtime 私有 resume/steer 与模型回答尚未实现 |
+| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE 事件回放、取消、Checkpoint、异常重启收敛、受限安全重试、正式运行中心，以及 Task Candidate L1 与 L2 Approval/apply；Harness 零依赖协议预检已实现但未安装、不可运行；其他 Tool、Runtime 私有 resume/steer 与模型回答尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |
@@ -891,7 +891,7 @@ erDiagram
 | UI-10 | 移动端 | 900 px 以下隐藏侧栏并显示底栏；主内容不横向溢出 |
 | UI-11 | 视觉 | 主色为天蓝色，保留渐变，正文对比清晰 |
 | UI-12 | 构建 | 生产构建完成，仅允许非阻塞的包体积提示 |
-| UI-13 | AI 运行中心 | 显示 Harness 为隔离 POC、Hermes 为未连接候选，并明确 Workbench 真源和统一 Adapter 边界 |
+| UI-13 | AI 运行中心 | 显示 Harness“协议预检已准备、尚未安装”、Hermes“候选、未接入”，并明确 Native 是当前唯一执行器 |
 
 ### 13.2 MVP 业务验收
 

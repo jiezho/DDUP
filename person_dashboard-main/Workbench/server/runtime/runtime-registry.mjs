@@ -1,10 +1,8 @@
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
+import { harnessPocDescriptor } from './harness-poc-preflight.mjs'
 
 const disconnected = Object.freeze([
-  Object.freeze({
-    runtime_key: 'deepseek-harness-poc', adapter_version: null, runtime_name: 'DeepSeek Harness', runtime_version: null,
-    status: 'poc', protocol: null, capabilities: {}, data_residency: null, supported_profiles: [], connected: false,
-  }),
+  harnessPocDescriptor(),
   Object.freeze({
     runtime_key: 'hermes-candidate', adapter_version: null, runtime_name: 'Hermes Agent', runtime_version: null,
     status: 'candidate', protocol: null, capabilities: {}, data_residency: null, supported_profiles: [], connected: false,

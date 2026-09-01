@@ -1166,6 +1166,13 @@
 .runtime-summary strong { overflow: hidden; color: #082f49; font: 700 17px/1.35 var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
 .runtime-boundary { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 18px; padding: 12px 15px; border: 1px solid #bae6fd; border-radius: 12px; background: #f0f9ff; color: #075985; font-size: 13px; line-height: 1.55; }
 .runtime-boundary svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.runtime-readiness { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.runtime-readiness article { min-width: 0; padding: 16px 18px; border: 1px solid rgba(31, 164, 226, .2); border-radius: 18px; background: rgba(255, 255, 255, .82); box-shadow: 0 14px 34px rgba(65, 113, 139, .07); }
+.runtime-readiness span,
+.runtime-readiness small { display: block; color: var(--muted); }
+.runtime-readiness span { margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.runtime-readiness strong { display: block; margin-bottom: 5px; font-size: 17px; }
+.runtime-readiness small { font-size: 13px; line-height: 1.55; }
 .runtime-notice { margin: 0 0 18px; padding: 11px 14px; border: 1px solid #7dd3fc; border-radius: 11px; background: #f0f9ff; color: #075985; font-size: 12.5px; line-height: 1.55; }
 .runtime-launcher,
 .runtime-run-list,
@@ -1292,6 +1299,7 @@
 
 @media (max-width: 760px) {
   .runtime-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .runtime-readiness { grid-template-columns: 1fr; }
   .runtime-summary > div:nth-child(2) { border-right: 0; }
   .runtime-summary > div:nth-child(-n+2) { border-bottom: 1px solid #d8effb; }
   .runtime-launcher > header,

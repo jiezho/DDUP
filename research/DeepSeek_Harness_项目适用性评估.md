@@ -356,3 +356,12 @@ Agent 汇总讨论、证据和未决问题，输出选项、风险和推荐，�
 - [官方外部进程 SDK 说明](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/sdk/README.md)
 - [官方运行时自修改扩展说明](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/extensions/README.md)
 - [Cordis 设计论文（预印本）](https://github.com/cordiverse/paper)
+
+## 12. 2026-09-01 复核补充
+
+- npm 当前 `@deepseek-ai/dsh` 为 `0.1.1-rc.2`，此前记录的 `0.1.0-rc.7` 仅代表 2026-08-18 的评估快照；
+- 官方仍明确标记 Developer Preview 和兼容性破坏风险；
+- 当前 SDK 使用换行分隔 stdio JSON-RPC，线协议为 `0.0.1`，且没有协议版本协商、单会话 cancel/close 或服务端审批请求；
+- Workbench 已完成零依赖协议预检，但未下载/安装官方运行时；后续外部变更受 G6a 文档约束。
+
+补充来源：[官方首页](https://deepseek.com/harness/en/)、[SDK Protocol](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/sdk/protocol/README.md)、[npm 包](https://www.npmjs.com/package/@deepseek-ai/dsh)。

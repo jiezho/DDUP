@@ -295,11 +295,11 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ### 9.1 Run
 
-> 2026-09-01 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态、JSON/SSE 回放、Checkpoint、异常重启安全收敛和受限重试谱系；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。正式 AI 运行中心已显示真实 Run、事件、Checkpoint 和 Task Candidate 审批/应用；steer、Runtime 私有 resume 和其他候选类型仍未实现。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
+> 2026-09-01 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态、JSON/SSE 回放、Checkpoint、异常重启安全收敛和受限重试谱系；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。正式 AI 运行中心已显示真实 Run、事件、Checkpoint 和 Task Candidate 审批/应用；steer、Runtime 私有 resume 和其他候选类型仍未实现。DeepSeek Harness 已公开零依赖协议预检元数据但保持 `connected=false`，Hermes 仍为未连接候选。
 
 | Method | Path | 说明 |
 |---|---|---|
-| GET | `/api/v1/runtimes` | 已注册 Runtime 能力和 `available/poc/candidate/disabled` |
+| GET | `/api/v1/runtimes` | 已注册 Runtime 能力和 `available/poc/candidate/disabled`；Harness 只返回已评审协议预检元数据，不代表安装或健康 |
 | GET | `/api/v1/runtimes/{runtimeKey}/health` | 仅检查已连接适配器；未连接候选返回 `RUNTIME_UNAVAILABLE` |
 | GET | `/api/v1/runs` | 按授权空间/状态列出安全 Run 摘要（已实现） |
 | POST | `/api/v1/runs` | 创建 Run；Profile 明确绑定一个主 Runtime |

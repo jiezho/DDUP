@@ -83,7 +83,11 @@ test('runtime registry exposes only the implemented native adapter as connected 
   assert.equal(native.capabilities.cancellation, true)
   assert.equal(native.capabilities.tool_calls, true)
   assert.equal(native.capabilities.checkpoints, true)
-  assert.equal(items.find((item) => item.runtime_key === 'deepseek-harness-poc').connected, false)
+  const harness = items.find((item) => item.runtime_key === 'deepseek-harness-poc')
+  assert.equal(harness.connected, false)
+  assert.equal(harness.readiness, 'protocol_preflight_ready')
+  assert.equal(harness.protocol, 'stdio_jsonrpc')
+  assert.equal(harness.capabilities.cancellation, false)
   assert.equal(items.find((item) => item.runtime_key === 'hermes-candidate').connected, false)
 
   const health = await f.app.inject({ method: 'GET', url: '/api/v1/runtimes/native-v1/health', headers: headers({ cookie: f.cookie }) })

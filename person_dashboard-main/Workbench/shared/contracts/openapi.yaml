@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.10.0
+  version: 1.11.0
   description: >-
     Local-loopback MVP contract. Foundation session/security and the durable
     project, milestone, task, manual discussion-to-decision, explicit text/link
@@ -12,7 +12,9 @@ info:
     tool creates a non-authoritative task candidate. Applying that candidate requires a separate
     local L2 approval with a scope digest and creates no external effect. Run history now
     includes bounded JSON replay, recoverable SSE, durable Workbench checkpoints, safe
-    restart failure convergence, and retry lineage for eligible zero-tool runs.
+    restart failure convergence, and retry lineage for eligible zero-tool runs. Harness remains
+    disconnected; its registry descriptor exposes only a zero-dependency stdio JSON-RPC protocol
+    preflight with no health or Run availability.
     A default-off protected hybrid-search path may
     call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
     falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
@@ -718,7 +720,7 @@ paths:
   /api/v1/runtimes:
     get:
       operationId: listRuntimes
-      description: Lists the implemented Native adapter and disconnected Harness/Hermes candidates without probing them.
+      description: Lists the implemented Native adapter, disconnected Harness protocol-preflight metadata, and the disconnected Hermes candidate without probing either external runtime.
       security: [{ localSession: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }

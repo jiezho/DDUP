@@ -343,6 +343,8 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 - 插件白名单、网络默认关闭、协议录制回归；Developer Preview 变更触发兼容测试。
 - 只有 G6a Go 且权限/审计/恢复证据通过后才能改变状态。
 
+2026-09-01 已完成零依赖协议预检：Registry 仍为 `connected=false/poc_not_connected`，但声明已评审的 `stdio_jsonrpc` 边界与 `harness-readonly-research-poc-v1` Profile。预检只接受官方服务名 `deepseek-harness-sdk-runtime` 和线协议 `0.0.1`，单帧上限 64 KiB；`session.event/session.status` 只转为会话摘要、事件类型、帧大小和 SHA-256 digest，不保存原始消息、路径或工具参数。官方当前没有协议协商、单会话 cancel/close 和服务端审批请求，因此 `cancellation/approvals/resume/tool_calls` 均保持 false。官方包下载、安装、进程握手和真实 Run 仍等待 G6a，详见 `Harness隔离POC实施授权_待确认.md`。
+
 ### 11.3 Hermes
 
 - 状态：`candidate`，不作为 MVP 依赖。
