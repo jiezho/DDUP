@@ -88,7 +88,12 @@ test('runtime registry exposes only the implemented native adapter as connected 
   assert.equal(harness.readiness, 'client_preflight_passed_server_missing')
   assert.equal(harness.protocol, 'stdio_jsonrpc')
   assert.equal(harness.capabilities.cancellation, false)
-  assert.equal(items.find((item) => item.runtime_key === 'hermes-candidate').connected, false)
+  const hermes = items.find((item) => item.runtime_key === 'hermes-candidate')
+  assert.equal(hermes.connected, false)
+  assert.equal(hermes.readiness, 'api_contract_reviewed_not_installed')
+  assert.equal(hermes.protocol, 'http_sse')
+  assert.equal(hermes.capabilities.approvals, true)
+  assert.ok(hermes.limitation_codes.includes('G6B_NOT_APPROVED'))
 
   const health = await f.app.inject({ method: 'GET', url: '/api/v1/runtimes/native-v1/health', headers: headers({ cookie: f.cookie }) })
   assert.equal(health.statusCode, 200, health.body)

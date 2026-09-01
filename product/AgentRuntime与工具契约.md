@@ -352,6 +352,8 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 - 消息平台身份映射、附件、审批、重复投递和数据驻留需独立 POC。
 - 只有形成移动入口或专项执行显著收益并通过 G6b，才进入可选能力。
 
+2026-09-01 已完成不安装软件的 API 契约预检：Registry 更新为 `readiness=api_contract_reviewed_not_installed`，仍保持 `status=candidate/connected=false`。`hermes-api-contract-poc-v1` 只识别官方 `hermes.api_server.capabilities`、强制 Bearer 鉴权、`server_agent` 与服务端工具执行语义，以及精确的 Runs/SSE/approval/steer/stop 端点；SSE 单帧上限 64 KiB，消息、命令、路径、run/session/approval 标识均不保存原文，只形成类型、布尔状态、大小和 SHA-256 摘要，未知事件与无 `deny` 的审批事件失败关闭。descriptor 中的 streaming/tool/approval/steer/cancel/child/usage 仅表示“官方契约已声明且预检可识别”，不表示服务已安装或可调用。由于 Hermes API Server 默认在宿主执行完整工具集，实际下载、启动、消息平台或模型接入均受 `Hermes隔离POC实施授权_待确认.md` 的 G6b 控制。
+
 ## 12. 协议与供应链安全
 
 - Runtime 进程以最低 OS 权限运行；stdio 消息有最大帧、超时、Schema 和序列号。
@@ -395,6 +397,8 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 | RT-12 | 跨空间读取 | 标题、计数、片段、错误均不泄露 |
 | RT-13 | 日志/事件 | 无密钥、正文默认副本、绝对路径和内部异常 |
 | RT-14 | Harness/Hermes 未连接 | UI/API 正确标为 poc/candidate，不伪造健康 |
+| RT-15 | Hermes 能力协商 | 无 Bearer、端点变化、服务端执行语义变化均判定不兼容 |
+| RT-16 | Hermes SSE | 超限、未知、多行伪装、无拒绝选项审批失败关闭；正文/命令/标识不落事件 |
 
 ## 15. 实现顺序
 

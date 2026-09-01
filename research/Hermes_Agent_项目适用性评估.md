@@ -1,9 +1,11 @@
 # Hermes Agent 对个人上下文智能工作台的适用性评估
 
-> 评估日期：2026-08-19  
+> 评估日期：2026-08-19；官方接口复核：2026-09-01
 > 评估对象：[NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)  
 > 评估类型：架构与产品适配性预研，未安装、未运行、未接入真实数据  
 > 结论：**可融合，但只建议作为可选运行时或消息网关进行隔离 POC；不建议与 DeepSeek Harness 硬嵌套。**
+
+> 当前证据状态：已实现零依赖 API 契约/SSE 预检，但未安装或运行 Hermes。官方当前 API Server 明确采用 `server_agent`，工具在 Hermes 服务端宿主执行；默认可用完整终端、文件、网络、记忆和 skills，因此不能把“协议可映射”误写为“已安全接入”。Registry 仍为 `connected=false`，后续由 G6b 决定是否进入隔离安装与 synthetic 消息网关 POC。
 
 ## 1. 项目是什么
 
@@ -19,6 +21,8 @@ Hermes Agent 是 Nous Research 开源的完整自主智能体，不只是 Hermes
 | Agent 核心 | `AIAgent`，统一处理提示、模型、工具、压缩、重试和持久化 |
 | 接入协议 | ACP stdio JSON-RPC、TUI Gateway JSON-RPC/WebSocket、HTTP + SSE |
 | API 能力 | Run 创建、状态、事件、审批、steer、stop、能力与健康检查 |
+| API 安全语义 | `127.0.0.1:8642` 为默认监听；应设置 `API_SERVER_KEY` Bearer 鉴权；浏览器 CORS 需显式启用 |
+| 工具执行位置 | API Server 创建服务端 Agent，工具默认在 API Server 宿主执行，不是 Workbench 侧分离执行 |
 | 消息入口 | 飞书/Lark、企业微信、微信、钉钉、Slack、Teams、邮件等 20+ 平台 |
 | 数据 | SQLite + FTS5 会话存储；内置 MEMORY/USER 和记忆插件 |
 | 执行环境 | 本地、Docker、SSH、云沙箱等后端 |
@@ -111,6 +115,8 @@ Workbench Runtime Gateway
 | 日志保存正文 | 权限和保留期风险 | 脱敏、分空间存储、短期保留、可删除、审计日志不入知识库 |
 
 ## 5. 建议 POC
+
+2026-09-01 的协议复核已经证明 HTTP+SSE 可被 Workbench Adapter 严格识别，但也发现“服务端完整工具面”是首要风险。因此顺序调整为：先完成 G6b 供应链/隔离授权和 synthetic 网关，再决定是否做完整 Runtime 对照；真实飞书应用与真实模型凭据不属于 G6b。
 
 ### POC-A：飞书移动闭环
 

@@ -1,12 +1,10 @@
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
 import { harnessPocDescriptor } from './harness-poc-preflight.mjs'
+import { hermesPocDescriptor } from './hermes-poc-preflight.mjs'
 
 const disconnected = Object.freeze([
   harnessPocDescriptor(),
-  Object.freeze({
-    runtime_key: 'hermes-candidate', adapter_version: null, runtime_name: 'Hermes Agent', runtime_version: null,
-    status: 'candidate', protocol: null, capabilities: {}, data_residency: null, supported_profiles: [], connected: false,
-  }),
+  hermesPocDescriptor(),
 ])
 
 export function createRuntimeRegistry({ nativeRuntime } = {}) {

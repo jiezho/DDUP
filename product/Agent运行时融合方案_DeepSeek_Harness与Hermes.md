@@ -1,9 +1,11 @@
 # 个人上下文智能工作台：Agent 运行时融合方案
 
 > 版本：V1.0  
-> 日期：2026-08-19  
+> 日期：2026-08-19；协议状态复核：2026-09-01
 > 评估对象：DeepSeek Harness、Nous Research Hermes Agent  
 > 决策状态：Harness 进入隔离 POC；Hermes 进入可选运行时/移动网关对照评估，不做硬融合
+
+> 实现状态更新：Harness G6a 已按 Windows 服务端发行缺口 Stop；Hermes 已完成零依赖 HTTP+SSE 契约预检但仍未安装、未连接。官方 API Server 的工具在服务端宿主执行，后续隔离安装与 synthetic 消息网关实验必须先通过 `Hermes隔离POC实施授权_待确认.md`（G6b）。
 
 ## 0. 结论先行
 

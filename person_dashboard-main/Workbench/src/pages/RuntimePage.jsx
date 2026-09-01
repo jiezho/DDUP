@@ -330,7 +330,7 @@ export function RuntimePage() {
       <section aria-label="运行时准备状态" className="runtime-readiness">
         <article><span>当前执行器</span><strong>Native</strong><small>{nativeRuntime?.connected ? "已连接并通过本地验证" : "当前不可用"}</small></article>
         <article><span>隔离 POC</span><strong>DeepSeek Harness</strong><small>{harnessRuntime?.readiness === "client_preflight_passed_server_missing" ? "客户端预检通过 · 服务端未安装" : "尚未连接"}</small></article>
-        <article><span>备选评估</span><strong>Hermes</strong><small>{hermesRuntime?.connected ? "连接状态可用" : "保持候选 · 未接入"}</small></article>
+        <article><span>备选评估</span><strong>Hermes</strong><small>{hermesRuntime?.connected ? "连接状态可用" : hermesRuntime?.readiness === "api_contract_reviewed_not_installed" ? "API 契约已复核 · 尚未安装" : "保持候选 · 未接入"}</small></article>
       </section>
       {notice ? <p aria-live="polite" className="runtime-notice">{notice}</p> : null}
 
