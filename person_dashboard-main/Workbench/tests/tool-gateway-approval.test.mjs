@@ -133,8 +133,9 @@ test('L1 candidate stays non-authoritative until an L2 approval is resolved and 
     method: 'GET', url: `/api/v1/runs/${run.id}/events?space_id=${f.spaceId}`, headers: headers({ cookie: f.cookie }),
   })
   assert.deepEqual(events.json().data.items.map((event) => event.type), [
-    'run.queued', 'run.started', 'context.scope.resolved', 'tool.requested',
-    'candidate.created', 'tool.completed', 'run.succeeded',
+    'run.queued', 'run.started', 'checkpoint.created', 'context.scope.resolved',
+    'tool.requested', 'candidate.created', 'tool.completed', 'checkpoint.created',
+    'run.succeeded', 'checkpoint.created',
   ])
   assert.doesNotMatch(events.body, /复核合成研究证据|候选、审批和应用边界/)
   const candidateId = events.json().data.items.find((event) => event.type === 'candidate.created').payload.candidate_id

@@ -334,7 +334,7 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 - 状态可为 `available` 仅限实际实现且测试通过的能力。
 - 不用模拟成功掩盖未实现模型/持久化；合成响应明确标识。
 
-2026-08-28 已完成前两阶段：`native-v1` 验证确定性 queued/running/succeeded/failed/cancelled 生命周期、ContextPackage 摘要、顺序 JSON 事件回放、幂等、AI policy、跨空间拒绝、取消和重启读取；随后开放唯一 Runtime 可调用的 `candidate.task.create.v1` L1 工具。该工具只消费用户结构化输入并创建非权威 Candidate，不调用模型；`candidate.apply.v1` 是 Runtime 不可调用的 L2 工具，必须经本地 Approval Bridge 明确批准、scope digest 复核后应用。descriptor 当前 `tool_calls=true` 仅代表这一条 L1 allowlist，`streaming/approvals/steering/resume/checkpoints/artifacts/usage=false`；因此“available”仍不代表 RAG、回答或通用工具能力。
+2026-09-01 已完成前三阶段：`native-v1` 验证确定性 queued/running/succeeded/failed/cancelled 生命周期、ContextPackage 摘要、顺序 JSON/SSE 事件回放、幂等、AI policy、跨空间拒绝、取消、持久化 Checkpoint、异常重启安全收敛和受限重试谱系；随后开放唯一 Runtime 可调用的 `candidate.task.create.v1` L1 工具。该工具只消费用户结构化输入并创建非权威 Candidate，不调用模型；`candidate.apply.v1` 是 Runtime 不可调用的 L2 工具，必须经本地 Approval Bridge 明确批准、scope digest 复核后应用。descriptor 当前 `tool_calls=true/checkpoints=true` 分别只代表这一条 L1 allowlist 和 Workbench 可验证检查点，`streaming/approvals/steering/resume/artifacts/usage=false`；SSE 属于 Workbench RunEvent 投影而非模型流式输出，因此“available”仍不代表 RAG、回答或通用工具能力。
 
 ### 11.2 DeepSeek Harness
 

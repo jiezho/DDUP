@@ -14,6 +14,7 @@ import {
   IconInbox,
   IconMenu2,
   IconRadar2,
+  IconRobot,
   IconSearch,
   IconSettings,
   IconSocial,
@@ -34,6 +35,9 @@ const primaryNavigation = [
     : []),
   ...(localWorkbench
     ? [{ to: "/context", label: "上下文知识库", icon: IconBrain }]
+    : []),
+  ...(localWorkbench
+    ? [{ to: "/runtime", label: "AI 运行中心", icon: IconRobot }]
     : []),
   { to: "/graph", label: "知识星图", icon: IconTopologyStar3 },
   { to: "/wiki", label: "Wiki 层", icon: IconLibrary },

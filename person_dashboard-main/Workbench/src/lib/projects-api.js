@@ -277,3 +277,83 @@ export async function searchCurrentContext(query, options = {}) {
   if (!space) throw new Error("当前安装尚未建立可用空间。");
   return searchContext({ spaceId: space.id, query, ...options });
 }
+
+export async function loadRuntimeWorkspace() {
+  const workspace = await loadProjectWorkspace();
+  const spaceId = workspace.space.id;
+  const query = new URLSearchParams({ space_id: spaceId, limit: "100" });
+  const packageQuery = new URLSearchParams({ space_id: spaceId, status: "active", limit: "50" });
+  const [runtimes, runs, candidates, approvals, contextPackages] = await Promise.all([
+    call("/api/v1/runtimes"),
+    call(`/api/v1/runs?${query.toString()}`),
+    call(`/api/v1/candidates?${query.toString()}`),
+    call(`/api/v1/approvals?${query.toString()}`),
+    call(`/api/v1/context/packages?${packageQuery.toString()}`),
+  ]);
+  return {
+    ...workspace,
+    runtimes: runtimes.data.items,
+    runs: runs.data.items,
+    candidates: candidates.data.items,
+    approvals: approvals.data.items,
+    contextPackages: contextPackages.data.items,
+  };
+}
+
+export async function loadRuntimePackage(packageId, spaceId) {
+  return loadContextPackage(packageId, spaceId);
+}
+
+export async function loadRunDetails(runId, spaceId) {
+  const encoded = encodeURIComponent(runId);
+  const query = new URLSearchParams({ space_id: spaceId });
+  const [run, events, checkpoints] = await Promise.all([
+    call(`/api/v1/runs/${encoded}?${query.toString()}`),
+    call(`/api/v1/runs/${encoded}/events?${query.toString()}`),
+    call(`/api/v1/runs/${encoded}/checkpoints?${query.toString()}`),
+  ]);
+  return { run: run.data, events: events.data.items, checkpoints: checkpoints.data.items };
+}
+
+export function createAgentRun(input) {
+  return write("/api/v1/runs", { body: input });
+}
+
+export function cancelAgentRun(runId, spaceId, version) {
+  return write(`/api/v1/runs/${encodeURIComponent(runId)}/cancel`, {
+    body: { space_id: spaceId, reason: "user_requested" },
+    version,
+  });
+}
+
+export function retryAgentRun(runId, spaceId, version) {
+  return write(`/api/v1/runs/${encodeURIComponent(runId)}/retry`, {
+    body: { space_id: spaceId },
+    version,
+  });
+}
+
+export function requestTaskCandidateApproval(candidateId, spaceId) {
+  return write(`/api/v1/candidates/${encodeURIComponent(candidateId)}/approvals`, {
+    body: { space_id: spaceId, reason_code: "apply_task_candidate" },
+  });
+}
+
+export function resolveTaskCandidateApproval(approvalId, spaceId, version, decision) {
+  return write(`/api/v1/approvals/${encodeURIComponent(approvalId)}/resolve`, {
+    body: { space_id: spaceId, decision },
+    version,
+  });
+}
+
+export function applyTaskCandidate(candidateId, approvalId, spaceId, version) {
+  return write(`/api/v1/candidates/${encodeURIComponent(candidateId)}/apply`, {
+    body: { space_id: spaceId, approval_id: approvalId },
+    version,
+  });
+}
+
+export function runtimeEventStreamUrl(runId, spaceId, afterSeq = 0) {
+  const query = new URLSearchParams({ space_id: spaceId, after_seq: String(afterSeq) });
+  return `/api/v1/runs/${encodeURIComponent(runId)}/events/stream?${query.toString()}`;
+}

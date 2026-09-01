@@ -15,7 +15,7 @@ Workbench 提供可复用的读取、索引和可视化能力，不包含任何�
 - 社媒洞察的本地只读展示
 - 灵感库与内容中心
 - 抖音数据面板及完整数据模板
-- 本地 API 中的显式 ContextPackage、`native-v1` 确定性 Run 生命周期，以及 Task Candidate L1/L2 审批应用首版（无模型回答、无外部动作）
+- 本地 API 与正式 UI 中的显式 ContextPackage、`native-v1` 确定性 Run 生命周期、Task Candidate L1/L2 审批应用、SSE、Checkpoint、重启安全收敛和受限重试谱系（无模型回答、无外部动作）
 
 暂不公开展示：
 

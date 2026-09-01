@@ -123,7 +123,7 @@ test('migrations initialize one durable owner and personal space without real id
 
   const database = inspectDatabase(fixture.databasePath)
   try {
-    assert.equal(database.prepare('SELECT count(*) AS count FROM schema_migrations').get().count, 9)
+    assert.equal(database.prepare('SELECT count(*) AS count FROM schema_migrations').get().count, 10)
     assert.equal(database.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type = 'table' AND name IN ('milestones', 'tasks')").get().count, 2)
     assert.equal(database.prepare('SELECT count(*) AS count FROM principals').get().count, 1)
     assert.equal(database.prepare('SELECT count(*) AS count FROM spaces').get().count, 1)

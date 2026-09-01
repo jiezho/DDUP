@@ -46,7 +46,17 @@ export const RunEventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(100),
 }).strict()
 
+export const RunCheckpointsQuerySchema = z.object({
+  space_id: UuidV7Schema,
+  after_seq: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+}).strict()
+
 export const CancelRunSchema = z.object({
   space_id: UuidV7Schema,
   reason: z.enum(['user_requested', 'budget_stop', 'superseded']).default('user_requested'),
+}).strict()
+
+export const RetryRunSchema = z.object({
+  space_id: UuidV7Schema,
 }).strict()

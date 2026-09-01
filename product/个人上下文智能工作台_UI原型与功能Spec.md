@@ -858,7 +858,7 @@ erDiagram
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
 | Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
-| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON 事件回放、取消、Task Candidate L1 与 L2 Approval/apply；正式运行中心/待确认 UI、SSE、Checkpoint、其他 Tool 与模型回答尚未实现 |
+| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE 事件回放、取消、Checkpoint、异常重启收敛、受限安全重试、正式运行中心，以及 Task Candidate L1 与 L2 Approval/apply；其他 Tool、Runtime 私有 resume/steer 与模型回答尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |

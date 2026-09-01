@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.9.0
+  version: 1.10.0
   description: >-
     Local-loopback MVP contract. Foundation session/security and the durable
     project, milestone, task, manual discussion-to-decision, explicit text/link
@@ -10,7 +10,9 @@ info:
     local Native Runtime lifecycle are implemented. The Native Runtime persists only
     scope digests and safe replay events; it generates no answer. Its only Runtime-callable
     tool creates a non-authoritative task candidate. Applying that candidate requires a separate
-    local L2 approval with a scope digest and creates no external effect.
+    local L2 approval with a scope digest and creates no external effect. Run history now
+    includes bounded JSON replay, recoverable SSE, durable Workbench checkpoints, safe
+    restart failure convergence, and retry lineage for eligible zero-tool runs.
     A default-off protected hybrid-search path may
     call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
     falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
@@ -744,7 +746,7 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
     post:
       operationId: createAgentRun
-      description: Starts the deterministic local Native lifecycle against one active, version-matched ContextPackage. No answer or tool call is produced in this slice.
+      description: Starts the deterministic local Native lifecycle against one active, version-matched ContextPackage. It produces no model answer; an explicitly supplied Task Candidate may use the single registered L1 candidate tool.
       security: [{ localSession: [] }]
       parameters:
         - $ref: "#/components/parameters/CsrfToken"
@@ -772,13 +774,45 @@ paths:
   /api/v1/runs/{runId}/events:
     get:
       operationId: replayAgentRunEvents
-      description: Returns a bounded JSON replay page after a sequence number. SSE streaming is not implemented in this slice.
+      description: Returns a bounded JSON replay page after a sequence number.
       security: [{ localSession: [] }]
       parameters:
         - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
         - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
         - { in: query, name: after_seq, schema: { type: integer, minimum: 0, default: 0 } }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}/events/stream:
+    get:
+      operationId: streamAgentRunEvents
+      description: Streams authorized, redacted Run events as SSE and resumes after Last-Event-ID; disconnecting never cancels the Run.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: after_seq, schema: { type: integer, minimum: 0, default: 0 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+        - { in: header, name: Last-Event-ID, required: false, schema: { type: string, pattern: "^[0-9]+$" } }
+      responses:
+        "200":
+          description: Recoverable event stream.
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}/checkpoints:
+    get:
+      operationId: listAgentRunCheckpoints
+      description: Lists Workbench-verifiable checkpoints without prompt text, secrets, or Runtime-private state bodies.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: after_seq, schema: { type: integer, minimum: 0, default: 0 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "404": { $ref: "#/components/responses/Error" }
@@ -799,6 +833,25 @@ paths:
             schema: { $ref: "#/components/schemas/AgentRunCancel" }
       responses:
         "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/runs/{runId}/retry:
+    post:
+      operationId: retryAgentRun
+      description: Creates one linked Run only when the failed source is explicitly retryable, used no tools, and its ContextPackage version remains active.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentRunRetry" }
+      responses:
+        "202": { $ref: "#/components/responses/Success" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
   /api/v1/tools:
@@ -1008,6 +1061,12 @@ components:
       properties:
         space_id: { type: string, format: uuid }
         reason: { type: string, enum: [user_requested, budget_stop, superseded], default: user_requested }
+    AgentRunRetry:
+      type: object
+      additionalProperties: false
+      required: [space_id]
+      properties:
+        space_id: { type: string, format: uuid }
     CandidateApprovalRequest:
       type: object
       additionalProperties: false

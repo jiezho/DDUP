@@ -56,7 +56,7 @@ async function fixture(t, { mode = 'complete', token = `synthetic-runtime-${cryp
       headers: headers({ 'content-type': 'application/json', origin, 'x-workbench-bootstrap': token }), payload: {},
     })
     assert.equal(reboot.statusCode, 200, reboot.body)
-    return { app: reopened, cookie: reboot.headers['set-cookie'].split(';', 1)[0] }
+    return { app: reopened, cookie: reboot.headers['set-cookie'].split(';', 1)[0], csrf: reboot.json().data.csrf_token }
   }
   return { app, cookie, csrf, databasePath, root, spaceId, writeHeaders, restart, contextPackage: contextPackageResponse.json().data }
 }
@@ -82,6 +82,7 @@ test('runtime registry exposes only the implemented native adapter as connected 
   assert.equal(native.connected, true)
   assert.equal(native.capabilities.cancellation, true)
   assert.equal(native.capabilities.tool_calls, true)
+  assert.equal(native.capabilities.checkpoints, true)
   assert.equal(items.find((item) => item.runtime_key === 'deepseek-harness-poc').connected, false)
   assert.equal(items.find((item) => item.runtime_key === 'hermes-candidate').connected, false)
 
@@ -117,9 +118,9 @@ test('native deterministic run persists ordered replayable events without answer
     method: 'GET', url: `/api/v1/runs/${run.id}/events?space_id=${f.spaceId}&after_seq=0`, headers: headers({ cookie: f.cookie }),
   })
   assert.equal(events.statusCode, 200, events.body)
-  assert.deepEqual(events.json().data.items.map((item) => item.seq), [1, 2, 3, 4])
-  assert.deepEqual(events.json().data.items.map((item) => item.type), ['run.queued', 'run.started', 'context.scope.resolved', 'run.succeeded'])
-  assert.equal(events.json().data.items[2].payload.generated_answer, false)
+  assert.deepEqual(events.json().data.items.map((item) => item.seq), [1, 2, 3, 4, 5, 6])
+  assert.deepEqual(events.json().data.items.map((item) => item.type), ['run.queued', 'run.started', 'checkpoint.created', 'context.scope.resolved', 'run.succeeded', 'checkpoint.created'])
+  assert.equal(events.json().data.items[3].payload.generated_answer, false)
   assert.doesNotMatch(events.body, /只验证确定性运行生命周期|验证合成运行的状态|quote|body_text/)
 
   const replay = await f.app.inject({ method: 'POST', url: '/api/v1/runs', headers: f.writeHeaders(key), payload: runPayload(f) })
@@ -130,7 +131,8 @@ test('native deterministic run persists ordered replayable events without answer
   const database = new DatabaseSync(f.databasePath)
   try {
     assert.equal(database.prepare('SELECT count(*) AS count FROM agent_runs').get().count, 1)
-    assert.equal(database.prepare('SELECT count(*) AS count FROM run_events').get().count, 4)
+    assert.equal(database.prepare('SELECT count(*) AS count FROM run_events').get().count, 6)
+    assert.equal(database.prepare('SELECT count(*) AS count FROM run_checkpoints').get().count, 2)
     assert.equal(database.prepare("SELECT count(*) AS count FROM audit_events WHERE action = 'agent_run.start'").get().count, 1)
     assert.equal(database.prepare("SELECT count(*) AS count FROM outbox_events WHERE aggregate_type = 'agent_run'").get().count, 2)
     assert.doesNotMatch(database.prepare("SELECT group_concat(payload_json, '') AS payload FROM run_events").get().payload, /验证合成运行的状态|只验证确定性/)
@@ -210,7 +212,7 @@ test('held native run can be cancelled once with optimistic versioning and repla
   const events = await f.app.inject({
     method: 'GET', url: `/api/v1/runs/${run.id}/events?space_id=${f.spaceId}&after_seq=1`, headers: headers({ cookie: f.cookie }),
   })
-  assert.deepEqual(events.json().data.items.map((item) => item.type), ['run.started', 'run.cancelled'])
+  assert.deepEqual(events.json().data.items.map((item) => item.type), ['run.started', 'checkpoint.created', 'run.cancelled', 'checkpoint.created'])
 })
 
 test('native runtime failures persist a safe terminal event and remain readable after restart', async (t) => {
@@ -224,8 +226,8 @@ test('native runtime failures persist a safe terminal event and remain readable 
   const events = await f.app.inject({
     method: 'GET', url: `/api/v1/runs/${run.id}/events?space_id=${f.spaceId}`, headers: headers({ cookie: f.cookie }),
   })
-  assert.equal(events.json().data.items.at(-1).type, 'run.failed')
-  assert.equal(events.json().data.items.at(-1).payload.error_code, 'RUNTIME_PROTOCOL_ERROR')
+  assert.equal(events.json().data.items.at(-2).type, 'run.failed')
+  assert.equal(events.json().data.items.at(-2).payload.error_code, 'RUNTIME_PROTOCOL_ERROR')
 
   const restarted = await f.restart('complete')
   const recovered = await restarted.app.inject({
@@ -237,5 +239,87 @@ test('native runtime failures persist a safe terminal event and remain readable 
   const replayedEvents = await restarted.app.inject({
     method: 'GET', url: `/api/v1/runs/${run.id}/events?space_id=${f.spaceId}`, headers: headers({ cookie: restarted.cookie }),
   })
-  assert.deepEqual(replayedEvents.json().data.items.map((item) => item.type), ['run.queued', 'run.started', 'run.failed'])
+  assert.deepEqual(replayedEvents.json().data.items.map((item) => item.type), ['run.queued', 'run.started', 'checkpoint.created', 'run.failed', 'checkpoint.created'])
+})
+
+test('checkpoint replay and terminal SSE resume expose bounded safe events', async (t) => {
+  const f = await fixture(t)
+  const started = await f.app.inject({
+    method: 'POST', url: '/api/v1/runs', headers: f.writeHeaders('native-checkpoint-stream-00001'), payload: runPayload(f),
+  })
+  const run = started.json().data
+
+  const checkpoints = await f.app.inject({
+    method: 'GET', url: `/api/v1/runs/${run.id}/checkpoints?space_id=${f.spaceId}`, headers: headers({ cookie: f.cookie }),
+  })
+  assert.equal(checkpoints.statusCode, 200, checkpoints.body)
+  assert.deepEqual(checkpoints.json().data.items.map((item) => item.run_status), ['running', 'succeeded'])
+  assert.deepEqual(checkpoints.json().data.items.map((item) => item.event_seq), [2, 5])
+  assert.ok(checkpoints.json().data.items.every((item) => item.context_digest === run.context_digest))
+  assert.doesNotMatch(checkpoints.body, /验证合成运行的状态|只验证确定性|cookie|secret/i)
+
+  const stream = await f.app.inject({
+    method: 'GET',
+    url: `/api/v1/runs/${run.id}/events/stream?space_id=${f.spaceId}&after_seq=0`,
+    headers: headers({ cookie: f.cookie, accept: 'text/event-stream', 'last-event-id': '4' }),
+  })
+  assert.equal(stream.statusCode, 200, stream.body)
+  assert.match(stream.headers['content-type'], /^text\/event-stream/)
+  assert.doesNotMatch(stream.body, /id: [1-4]\n/)
+  assert.match(stream.body, /id: 5\nevent: run\.succeeded/)
+  assert.match(stream.body, /id: 6\nevent: checkpoint\.created/)
+  assert.doesNotMatch(stream.body, /验证合成运行的状态|只验证确定性|cookie|secret/i)
+
+  const invalidCursor = await f.app.inject({
+    method: 'GET',
+    url: `/api/v1/runs/${run.id}/events/stream?space_id=${f.spaceId}`,
+    headers: headers({ cookie: f.cookie, 'last-event-id': 'not-a-seq' }),
+  })
+  assert.equal(invalidCursor.statusCode, 400)
+  assert.equal(invalidCursor.json().errors[0].code, 'INVALID_CURSOR')
+})
+
+test('interrupted run becomes a retryable safe failure and creates one linked retry', async (t) => {
+  const f = await fixture(t, { mode: 'hold' })
+  const started = await f.app.inject({
+    method: 'POST', url: '/api/v1/runs', headers: f.writeHeaders('native-recovery-start-0000001'), payload: runPayload(f),
+  })
+  const source = started.json().data
+  assert.equal(source.status, 'running')
+
+  const restarted = await f.restart('complete')
+  const recovered = await restarted.app.inject({
+    method: 'GET', url: `/api/v1/runs/${source.id}?space_id=${f.spaceId}`, headers: headers({ cookie: restarted.cookie }),
+  })
+  assert.equal(recovered.statusCode, 200, recovered.body)
+  assert.equal(recovered.json().data.status, 'failed')
+  assert.equal(recovered.json().data.error_code, 'RUNTIME_RECOVERY_REQUIRED')
+  assert.equal(recovered.json().data.retryable, true)
+
+  const retryHeaders = headers({
+    'content-type': 'application/json', origin, cookie: restarted.cookie,
+    'x-csrf-token': restarted.csrf, 'idempotency-key': 'native-recovery-retry-000001',
+    'if-match': `"v${recovered.json().data.version}"`,
+  })
+  const retried = await restarted.app.inject({
+    method: 'POST', url: `/api/v1/runs/${source.id}/retry`, headers: retryHeaders, payload: { space_id: f.spaceId },
+  })
+  assert.equal(retried.statusCode, 202, retried.body)
+  assert.equal(retried.json().data.status, 'succeeded')
+  assert.equal(retried.json().data.retry_of_run_id, source.id)
+  const replay = await restarted.app.inject({
+    method: 'POST', url: `/api/v1/runs/${source.id}/retry`, headers: retryHeaders, payload: { space_id: f.spaceId },
+  })
+  assert.equal(replay.statusCode, 202, replay.body)
+  assert.equal(replay.json().meta.idempotency_replayed, true)
+  assert.equal(replay.json().data.id, retried.json().data.id)
+
+  const database = new DatabaseSync(f.databasePath)
+  try {
+    assert.equal(database.prepare('SELECT count(*) AS count FROM agent_runs WHERE retry_of_run_id = ?').get(source.id).count, 1)
+    assert.equal(database.prepare("SELECT count(*) AS count FROM audit_events WHERE action = 'agent_run.recover_as_failed'").get().count, 1)
+    assert.equal(database.prepare("SELECT count(*) AS count FROM audit_events WHERE action = 'agent_run.retry'").get().count, 1)
+  } finally {
+    database.close()
+  }
 })

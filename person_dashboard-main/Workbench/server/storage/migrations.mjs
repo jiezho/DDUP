@@ -647,6 +647,35 @@ CREATE INDEX tool_calls_run_idx
 ON tool_calls(space_id, run_id, created_at, id);
 `
 
+const migration010 = `
+ALTER TABLE agent_runs ADD COLUMN retry_of_run_id TEXT REFERENCES agent_runs(id);
+
+CREATE INDEX agent_runs_retry_lineage_idx
+ON agent_runs(space_id, retry_of_run_id, created_at, id)
+WHERE retry_of_run_id IS NOT NULL;
+
+CREATE TABLE run_checkpoints (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  event_seq INTEGER NOT NULL CHECK (event_seq >= 1),
+  checkpoint_version INTEGER NOT NULL CHECK (checkpoint_version = 1),
+  run_version INTEGER NOT NULL CHECK (run_version >= 1),
+  run_status TEXT NOT NULL CHECK (run_status IN ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
+  context_digest TEXT NOT NULL CHECK (length(context_digest) = 64),
+  completed_tool_call_ids_json TEXT NOT NULL CHECK (json_valid(completed_tool_call_ids_json)),
+  candidate_ids_json TEXT NOT NULL CHECK (json_valid(candidate_ids_json)),
+  runtime_state_ref TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  UNIQUE (run_id, event_seq)
+) STRICT;
+
+CREATE INDEX run_checkpoints_run_seq_idx
+ON run_checkpoints(space_id, run_id, event_seq DESC, id DESC);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -705,5 +734,11 @@ export const MIGRATIONS = Object.freeze([
     name: 'tool_gateway_candidates_and_approvals',
     sql: migration009,
     checksum: checksum(migration009),
+  }),
+  Object.freeze({
+    version: 10,
+    name: 'runtime_checkpoints_and_retry_lineage',
+    sql: migration010,
+    checksum: checksum(migration010),
   }),
 ])

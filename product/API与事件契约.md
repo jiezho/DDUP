@@ -295,7 +295,7 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ### 9.1 Run
 
-> 2026-08-28 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态与重启回放；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。事件接口当前返回按 `after_seq` 分页的 JSON 快照，SSE、steer、resume 和 Checkpoint 仍是后续设计。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
+> 2026-09-01 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态、JSON/SSE 回放、Checkpoint、异常重启安全收敛和受限重试谱系；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。正式 AI 运行中心已显示真实 Run、事件、Checkpoint 和 Task Candidate 审批/应用；steer、Runtime 私有 resume 和其他候选类型仍未实现。DeepSeek Harness/Hermes 仅在 Registry 中如实显示为未连接候选。
 
 | Method | Path | 说明 |
 |---|---|---|
@@ -304,14 +304,17 @@ OpenAPI 1.7.0 已实现以下回环 API：
 | GET | `/api/v1/runs` | 按授权空间/状态列出安全 Run 摘要（已实现） |
 | POST | `/api/v1/runs` | 创建 Run；Profile 明确绑定一个主 Runtime |
 | GET | `/api/v1/runs/{id}` | 状态、范围、用量、安全摘要 |
-| GET | `/api/v1/runs/{id}/events` | 当前为有界 JSON 回放；目标为 SSE + Last-Event-ID 恢复 |
+| GET | `/api/v1/runs/{id}/events` | 有界 JSON 回放 |
+| GET | `/api/v1/runs/{id}/events/stream` | SSE + Last-Event-ID/after_seq 恢复；断开不取消 Run |
+| GET | `/api/v1/runs/{id}/checkpoints` | Workbench 可验证的检查点；不含 Prompt/密钥/正文 |
 | POST | `/api/v1/runs/{id}/steer` | 追加用户方向；不直接批准 Tool |
 | POST | `/api/v1/runs/{id}/cancel` | 幂等取消 |
+| POST | `/api/v1/runs/{id}/retry` | 仅对 retryable、零 ToolCall、范围版本仍有效的失败 Run 创建新 Run |
 | POST | `/api/v1/runs/{id}/resume` | 从 Workbench checkpoint 创建/恢复；Runtime 支持时可用 |
 
 ### 9.2 Candidate 与 Approval
 
-当前实现只覆盖 Task Candidate：创建审批、批准/拒绝与应用是三个独立命令；批准本身不写 Task。应用前再次校验 proposal bytes/digest、Approval scope/expiry、候选版本、空间权限和项目状态。Knowledge/Decision 等 Candidate、撤销与正式待确认中心 UI 尚未实现。
+当前实现只覆盖 Task Candidate：创建审批、批准/拒绝与应用是三个独立命令；批准本身不写 Task。应用前再次校验 proposal bytes/digest、Approval scope/expiry、候选版本、空间权限和项目状态。正式待确认 UI 已覆盖 Task Candidate；Knowledge/Decision 等 Candidate 与撤销仍未实现。
 
 | Method | Path | 说明 |
 |---|---|---|
@@ -340,7 +343,7 @@ OpenAPI 1.7.0 已实现以下回环 API：
 
 ## 10. SSE 事件契约
 
-本节是 S5-03 目标契约；S5-01 仅实现相同 `run_id + seq` 顺序语义的 JSON 事件回放，不能描述为 SSE 已上线。
+本节已由 S5-03 首版实现：持久化 `run_id + seq` 是真源，JSON 与 SSE 是两种授权投影。
 
 ### 10.1 帧格式
 
@@ -485,4 +488,4 @@ Workbench/shared/contracts/
 - sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；单模型槽忙时 `/rank` 返回 `503 {"error":"runtime_busy"}`，Workbench 视为可恢复运行时故障并回退已授权 FTS；查询结果不生成 Answer，也不写知识真源；
 - OpenAPI 已同步至 1.6.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 
-尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/Answer、动态 Context ScopeRule、重排、AI Decision Candidate、Run/Approval、SSE 业务事件、备份恢复 API 和完整审计 UI。受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。
+尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/Answer、动态 Context ScopeRule、重排、AI Decision Candidate、Runtime 私有 resume/steer、备份恢复 API 和完整审计 UI。Task Candidate Run/Approval 与 Runtime SSE 已实现首版；受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。

@@ -8,7 +8,7 @@ const CAPABILITIES = Object.freeze({
   steering: false,
   cancellation: true,
   resume: false,
-  checkpoints: false,
+  checkpoints: true,
   child_runs: false,
   usage: false,
   artifacts: false,
