@@ -676,6 +676,355 @@ CREATE INDEX run_checkpoints_run_seq_idx
 ON run_checkpoints(space_id, run_id, event_seq DESC, id DESC);
 `
 
+const migration011 = `
+CREATE TABLE answer_attempts (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  context_package_id TEXT NOT NULL,
+  context_package_version INTEGER NOT NULL CHECK (context_package_version >= 1),
+  context_digest TEXT NOT NULL CHECK (length(context_digest) = 64),
+  question TEXT NOT NULL CHECK (length(question) BETWEEN 2 AND 1000),
+  question_sha256 TEXT NOT NULL CHECK (length(question_sha256) = 64),
+  status TEXT NOT NULL CHECK (status IN ('evidence_ready', 'refused_no_citable_evidence', 'refused_unsafe_intent')),
+  refusal_code TEXT,
+  generation_enabled INTEGER NOT NULL DEFAULT 0 CHECK (generation_enabled = 0),
+  citation_count INTEGER NOT NULL CHECK (citation_count >= 0),
+  related_object_count INTEGER NOT NULL CHECK (related_object_count >= 0),
+  excluded_count INTEGER NOT NULL CHECK (excluded_count >= 0),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version = 1),
+  UNIQUE (id, space_id),
+  FOREIGN KEY (context_package_id, space_id) REFERENCES context_packages(id, space_id),
+  CHECK (
+    (status = 'evidence_ready' AND refusal_code IS NULL AND citation_count > 0)
+    OR
+    (status = 'refused_no_citable_evidence' AND refusal_code = 'NO_CITABLE_EVIDENCE' AND citation_count = 0)
+    OR
+    (status = 'refused_unsafe_intent' AND refusal_code IS NOT NULL)
+  )
+) STRICT;
+
+CREATE INDEX answer_attempts_package_created_idx
+ON answer_attempts(space_id, context_package_id, created_at DESC, id DESC);
+
+CREATE UNIQUE INDEX documents_id_space_unique ON documents(id, space_id);
+
+CREATE TABLE answer_attempt_citations (
+  id TEXT PRIMARY KEY,
+  answer_attempt_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL CHECK (ordinal >= 1),
+  source_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  document_id TEXT NOT NULL,
+  locator_type TEXT NOT NULL CHECK (locator_type = 'char_range'),
+  start_char INTEGER NOT NULL CHECK (start_char >= 0),
+  end_char INTEGER NOT NULL CHECK (end_char > start_char),
+  text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (answer_attempt_id, space_id) REFERENCES answer_attempts(id, space_id),
+  FOREIGN KEY (source_id, space_id) REFERENCES sources(id, space_id),
+  FOREIGN KEY (source_version_id, space_id) REFERENCES source_versions(id, space_id),
+  FOREIGN KEY (document_id, space_id) REFERENCES documents(id, space_id),
+  UNIQUE (answer_attempt_id, ordinal),
+  UNIQUE (answer_attempt_id, source_version_id, document_id, start_char, end_char)
+) STRICT;
+
+CREATE INDEX answer_attempt_citations_attempt_idx
+ON answer_attempt_citations(space_id, answer_attempt_id, ordinal);
+`
+
+const migration012 = `
+CREATE TABLE knowledge_items (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  body TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 20000),
+  status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+  source_refs_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(source_refs_json)),
+  source_kind TEXT NOT NULL CHECK (source_kind IN ('manual', 'ai_candidate')),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX knowledge_items_project_idx
+ON knowledge_items(space_id, project_id, status, updated_at DESC, id DESC)
+WHERE deleted_at IS NULL;
+
+CREATE TRIGGER knowledge_items_context_ai AFTER INSERT ON knowledge_items BEGIN
+  INSERT INTO context_search(object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at)
+  SELECT 'knowledge', NEW.id, NEW.space_id, NEW.project_id, NEW.title, NEW.body, NULL, NEW.updated_at
+  WHERE NEW.deleted_at IS NULL AND NEW.status = 'active';
+END;
+CREATE TRIGGER knowledge_items_context_au AFTER UPDATE ON knowledge_items BEGIN
+  DELETE FROM context_search WHERE object_type = 'knowledge' AND object_id = OLD.id;
+  INSERT INTO context_search(object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at)
+  SELECT 'knowledge', NEW.id, NEW.space_id, NEW.project_id, NEW.title, NEW.body, NULL, NEW.updated_at
+  WHERE NEW.deleted_at IS NULL AND NEW.status = 'active';
+END;
+CREATE TRIGGER knowledge_items_context_ad AFTER DELETE ON knowledge_items BEGIN
+  DELETE FROM context_search WHERE object_type = 'knowledge' AND object_id = OLD.id;
+END;
+
+INSERT INTO context_search(object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at)
+SELECT 'decision', id, space_id, project_id, title, statement || char(10) || rationale, NULL, updated_at
+FROM decisions WHERE deleted_at IS NULL;
+
+CREATE TRIGGER decisions_context_ai AFTER INSERT ON decisions BEGIN
+  INSERT INTO context_search(object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at)
+  SELECT 'decision', NEW.id, NEW.space_id, NEW.project_id, NEW.title, NEW.statement || char(10) || NEW.rationale, NULL, NEW.updated_at
+  WHERE NEW.deleted_at IS NULL;
+END;
+CREATE TRIGGER decisions_context_au AFTER UPDATE ON decisions BEGIN
+  DELETE FROM context_search WHERE object_type = 'decision' AND object_id = OLD.id;
+  INSERT INTO context_search(object_type, object_id, space_id, project_id, title, body, source_version_id, updated_at)
+  SELECT 'decision', NEW.id, NEW.space_id, NEW.project_id, NEW.title, NEW.statement || char(10) || NEW.rationale, NULL, NEW.updated_at
+  WHERE NEW.deleted_at IS NULL;
+END;
+CREATE TRIGGER decisions_context_ad AFTER DELETE ON decisions BEGIN
+  DELETE FROM context_search WHERE object_type = 'decision' AND object_id = OLD.id;
+END;
+
+ALTER TABLE context_package_items RENAME TO context_package_items_legacy;
+CREATE TABLE context_package_items (
+  id TEXT PRIMARY KEY,
+  package_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  object_type TEXT NOT NULL CHECK (object_type IN ('project', 'task', 'capture', 'document', 'knowledge', 'decision')),
+  object_id TEXT NOT NULL,
+  source_version_id TEXT,
+  start_char INTEGER,
+  end_char INTEGER,
+  added_at TEXT NOT NULL,
+  added_by TEXT NOT NULL REFERENCES principals(id),
+  FOREIGN KEY (package_id, space_id) REFERENCES context_packages(id, space_id),
+  CHECK (
+    (object_type = 'document' AND source_version_id IS NOT NULL AND start_char >= 0 AND end_char > start_char)
+    OR
+    (object_type <> 'document' AND source_version_id IS NULL AND start_char IS NULL AND end_char IS NULL)
+  )
+) STRICT;
+INSERT INTO context_package_items SELECT * FROM context_package_items_legacy;
+DROP TABLE context_package_items_legacy;
+CREATE UNIQUE INDEX context_package_items_identity_idx
+ON context_package_items(package_id, object_type, object_id, COALESCE(source_version_id, ''), COALESCE(start_char, -1), COALESCE(end_char, -1));
+CREATE INDEX context_package_items_package_idx ON context_package_items(space_id, package_id, added_at, id);
+
+ALTER TABLE tool_calls RENAME TO tool_calls_legacy;
+ALTER TABLE approvals RENAME TO approvals_legacy;
+ALTER TABLE candidates RENAME TO candidates_legacy;
+
+CREATE TABLE candidates (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  candidate_type TEXT NOT NULL CHECK (candidate_type IN ('task', 'knowledge', 'decision')),
+  project_id TEXT NOT NULL,
+  proposal_json TEXT NOT NULL CHECK (json_valid(proposal_json)),
+  proposal_digest TEXT NOT NULL CHECK (length(proposal_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'applied', 'failed', 'reverted')),
+  applied_object_id TEXT,
+  applied_object_version INTEGER,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+INSERT INTO candidates (
+  id, space_id, run_id, candidate_type, project_id, proposal_json, proposal_digest,
+  status, applied_object_id, applied_object_version, created_at, created_by, updated_at, updated_by, version
+)
+SELECT id, space_id, run_id, candidate_type, project_id, proposal_json, proposal_digest,
+  status, applied_object_id, NULL, created_at, created_by, updated_at, updated_by, version
+FROM candidates_legacy;
+
+CREATE TABLE approvals (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  subject_type TEXT NOT NULL CHECK (subject_type = 'candidate'),
+  subject_id TEXT NOT NULL,
+  action_level TEXT NOT NULL CHECK (action_level = 'L2'),
+  scope_digest TEXT NOT NULL CHECK (length(scope_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'cancelled')),
+  reason_code TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  resolved_at TEXT,
+  resolved_by TEXT REFERENCES principals(id),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (subject_id, space_id) REFERENCES candidates(id, space_id),
+  UNIQUE (id, space_id),
+  UNIQUE (subject_id)
+) STRICT;
+
+INSERT INTO approvals SELECT * FROM approvals_legacy;
+
+CREATE TABLE tool_calls (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  runtime_tool_call_id TEXT NOT NULL,
+  tool_key TEXT NOT NULL,
+  tool_version TEXT NOT NULL,
+  action_level TEXT NOT NULL CHECK (action_level IN ('L0', 'L1', 'L2', 'L3', 'L4')),
+  arguments_digest TEXT NOT NULL CHECK (length(arguments_digest) = 64),
+  status TEXT NOT NULL CHECK (status IN ('requested', 'succeeded', 'approval_required', 'denied', 'failed')),
+  candidate_id TEXT,
+  approval_id TEXT,
+  error_code TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL CHECK (version >= 1),
+  FOREIGN KEY (run_id, space_id) REFERENCES agent_runs(id, space_id),
+  FOREIGN KEY (candidate_id, space_id) REFERENCES candidates(id, space_id),
+  FOREIGN KEY (approval_id, space_id) REFERENCES approvals(id, space_id),
+  UNIQUE (run_id, runtime_tool_call_id)
+) STRICT;
+
+INSERT INTO tool_calls SELECT * FROM tool_calls_legacy;
+
+DROP TABLE tool_calls_legacy;
+DROP TABLE approvals_legacy;
+DROP TABLE candidates_legacy;
+
+CREATE INDEX candidates_space_status_idx ON candidates(space_id, status, updated_at DESC, id DESC);
+CREATE INDEX approvals_space_status_idx ON approvals(space_id, status, expires_at, id);
+CREATE INDEX tool_calls_run_idx ON tool_calls(space_id, run_id, created_at, id);
+`
+
+const migration013 = `
+ALTER TABLE answer_attempt_citations RENAME TO answer_attempt_citations_legacy;
+ALTER TABLE answer_attempts RENAME TO answer_attempts_legacy;
+
+CREATE TABLE answer_attempts (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  context_package_id TEXT NOT NULL,
+  context_package_version INTEGER NOT NULL CHECK (context_package_version >= 1),
+  context_digest TEXT NOT NULL CHECK (length(context_digest) = 64),
+  question TEXT NOT NULL CHECK (length(question) BETWEEN 2 AND 1000),
+  question_sha256 TEXT NOT NULL CHECK (length(question_sha256) = 64),
+  status TEXT NOT NULL CHECK (status IN ('evidence_ready', 'refused_no_citable_evidence', 'refused_unsafe_intent')),
+  refusal_code TEXT,
+  generation_enabled INTEGER NOT NULL DEFAULT 0 CHECK (generation_enabled IN (0, 1)),
+  citation_count INTEGER NOT NULL CHECK (citation_count >= 0),
+  related_object_count INTEGER NOT NULL CHECK (related_object_count >= 0),
+  excluded_count INTEGER NOT NULL CHECK (excluded_count >= 0),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version = 1),
+  UNIQUE (id, space_id),
+  FOREIGN KEY (context_package_id, space_id) REFERENCES context_packages(id, space_id),
+  CHECK (
+    (status = 'evidence_ready' AND refusal_code IS NULL AND citation_count > 0)
+    OR (status = 'refused_no_citable_evidence' AND refusal_code = 'NO_CITABLE_EVIDENCE' AND citation_count = 0)
+    OR (status = 'refused_unsafe_intent' AND refusal_code IS NOT NULL)
+  )
+) STRICT;
+INSERT INTO answer_attempts SELECT * FROM answer_attempts_legacy;
+
+CREATE TABLE answer_attempt_citations (
+  id TEXT PRIMARY KEY,
+  answer_attempt_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL CHECK (ordinal >= 1),
+  source_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  document_id TEXT NOT NULL,
+  locator_type TEXT NOT NULL CHECK (locator_type = 'char_range'),
+  start_char INTEGER NOT NULL CHECK (start_char >= 0),
+  end_char INTEGER NOT NULL CHECK (end_char > start_char),
+  text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (answer_attempt_id, space_id) REFERENCES answer_attempts(id, space_id),
+  FOREIGN KEY (source_id, space_id) REFERENCES sources(id, space_id),
+  FOREIGN KEY (source_version_id, space_id) REFERENCES source_versions(id, space_id),
+  FOREIGN KEY (document_id, space_id) REFERENCES documents(id, space_id),
+  UNIQUE (answer_attempt_id, ordinal),
+  UNIQUE (answer_attempt_id, source_version_id, document_id, start_char, end_char)
+) STRICT;
+INSERT INTO answer_attempt_citations SELECT * FROM answer_attempt_citations_legacy;
+DROP TABLE answer_attempt_citations_legacy;
+DROP TABLE answer_attempts_legacy;
+CREATE INDEX answer_attempts_package_created_idx ON answer_attempts(space_id, context_package_id, created_at DESC, id DESC);
+CREATE INDEX answer_attempt_citations_attempt_idx ON answer_attempt_citations(space_id, answer_attempt_id, ordinal);
+
+CREATE TABLE answers (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  answer_attempt_id TEXT NOT NULL,
+  text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 30000),
+  runtime_key TEXT NOT NULL,
+  validation_status TEXT NOT NULL CHECK (validation_status = 'supported'),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version = 1),
+  FOREIGN KEY (answer_attempt_id, space_id) REFERENCES answer_attempts(id, space_id),
+  UNIQUE (answer_attempt_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE answer_claims (
+  id TEXT PRIMARY KEY,
+  answer_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL CHECK (ordinal >= 1),
+  text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 5000),
+  claim_kind TEXT NOT NULL CHECK (claim_kind IN ('direct_quote', 'inference')),
+  entailment_status TEXT NOT NULL CHECK (entailment_status = 'entailed'),
+  reason_code TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (answer_id, space_id) REFERENCES answers(id, space_id),
+  UNIQUE (answer_id, ordinal),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE answer_citations (
+  id TEXT PRIMARY KEY,
+  answer_id TEXT NOT NULL,
+  claim_id TEXT NOT NULL,
+  space_id TEXT NOT NULL,
+  ordinal INTEGER NOT NULL CHECK (ordinal >= 1),
+  source_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  document_id TEXT NOT NULL,
+  locator_type TEXT NOT NULL CHECK (locator_type = 'char_range'),
+  start_char INTEGER NOT NULL CHECK (start_char >= 0),
+  end_char INTEGER NOT NULL CHECK (end_char > start_char),
+  text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (answer_id, space_id) REFERENCES answers(id, space_id),
+  FOREIGN KEY (claim_id, space_id) REFERENCES answer_claims(id, space_id),
+  FOREIGN KEY (source_id, space_id) REFERENCES sources(id, space_id),
+  FOREIGN KEY (source_version_id, space_id) REFERENCES source_versions(id, space_id),
+  FOREIGN KEY (document_id, space_id) REFERENCES documents(id, space_id),
+  UNIQUE (answer_id, ordinal),
+  UNIQUE (claim_id, source_version_id, document_id, start_char, end_char),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX answers_space_created_idx ON answers(space_id, created_at DESC, id DESC);
+CREATE INDEX answer_claims_answer_idx ON answer_claims(space_id, answer_id, ordinal);
+CREATE INDEX answer_citations_answer_idx ON answer_citations(space_id, answer_id, ordinal);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -740,5 +1089,23 @@ export const MIGRATIONS = Object.freeze([
     name: 'runtime_checkpoints_and_retry_lineage',
     sql: migration010,
     checksum: checksum(migration010),
+  }),
+  Object.freeze({
+    version: 11,
+    name: 'answer_attempt_evidence_snapshots',
+    sql: migration011,
+    checksum: checksum(migration011),
+  }),
+  Object.freeze({
+    version: 12,
+    name: 'governed_knowledge_decision_candidates',
+    sql: migration012,
+    checksum: checksum(migration012),
+  }),
+  Object.freeze({
+    version: 13,
+    name: 'validated_answers_and_citations',
+    sql: migration013,
+    checksum: checksum(migration013),
   }),
 ])

@@ -6,6 +6,7 @@ import { errorEnvelope, okEnvelope } from '../shared/contracts/envelopes.mjs'
 import { ERROR_CODES, WorkbenchError, publicError } from '../shared/contracts/errors.mjs'
 import { CapabilitiesDataSchema, HealthDataSchema } from '../shared/contracts/system.mjs'
 import { registerContextRoutes } from './context/context-routes.mjs'
+import { createAnswerAttemptStore } from './context/answer-attempt-store.mjs'
 import { createContextStore } from './context/context-store.mjs'
 import { createContextPackageStore } from './context/context-package-store.mjs'
 import { createProtectedSearchService } from './context/protected-search-service.mjs'
@@ -24,6 +25,8 @@ import { registerRuntimeRoutes } from './runtime/runtime-routes.mjs'
 import { createRunStore } from './runtime/run-store.mjs'
 import { createToolGateway } from './runtime/tool-gateway.mjs'
 import { openWorkbenchDatabase } from './storage/database.mjs'
+import { createBackupService } from './storage/backup-service.mjs'
+import { registerBackupRoutes } from './storage/backup-routes.mjs'
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
@@ -45,11 +48,21 @@ export function createWorkbenchApp({
   sessionTtlMs = 8 * 60 * 60 * 1000,
   hybridSearch = { enabled: false, adapter: null, minScore: 0.50 },
   nativeRuntimeMode = 'complete',
+  answerProvider = null,
 } = {}) {
   const allowed = new Set(allowedHosts.map((host) => host.toLowerCase()))
   const sessions = createLocalSessionStore({ bootstrapToken, now, ttlMs: sessionTtlMs })
   const database = databasePath ? openWorkbenchDatabase({ databasePath, appVersion, now }) : null
   const projectStore = database ? createProjectStore({ database, now }) : null
+  const backupService = database
+    ? createBackupService({
+        database,
+        databasePath,
+        sourceStoragePath: sourceStoragePath ?? join(dirname(databasePath), 'sources'),
+        backupRoot: join(dirname(databasePath), 'backups'),
+        kernel: projectStore.kernel,
+      })
+    : null
   const contextStore = database
     ? createContextStore({
         database,
@@ -62,6 +75,9 @@ export function createWorkbenchApp({
     : null
   const contextPackageStore = database
     ? createContextPackageStore({ database, kernel: projectStore.kernel })
+    : null
+  const answerAttemptStore = database
+    ? createAnswerAttemptStore({ database, kernel: projectStore.kernel, contextPackageStore, answerProvider })
     : null
   const nativeRuntime = createNativeRuntime({ mode: nativeRuntimeMode, now })
   const runtimeRegistry = createRuntimeRegistry({ nativeRuntime })
@@ -191,9 +207,10 @@ export function createWorkbenchApp({
 
   if (projectStore) {
     registerProjectRoutes(app, { projectStore, requireSession, requireCsrf })
+    registerBackupRoutes(app, { backupService, projectStore, requireSession, requireCsrf })
   }
   if (contextStore) {
-    registerContextRoutes(app, { contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf })
+    registerContextRoutes(app, { answerAttemptStore, contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf })
   }
   if (runStore) {
     registerRuntimeRoutes(app, { runtimeRegistry, runStore, requireSession, requireCsrf })

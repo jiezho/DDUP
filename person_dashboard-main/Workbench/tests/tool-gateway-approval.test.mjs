@@ -122,6 +122,8 @@ test('L1 candidate stays non-authoritative until an L2 approval is resolved and 
   assert.equal(tools.statusCode, 200, tools.body)
   assert.deepEqual(tools.json().data.items.map((item) => [item.tool_key, item.action_level, item.approval_required]), [
     ['candidate.task.create.v1', 'L1', false],
+    ['candidate.knowledge.create.v1', 'L1', false],
+    ['candidate.decision.create.v1', 'L1', false],
     ['candidate.apply.v1', 'L2', true],
   ])
   const key = 'tool-run-approved-0000000001'
@@ -192,6 +194,97 @@ test('L1 candidate stays non-authoritative until an L2 approval is resolved and 
     assert.equal(database.prepare('SELECT count(*) AS count FROM tasks').get().count, 1)
     assert.equal(database.prepare("SELECT source_kind FROM tasks").get().source_kind, 'ai_candidate')
   } finally { database.close() }
+})
+
+test('knowledge and decision candidates expose diffs, require typed approval and support safe undo', async (t) => {
+  const f = await fixture(t)
+  const prepared = await prepareScopedProject(f)
+  const imported = await f.app.inject({
+    method: 'POST', url: '/api/v1/sources/imports/markdown', headers: f.writeHeaders('governance-knowledge-source-0001'),
+    payload: { space_id: f.spaceId, project_id: prepared.project.id, filename: 'synthetic-governance.md', content: '# 合成治理证据\n\n固定证据支持知识候选。' },
+  })
+  assert.equal(imported.statusCode, 201, imported.body)
+  const searched = await f.app.inject({
+    method: 'POST', url: '/api/v1/context/search', headers: headers({ cookie: f.cookie, origin, 'content-type': 'application/json' }),
+    payload: { space_id: f.spaceId, q: '固定证据', types: ['document'] },
+  })
+  const hit = searched.json().data.items[0]
+  const added = await f.app.inject({
+    method: 'POST', url: `/api/v1/context/packages/${prepared.contextPackage.id}/items`,
+    headers: f.writeHeaders('governance-knowledge-range-0001', prepared.contextPackage.version),
+    payload: {
+      space_id: f.spaceId, object_type: 'document', object_id: hit.object_id,
+      source_version_id: hit.locator.source_version_id, start_char: hit.locator.start, end_char: hit.locator.end,
+    },
+  })
+  assert.equal(added.statusCode, 200, added.body)
+  const scoped = { ...prepared, contextPackage: added.json().data }
+  const sourceRef = {
+    source_id: hit.source_id, source_version_id: hit.locator.source_version_id, document_id: hit.object_id,
+    start_char: hit.locator.start, end_char: hit.locator.end,
+  }
+
+  const knowledgeRun = await f.app.inject({
+    method: 'POST', url: '/api/v1/runs', headers: f.writeHeaders('governance-knowledge-run-000001'),
+    payload: candidateRunPayload(f, scoped, {
+      goal: '创建有来源的知识候选。', task_candidate: undefined,
+      knowledge_candidate: { project_id: prepared.project.id, title: '合成知识条目', body: '固定证据支持知识候选。', source_refs: [sourceRef] },
+    }),
+  })
+  assert.equal(knowledgeRun.statusCode, 202, knowledgeRun.body)
+  const knowledge = (await f.app.inject({ method: 'GET', url: `/api/v1/candidates?space_id=${f.spaceId}&candidate_type=knowledge`, headers: headers({ cookie: f.cookie }) })).json().data.items[0]
+  assert.deepEqual(knowledge.preview, { operation: 'create', object_type: 'knowledge_item', fields: ['title', 'body', 'source_refs'] })
+  const wrongApproval = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${knowledge.id}/approvals`, headers: f.writeHeaders('governance-wrong-approval-0001'),
+    payload: { space_id: f.spaceId, reason_code: 'apply_task_candidate' },
+  })
+  assert.equal(wrongApproval.statusCode, 409)
+  const knowledgeApprovalResponse = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${knowledge.id}/approvals`, headers: f.writeHeaders('governance-knowledge-approval-01'),
+    payload: { space_id: f.spaceId, reason_code: 'apply_knowledge_candidate' },
+  })
+  assert.equal(knowledgeApprovalResponse.statusCode, 201, knowledgeApprovalResponse.body)
+  const knowledgeApproval = knowledgeApprovalResponse.json().data
+  await f.app.inject({ method: 'POST', url: `/api/v1/approvals/${knowledgeApproval.id}/resolve`, headers: f.writeHeaders('governance-knowledge-resolve-001', 1), payload: { space_id: f.spaceId, decision: 'approve' } })
+  const knowledgeApplied = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${knowledge.id}/apply`, headers: f.writeHeaders('governance-knowledge-apply-0001', 2),
+    payload: { space_id: f.spaceId, approval_id: knowledgeApproval.id },
+  })
+  assert.equal(knowledgeApplied.statusCode, 200, knowledgeApplied.body)
+  assert.equal(knowledgeApplied.json().data.knowledge.source_kind, 'ai_candidate')
+  const knowledgeReverted = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${knowledge.id}/revert`, headers: f.writeHeaders('governance-knowledge-revert-001', 3),
+    payload: { space_id: f.spaceId, reason: 'owner_requested' },
+  })
+  assert.equal(knowledgeReverted.statusCode, 200, knowledgeReverted.body)
+  assert.equal(knowledgeReverted.json().data.candidate.status, 'reverted')
+
+  const decisionRun = await f.app.inject({
+    method: 'POST', url: '/api/v1/runs', headers: f.writeHeaders('governance-decision-run-0000001'),
+    payload: candidateRunPayload(f, scoped, {
+      goal: '创建待确认决策。', task_candidate: undefined,
+      decision_candidate: { project_id: prepared.project.id, title: '合成路线决定', statement: '继续本地优先路线。', rationale: '边界清晰。' },
+    }),
+  })
+  assert.equal(decisionRun.statusCode, 202, decisionRun.body)
+  const decision = (await f.app.inject({ method: 'GET', url: `/api/v1/candidates?space_id=${f.spaceId}&candidate_type=decision`, headers: headers({ cookie: f.cookie }) })).json().data.items[0]
+  const decisionApprovalResponse = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${decision.id}/approvals`, headers: f.writeHeaders('governance-decision-approval-001'),
+    payload: { space_id: f.spaceId, reason_code: 'apply_decision_candidate' },
+  })
+  const decisionApproval = decisionApprovalResponse.json().data
+  await f.app.inject({ method: 'POST', url: `/api/v1/approvals/${decisionApproval.id}/resolve`, headers: f.writeHeaders('governance-decision-resolve-0001', 1), payload: { space_id: f.spaceId, decision: 'approve' } })
+  const decisionApplied = await f.app.inject({
+    method: 'POST', url: `/api/v1/candidates/${decision.id}/apply`, headers: f.writeHeaders('governance-decision-apply-00001', 2),
+    payload: { space_id: f.spaceId, approval_id: decisionApproval.id },
+  })
+  assert.equal(decisionApplied.statusCode, 200, decisionApplied.body)
+  assert.equal(decisionApplied.json().data.decision.status, 'accepted')
+
+  const audit = await f.app.inject({ method: 'GET', url: `/api/v1/governance/audit-events?space_id=${f.spaceId}&limit=100`, headers: headers({ cookie: f.cookie }) })
+  assert.equal(audit.statusCode, 200, audit.body)
+  assert.equal(audit.json().data.items.some((event) => event.action === 'candidate.knowledge.revert'), true)
+  assert.equal(audit.body.includes('固定证据支持知识候选'), false)
 })
 
 test('rejection, scope tampering, invalid budgets and out-of-scope projects fail without task writes', async (t) => {

@@ -1,12 +1,14 @@
 import { mkdirSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { defineConfig } from '@playwright/test'
 
-const runtimeRoot = join(tmpdir(), `personal-ai-workbench-e2e-${process.pid}`)
+const runtimeRoot = join(tmpdir(), `personal-ai-workbench-e2e-${process.pid}-${randomUUID()}`)
 mkdirSync(runtimeRoot, { recursive: true })
 
 export default defineConfig({
+  timeout: 120_000,
   testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
@@ -15,7 +17,7 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: 'http://127.0.0.1:4178',
-    browserName: 'chromium',
+    browserName: process.env.WORKBENCH_E2E_BROWSER || 'chromium',
     headless: true,
     locale: 'zh-CN',
     screenshot: 'only-on-failure',
@@ -26,13 +28,12 @@ export default defineConfig({
     command: 'node scripts/start-e2e-server.mjs',
     env: {
       ...process.env,
-      VITE_CACHE_DIR: join(runtimeRoot, 'vite-cache'),
       WORKBENCH_DATA_DIR: join(runtimeRoot, 'data'),
     },
     reuseExistingServer: false,
     stderr: 'pipe',
     stdout: 'pipe',
-    timeout: 120_000,
+    timeout: 240_000,
     url: 'http://127.0.0.1:4178/api/health',
   },
 })

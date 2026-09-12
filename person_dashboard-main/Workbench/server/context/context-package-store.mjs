@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
 
 const PACKAGE_COLUMNS = `
@@ -12,6 +14,40 @@ function effectiveStatus(row, nowIso) {
 
 function packageFromRow(row, nowIso) {
   return row ? { ...row, effective_status: effectiveStatus(row, nowIso) } : null
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function objectLocatorOnly() {
+  return {
+    eligible: false,
+    kind: 'object_locator',
+    reason: '只有固定 SourceVersion 的文档原文范围可以成为证据引用。',
+    locator: null,
+  }
+}
+
+function sourceCitation(row, input, quote) {
+  return {
+    eligible: true,
+    kind: 'source_citation',
+    reason: null,
+    locator: {
+      source_id: row.source_id,
+      source_version_id: row.source_version_id,
+      document_id: row.id,
+      locator_type: 'char_range',
+      start_char: input.start_char,
+      end_char: input.end_char,
+      text_sha256: sha256(quote),
+    },
+  }
+}
+
+function excludedCitation(reason) {
+  return { eligible: false, kind: 'excluded', reason, locator: null }
 }
 
 export function createContextPackageStore({ database, kernel } = {}) {
@@ -43,17 +79,26 @@ export function createContextPackageStore({ database, kernel } = {}) {
     if (input.object_type === 'project') {
       const row = kernel.requireProject(actor, input.object_id)
       if (row.space_id !== spaceId) throw publicError(ERROR_CODES.OBJECT_NOT_AVAILABLE, '请求的资源不可用。', { statusCode: 404 })
-      return { project_id: row.id, title: row.name, locator: { type: 'object' } }
+      return { project_id: row.id, title: row.name, locator: { type: 'object' }, citation: objectLocatorOnly() }
     }
-    const table = input.object_type === 'task' ? 'tasks' : input.object_type === 'capture' ? 'captures' : 'documents'
+    const table = input.object_type === 'task'
+      ? 'tasks'
+      : input.object_type === 'capture'
+        ? 'captures'
+        : input.object_type === 'knowledge'
+          ? 'knowledge_items'
+          : input.object_type === 'decision'
+            ? 'decisions'
+            : 'documents'
     const row = database.prepare(`SELECT * FROM ${table} WHERE id = ? AND space_id = ? AND deleted_at IS NULL`).get(input.object_id, spaceId)
     if (!row) throw publicError(ERROR_CODES.OBJECT_NOT_AVAILABLE, '请求的资源不可用。', { statusCode: 404 })
     if (input.object_type !== 'document') {
-      return { project_id: row.project_id ?? null, title: row.title, locator: { type: 'object' } }
+      return { project_id: row.project_id ?? null, title: row.title, locator: { type: 'object' }, citation: objectLocatorOnly() }
     }
     if (row.source_version_id !== input.source_version_id || input.end_char > row.body_text.length) {
       throw publicError(ERROR_CODES.RELATION_CONFLICT, '文档版本或字符范围已变化，请重新检索后加入。', { statusCode: 409 })
     }
+    const quote = row.body_text.slice(input.start_char, input.end_char)
     return {
       project_id: row.project_id ?? null,
       title: row.title,
@@ -62,21 +107,24 @@ export function createContextPackageStore({ database, kernel } = {}) {
         source_version_id: row.source_version_id,
         start: input.start_char,
         end: input.end_char,
-        quote: row.body_text.slice(input.start_char, input.end_char),
+        quote,
       },
+      citation: sourceCitation(row, input, quote),
     }
   }
 
   function resolveStoredItem(actor, packageItem, packageStatus) {
     if (packageStatus !== 'active') {
-      return { ...packageItem, included: false, exclusion_reason: `package_${packageStatus}`, title: null, project_id: null, locator: null }
+      const reason = `package_${packageStatus}`
+      return { ...packageItem, included: false, exclusion_reason: reason, title: null, project_id: null, locator: null, citation: excludedCitation(reason) }
     }
     try {
       const resolved = resolveObject(actor, packageItem.space_id, packageItem)
       return { ...packageItem, ...resolved, included: true, exclusion_reason: null }
     } catch (error) {
       if (![ERROR_CODES.OBJECT_NOT_AVAILABLE, ERROR_CODES.RELATION_CONFLICT].includes(error?.code)) throw error
-      return { ...packageItem, included: false, exclusion_reason: error.code === ERROR_CODES.RELATION_CONFLICT ? 'source_version_changed' : 'object_unavailable', title: null, project_id: null, locator: null }
+      const reason = error.code === ERROR_CODES.RELATION_CONFLICT ? 'source_version_changed' : 'object_unavailable'
+      return { ...packageItem, included: false, exclusion_reason: reason, title: null, project_id: null, locator: null, citation: excludedCitation(reason) }
     }
   }
 
@@ -140,15 +188,36 @@ export function createContextPackageStore({ database, kernel } = {}) {
       ORDER BY added_at, id
     `).all(packageId, spaceId)
     const items = rows.map((row) => resolveStoredItem(actor, row, item.effective_status))
+    const includedItems = items.filter((candidate) => candidate.included)
+    const citationCount = includedItems.filter((candidate) => candidate.citation?.eligible).length
+    const relatedObjectCount = includedItems.length - citationCount
+    const readinessState = item.effective_status !== 'active'
+      ? `package_${item.effective_status}`
+      : citationCount > 0 ? 'citation_manifest_ready' : 'refused_no_citable_evidence'
+    const readinessReason = item.effective_status !== 'active'
+      ? '上下文篮已过期或归档，不能用于回答。'
+      : citationCount > 0
+        ? '已形成固定来源版本的引用清单；生成式回答仍保持关闭。'
+        : '当前范围没有固定 SourceVersion 的原文证据；事实回答必须拒绝。'
     return {
       ...item,
       items,
       resolution: {
-        included_count: items.filter((candidate) => candidate.included).length,
+        included_count: includedItems.length,
         excluded_count: items.filter((candidate) => !candidate.included).length,
         reason: item.effective_status === 'active'
           ? '只解析显式加入且当前仍可访问的对象；缺失或版本漂移项保持排除。'
           : '上下文篮已过期或归档，不向后续运行提供正文。',
+      },
+      evidence: {
+        citation_count: citationCount,
+        related_object_count: relatedObjectCount,
+        excluded_count: items.length - includedItems.length,
+        answer_readiness: {
+          state: readinessState,
+          generation_enabled: false,
+          reason: readinessReason,
+        },
       },
     }
   }

@@ -209,20 +209,47 @@ export function saveDailyReview(date, spaceId, input, version = null) {
 export async function loadContextLibrary() {
   const workspace = await loadProjectWorkspace();
   const sourceQuery = new URLSearchParams({ space_id: workspace.space.id, status: "ready", limit: "200" });
+  const archivedSourceQuery = new URLSearchParams({ space_id: workspace.space.id, status: "archived", limit: "200" });
   const packageQuery = new URLSearchParams({ space_id: workspace.space.id, status: "active", limit: "50" });
-  const [sources, contextPackages] = await Promise.all([
+  const [sources, archivedSources, contextPackages] = await Promise.all([
     call(`/api/v1/sources?${sourceQuery.toString()}`),
+    call(`/api/v1/sources?${archivedSourceQuery.toString()}`),
     call(`/api/v1/context/packages?${packageQuery.toString()}`),
   ]);
   const firstPackage = contextPackages.data.items[0] || null;
   const activePackage = firstPackage
     ? await loadContextPackage(firstPackage.id, workspace.space.id)
     : null;
-  return { ...workspace, sources: sources.data.items, contextPackages: contextPackages.data.items, activePackage };
+  const answerAttempts = firstPackage
+    ? await loadAnswerAttempts(firstPackage.id, workspace.space.id)
+    : [];
+  return { ...workspace, sources: [...sources.data.items, ...archivedSources.data.items], contextPackages: contextPackages.data.items, activePackage, answerAttempts };
 }
 
 export function importMarkdownSource(input) {
   return write("/api/v1/sources/imports/markdown", { body: input });
+}
+
+export function updateMarkdownSource(sourceId, input, version) {
+  return write(`/api/v1/sources/${encodeURIComponent(sourceId)}/versions`, { body: input, version });
+}
+
+export function transitionSource(sourceId, spaceId, action, version) {
+  return write(`/api/v1/sources/${encodeURIComponent(sourceId)}/transitions`, {
+    body: { space_id: spaceId, action },
+    version,
+  });
+}
+
+export async function readSourceRange(sourceId, { spaceId, sourceVersionId, startChar, endChar }) {
+  const query = new URLSearchParams({
+    space_id: spaceId,
+    source_version_id: sourceVersionId,
+    start_char: String(startChar),
+    end_char: String(endChar),
+  });
+  const response = await call(`/api/v1/sources/${encodeURIComponent(sourceId)}/range?${query.toString()}`);
+  return response.data;
 }
 
 export async function loadContextPackage(packageId, spaceId) {
@@ -255,6 +282,29 @@ export function archiveContextPackage(packageId, spaceId, version) {
   });
 }
 
+export async function loadAnswerAttempts(packageId, spaceId, limit = 20) {
+  const query = new URLSearchParams({ space_id: spaceId, context_package_id: packageId, limit: String(limit) });
+  const response = await call(`/api/v1/context/answer-attempts?${query.toString()}`);
+  return Promise.all(response.data.items.map(async (attempt) => {
+    if (attempt.status !== "evidence_ready") return { ...attempt, answer: null };
+    const answerQuery = new URLSearchParams({ space_id: spaceId });
+    const answer = await call(`/api/v1/context/answer-attempts/${encodeURIComponent(attempt.id)}/answer?${answerQuery.toString()}`);
+    return { ...attempt, answer: answer.data };
+  }));
+}
+
+export function createAnswerAttempt(input) {
+  return write("/api/v1/context/answer-attempts", { body: input });
+}
+
+export function validateAnswerDraft(attemptId, input) {
+  return write(`/api/v1/context/answer-attempts/${encodeURIComponent(attemptId)}/validate-draft`, { body: input });
+}
+
+export function generateAnswer(attemptId, spaceId) {
+  return write(`/api/v1/context/answer-attempts/${encodeURIComponent(attemptId)}/generate`, { body: { space_id: spaceId } });
+}
+
 export async function searchContext({ spaceId, query, projectId = "", types = [], from = "", to = "", limit = 20 }) {
   const response = await call("/api/v1/context/search", {
     method: "POST",
@@ -283,12 +333,13 @@ export async function loadRuntimeWorkspace() {
   const spaceId = workspace.space.id;
   const query = new URLSearchParams({ space_id: spaceId, limit: "100" });
   const packageQuery = new URLSearchParams({ space_id: spaceId, status: "active", limit: "50" });
-  const [runtimes, runs, candidates, approvals, contextPackages] = await Promise.all([
+  const [runtimes, runs, candidates, approvals, contextPackages, auditEvents] = await Promise.all([
     call("/api/v1/runtimes"),
     call(`/api/v1/runs?${query.toString()}`),
     call(`/api/v1/candidates?${query.toString()}`),
     call(`/api/v1/approvals?${query.toString()}`),
     call(`/api/v1/context/packages?${packageQuery.toString()}`),
+    call(`/api/v1/governance/audit-events?${query.toString()}`),
   ]);
   return {
     ...workspace,
@@ -297,6 +348,7 @@ export async function loadRuntimeWorkspace() {
     candidates: candidates.data.items,
     approvals: approvals.data.items,
     contextPackages: contextPackages.data.items,
+    auditEvents: auditEvents.data.items,
   };
 }
 
@@ -333,9 +385,9 @@ export function retryAgentRun(runId, spaceId, version) {
   });
 }
 
-export function requestTaskCandidateApproval(candidateId, spaceId) {
+export function requestCandidateApproval(candidateId, candidateType, spaceId) {
   return write(`/api/v1/candidates/${encodeURIComponent(candidateId)}/approvals`, {
-    body: { space_id: spaceId, reason_code: "apply_task_candidate" },
+    body: { space_id: spaceId, reason_code: `apply_${candidateType}_candidate` },
   });
 }
 
@@ -346,11 +398,34 @@ export function resolveTaskCandidateApproval(approvalId, spaceId, version, decis
   });
 }
 
-export function applyTaskCandidate(candidateId, approvalId, spaceId, version) {
+export function applyCandidate(candidateId, approvalId, spaceId, version) {
   return write(`/api/v1/candidates/${encodeURIComponent(candidateId)}/apply`, {
     body: { space_id: spaceId, approval_id: approvalId },
     version,
   });
+}
+
+export function revertCandidate(candidateId, spaceId, version) {
+  return write(`/api/v1/candidates/${encodeURIComponent(candidateId)}/revert`, {
+    body: { space_id: spaceId, reason: "owner_requested" },
+    version,
+  });
+}
+
+export async function loadBackups(spaceId) {
+  const query = new URLSearchParams({ space_id: spaceId });
+  const response = await call(`/api/v1/system/backups?${query.toString()}`);
+  return response.data.items;
+}
+
+export function createBackup(spaceId) {
+  return write("/api/v1/system/backups", { body: { space_id: spaceId } });
+}
+
+export async function verifyBackup(backupId, spaceId) {
+  const query = new URLSearchParams({ space_id: spaceId });
+  const response = await call(`/api/v1/system/backups/${encodeURIComponent(backupId)}/verify?${query.toString()}`);
+  return response.data;
 }
 
 export function runtimeEventStreamUrl(runId, spaceId, afterSeq = 0) {

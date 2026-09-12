@@ -7,8 +7,10 @@ import {
   ApprovalRequestSchema,
   ApprovalResolveSchema,
   CandidateApplySchema,
+  CandidateRevertSchema,
   CandidateListQuerySchema,
   CandidateSpaceQuerySchema,
+  GovernanceAuditQuerySchema,
 } from '../../shared/contracts/tool-gateway.mjs'
 
 function parse(schema, value) {
@@ -76,5 +78,18 @@ export function registerGovernanceRoutes(app, { toolGateway, requireSession, req
       ...commandOptions(request), expectedVersion: parseIfMatch(request.headers['if-match']),
     })
     return okEnvelope(request.id, result.data, { scope: { space_id: input.space_id }, idempotency_replayed: result.replayed })
+  })
+
+  app.post('/api/v1/candidates/:candidateId/revert', { preHandler: requireCsrf }, async (request) => {
+    const input = parse(CandidateRevertSchema, request.body)
+    const result = toolGateway.revertCandidate(request.workbenchSession, request.params.candidateId, input, {
+      ...commandOptions(request), expectedVersion: parseIfMatch(request.headers['if-match']),
+    })
+    return okEnvelope(request.id, result.data, { scope: { space_id: input.space_id }, idempotency_replayed: result.replayed })
+  })
+
+  app.get('/api/v1/governance/audit-events', { preHandler: requireSession }, async (request) => {
+    const query = parse(GovernanceAuditQuerySchema, request.query)
+    return okEnvelope(request.id, { items: toolGateway.listAuditEvents(request.workbenchSession, query) }, { scope: { space_id: query.space_id } })
   })
 }

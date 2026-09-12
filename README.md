@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G6a 已确认并执行。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。DeepSeek Harness 固定包审计和官方客户端传输预检已通过，但当前 Windows 发行物缺少可启动的 SDK 服务端/Profile，G6a 按 Stop 收口并保持不可创建正式 Run。Hermes 已完成零依赖 API 契约/SSE 预检，仍未安装、未连接，G6b 待确认。生成式回答、通用 Tool/Approval 与 Runtime 私有 resume 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G6a 已确认并执行。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮及其 Citation Manifest、持久化 AnswerAttempt 安全检查、无持久化提取式逐句预检、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。AnswerAttempt 只在本地固定用户明确提交的问题及 SHA-256、上下文版本、引用快照或拒答原因；读取时复核精确来源、范围和哈希，漂移即失败关闭。逐句预检只判断候选句能否在显式引用范围内原样定位，不保存输入，也不代表语义蕴含或事实正确。两者都不生成答案，也不是最终 Citation/Answer 真源。DeepSeek Harness 固定包审计和官方客户端传输预检已通过，但当前 Windows 发行物缺少可启动的 SDK 服务端/Profile，G6a 按 Stop 收口并保持不可创建正式 Run。Hermes 已完成零依赖 API 契约/SSE 预检，仍未安装、未连接，G6b 待确认。生成式回答、通用 Tool/Approval 与 Runtime 私有 resume 尚未接入，不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -74,10 +74,10 @@ flowchart TB
 | 今日与复盘 | 最多三项任务聚焦、任务真源同步、日终复盘 | 已实现首版 |
 | 受控来源 | 虚构 Markdown 导入、SHA-256 文件真源、SourceVersion、Document | 已实现首版 |
 | 上下文检索 | Project/Task/Capture/Document 统一 FTS5，空间/项目/类型/日期过滤 | 已实现首版 |
-| 上下文篮 | 显式空 allowlist、用途/有效期、固定 SourceVersion 字符范围、版本/幂等/审计、过期与归档排除 | 已连接 Native 生命周期；未连接 Answer |
+| 上下文篮 | 显式空 allowlist、用途/有效期、固定 SourceVersion 字符范围、版本/幂等/审计、过期与归档排除；派生 Citation Manifest 区分可引用原文/相关对象/排除项 | 已连接 Native 生命周期；生成式 Answer 仍关闭 |
 | Native Runtime / Tool Gateway | `native-v1` 确定性生命周期；Task Candidate L1；L2 审批/拒绝/幂等应用；正式运行中心、JSON/SSE 回放、Checkpoint、重启安全收敛和受限重试谱系 | 已实现 S5-03 首版；不生成回答；无外部动作 |
 | 混合与向量检索 | 权限前置、确定性意图拦截、稳定 chunk/字符定位、校准阈值、RRF、临时候选向量缓存、有界 busy、sidecar 身份校验与 FTS 回退 | 运行机制短样本修复通过，但边界 Top-1 质量门失败；默认关闭，BGE-M3 不进入生产依赖 |
-| 引用问答 | 固定来源版本、逐条 Citation、无依据拒答 | 设计中；生成式回答继续关闭，需后续安全门 |
+| 引用问答 | 固定来源版本 Citation Manifest；AnswerAttempt 本地持久化用户问题及 SHA-256、上下文版本、引用快照或确定性拒答；检查选中来源中的不可信指令，读取时复核来源、范围和哈希 | 安全准备切片已实现，来源指令与引用漂移都会失败关闭且不回显恶意片段；不保存答案正文或最终 Citation/Answer，生成式回答继续关闭并等待安全门 |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
 | DeepSeek Harness | 固定包供应链与官方客户端 synthetic 传输预检通过；Windows 官方 SDK 服务端/Profile 缺失，Registry 中不可运行 | `client_preflight_passed_server_missing / poc_not_connected` |
@@ -134,7 +134,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19；2026-09-01 完整回归与生产构建 234/234 通过，隐私扫描通过。Native Runtime 生命周期专项 7/7、Task Candidate/Approval 专项 3/3、运行中心静态契约专项 2/2、Harness 协议预检专项 4/4、Hermes API/SSE 协议预检专项 4/4、G6a 隔离客户端/CLI POC 2/2，覆盖正常、失败、策略拒绝、跨空间、重复请求、取消、审批过期、防替换、真实重启收敛、检查点、SSE 断点续传、安全重试谱系，以及外部 Runtime 握手/能力协商、帧上限、脱敏摘要、未知事件失败关闭和缺失服务端失败关闭；运行中心桌面端/390px Playwright Chromium E2E 1/1 通过并更新合成截图。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
+当前验证快照：Node 24.19；2026-09-07 完整回归与生产构建 250/250 通过，隐私扫描通过。Citation Manifest/AnswerAttempt/提取式逐句预检安全链路专项 21/21，覆盖正常、失败、危险问题/无证据/来源不可信指令拒答、命中片段不回显、来源/范围/哈希漂移、原文精确命中/改写/缺失引用、无持久化、回答运行时不可用失败关闭、跨空间、版本冲突、重复请求与重启恢复；Native Runtime 生命周期专项 7/7、Task Candidate/Approval 专项 3/3、运行中心静态契约专项 2/2、Harness 协议预检专项 4/4、Hermes API/SSE 协议预检专项 4/4、G6a 隔离客户端/CLI POC 2/2 的既有证据保持有效。新增桌面/390px Playwright 用例已补齐，但本轮 Chromium 启动因权限审批服务 403 未执行；最近一次全站 E2E 通过与加深蓝色主题合成截图仍为 2026-09-02 的 1/1。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
 
 ## 六、仓库结构
 
@@ -187,7 +187,7 @@ DDUP/
 - [工程现状与基线报告](product/工程现状与基线报告.md)
 - [Node SQLite 可靠性 Spike](product/Node_SQLite可靠性Spike报告.md)
 - [Fastify 与 Playwright 依赖审查](product/Fastify与Playwright依赖审查.md)
-- [旧版 XLSX 导入依赖处置（待确认）](product/旧版XLSX导入依赖处置_待确认.md)
+- [旧版 XLSX 导入依赖处置（已确认并完成）](product/旧版XLSX导入依赖处置.md)
 - [模型与推理运行时依赖审查（G5a-D 已确认）](product/模型与推理运行时依赖审查.md)
 - [FlagEmbedding 依赖元数据解析报告](product/FlagEmbedding依赖元数据解析报告.md)
 - [模型 POC 实际下载授权（G5a-DL 已确认）](product/模型POC实际下载授权.md)

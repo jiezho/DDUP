@@ -318,7 +318,7 @@ test('loopback adapter enforces reviewed identity, bounded payloads and explicit
   const fetchImpl = async (url, init) => {
     calls.push({ url: String(url), init })
     const body = String(url).endsWith('/health')
-      ? { status: 'ok', model_id: 'BAAI/bge-m3', model_revision: '5617a9f61b028005a4858fdac845db406aefb181', device: 'cpu' }
+      ? { status: 'ok', model_id: 'BAAI/bge-m3', model_revision: '5617a9f61b028005a4858fdac845db406aefb181', device: 'cpu', embedding_strategy: 'title_prefixed_char_windows_max_pool_v1', window_chars: 160, window_overlap_chars: 40 }
       : { results: [{ candidate_id: 'synthetic-document-id', score: 0.88 }] }
     return { ok: true, async text() { return JSON.stringify(body) } }
   }

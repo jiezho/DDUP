@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { createWorkbenchApp } from './app.mjs'
+import { createConservativeAnswerProvider } from './context/conservative-answer-provider.mjs'
 import { hybridSearchRuntimeFromEnv } from './context/dense-sidecar-adapter.mjs'
 
 const host = '127.0.0.1'
@@ -22,6 +23,7 @@ const app = createWorkbenchApp({
   bootstrapToken,
   databasePath,
   hybridSearch: hybridSearchRuntimeFromEnv(process.env),
+  answerProvider: createConservativeAnswerProvider(),
 })
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

@@ -15,8 +15,8 @@ test.afterEach(async ({ page }) => {
   await page.evaluate(() => fetch('/__e2e_shutdown', { method: 'POST' })).catch(() => {})
 })
 
-test('create, persist and manage synthetic project work items on desktop and mobile', async ({ page }) => {
-  test.setTimeout(60_000)
+test('create, persist and manage synthetic project work items on desktop and mobile', async ({ page, browserName }) => {
+  test.setTimeout(120_000)
   const crossOriginBootstrap = await page.request.post('/api/v1/session/bootstrap', {
     data: {},
     headers: { Origin: 'https://attacker.example' },
@@ -194,6 +194,9 @@ test('create, persist and manage synthetic project work items on desktop and mob
   const documentResult = page.locator('.context-results article').filter({ hasText: '合成上下文证据包' })
   await expect(documentResult).toBeVisible()
   await expect(documentResult.getByText(/原文字符/)).toBeVisible()
+  await documentResult.getByRole('button', { name: '打开原文' }).click()
+  await expect(page.getByRole('complementary', { name: '固定原文预览' })).toContainText('完全虚构的受控证据')
+  await page.getByRole('button', { name: '关闭原文预览' }).click()
   await documentResult.getByRole('button', { name: '加入上下文篮' }).click()
   await expect(documentResult.getByRole('button', { name: '已在篮中' })).toBeDisabled()
   await expect(page.locator('.context-package-items').getByText('合成上下文证据包')).toBeVisible()
@@ -208,12 +211,28 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await expect(projectResult).toBeVisible()
   await projectResult.getByRole('button', { name: '加入上下文篮' }).click()
   await expect(page.locator('.context-package-items').getByText('合成上下文研究项目 · 已更新')).toBeVisible()
+  const answerCheck = page.getByRole('form', { name: '记录回答安全检查' })
+  await answerCheck.getByPlaceholder('输入需要由当前上下文支撑的问题…').fill('这条完全虚构的证据说明了什么？')
+  await answerCheck.getByRole('button', { name: '记录安全检查' }).click()
+  await expect(page.getByText('证据复核通过，可生成保守引用回答')).toBeVisible()
+  await expect(page.getByText('上下文 v3 · 1 条固定引用 · 复核通过 · 本地提取式运行时已就绪')).toBeVisible()
+  await page.getByRole('button', { name: '生成引用回答' }).click()
+  await expect(page.getByText('回答已生成并通过逐句证据校验')).toBeVisible()
+  await expect(page.locator('.context-final-answer')).toContainText('完全虚构的受控证据')
+  const draftValidation = page.getByRole('form', { name: '提取式逐句预检' })
+  await draftValidation.getByPlaceholder('粘贴一条需要核对的候选句…').fill('完全虚构的受控证据')
+  await draftValidation.getByRole('button', { name: '核对原文' }).click()
+  await expect(page.getByText('原文定位通过')).toBeVisible()
+  await expect(page.getByText('所有候选句都能在所标注的固定引用范围内原样定位。')).toBeVisible()
   await page.screenshot({ path: resolve(screenshotRoot, 'context-library-desktop.png'), fullPage: true })
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   await page.waitForTimeout(350)
   await page.screenshot({ path: resolve(screenshotRoot, 'context-library-mobile.png'), fullPage: true })
+  await draftValidation.getByPlaceholder('粘贴一条需要核对的候选句…').fill('这是一条没有原样出现的合成推断。')
+  await draftValidation.getByRole('button', { name: '核对原文' }).click()
+  await expect(page.getByText('未找到原样文本')).toBeVisible()
 
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/runtime')
@@ -221,7 +240,7 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await expect(page.getByText('尚无运行记录')).toBeVisible()
   const runtimeForm = page.getByRole('form', { name: '启动确定性运行' })
   await runtimeForm.getByLabel('本次目标').fill('验证合成任务候选、检查点与审批分离。')
-  await runtimeForm.getByRole('checkbox', { name: /同时生成一个待确认任务候选/ }).check()
+  await runtimeForm.getByRole('checkbox', { name: /同时生成一个待确认候选/ }).check()
   await runtimeForm.getByLabel('目标项目').selectOption({ label: '合成上下文研究项目 · 已更新' })
   await runtimeForm.getByLabel('任务标题').fill('复核合成 Runtime 验收证据')
   await runtimeForm.getByLabel('优先级').selectOption('high')
@@ -238,8 +257,11 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await candidateCard.getByRole('button', { name: '批准范围' }).click()
   await expect(page.getByText('候选已批准，但仍未写入项目；请再次选择应用。')).toBeVisible()
   candidateCard = page.getByRole('article').filter({ hasText: '复核合成 Runtime 验收证据' })
-  await candidateCard.getByRole('button', { name: '应用为项目任务' }).click()
-  await expect(page.getByText('候选已通过审批范围复核，并作为项目任务写入一次。')).toBeVisible()
+  await candidateCard.getByRole('button', { name: '应用为任务' }).click()
+  await expect(page.getByText('候选已通过审批范围复核，并作为对应业务对象写入一次。')).toBeVisible()
+  candidateCard = page.getByRole('article').filter({ hasText: '复核合成 Runtime 验收证据' })
+  await candidateCard.getByRole('button', { name: '安全撤销' }).click()
+  await expect(page.getByText('刚应用且未发生后续变更的对象已安全撤销，审计记录继续保留。')).toBeVisible()
   await page.screenshot({ path: resolve(screenshotRoot, 'runtime-center-desktop.png'), fullPage: true })
 
   await page.setViewportSize({ width: 390, height: 844 })
@@ -257,6 +279,25 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await expect(page.getByRole('heading', { name: '个人上下文知识库' })).toBeVisible()
   await expect(page.locator('.context-results article').filter({ hasText: '合成上下文证据包' })).toBeVisible()
 
+  const sourceCard = page.locator('.context-source-list article').filter({ hasText: '合成上下文证据包' })
+  await sourceCard.getByLabel('创建新版本').setInputFiles({
+    name: 'synthetic-context-evidence-v2.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from('# 合成上下文证据包\n\n完全虚构的受控证据已更新，用于验证不可变来源版本。'),
+  })
+  await expect(page.getByText(/已创建不可变版本 v2/)).toBeVisible()
+  await sourceCard.getByRole('button', { name: '归档' }).click()
+  await expect(page.getByText(/来源已归档并从检索中隐藏/)).toBeVisible()
+  await page.locator('.context-source-list article').filter({ hasText: '合成上下文证据包' }).getByRole('button', { name: '恢复' }).click()
+  await expect(page.getByText(/来源已恢复并重新加入授权检索/)).toBeVisible()
+
+  await page.goto('/system')
+  await expect(page.getByRole('heading', { name: '本地备份与恢复' })).toBeVisible()
+  await page.getByRole('button', { name: '创建一致性备份' }).click()
+  await expect(page.getByText('一致性备份已完成，并已校验数据库与来源文件摘要。')).toBeVisible()
+  await page.getByRole('button', { name: '重新校验' }).first().click()
+  await expect(page.getByText('备份完整性校验通过。')).toBeVisible()
+
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.goto('/douyin')
   await expect(page.getByRole('heading', { name: '抖音数据' })).toBeVisible()
@@ -273,6 +314,73 @@ test('create, persist and manage synthetic project work items on desktop and mob
   await expect(page.locator('.sidebar__nav-item--child')).toHaveText(/抖音数据/)
   await page.waitForTimeout(450)
   await page.screenshot({ path: resolve(screenshotRoot, 'media-data-mobile.png') })
+
+  await page.keyboard.press('Escape')
+  for (const width of [390, 768, 900]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/')
+    const mobileNavigation = page.getByRole('navigation', { name: '移动端主要导航' })
+    await expect(mobileNavigation).toBeVisible()
+    await expect(mobileNavigation.getByRole('link', { name: '今日', exact: true })).toBeVisible()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+    const targets = await page.locator('.mobile-header button, .mobile-bottom-nav a').evaluateAll((elements) =>
+      elements.filter((element) => element.getClientRects().length > 0).map((element) => {
+        const box = element.getBoundingClientRect()
+        return { width: box.width, height: box.height }
+      }),
+    )
+    expect(targets.length).toBeGreaterThan(0)
+    for (const target of targets) {
+      expect(target.width).toBeGreaterThanOrEqual(44)
+      expect(target.height).toBeGreaterThanOrEqual(44)
+    }
+    const undersizedText = await page.locator('body *').evaluateAll((elements) => elements.flatMap((element) => {
+      const ownText = [...element.childNodes]
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .map((node) => node.textContent.trim())
+        .join(' ')
+      if (!ownText) return []
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      const inViewport = rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth
+      if (!inViewport || style.visibility === 'hidden' || style.display === 'none' || Number.parseFloat(style.fontSize) >= 12) return []
+      return [{ tag: element.tagName, className: element.className, text: ownText.slice(0, 40), fontSize: style.fontSize }]
+    }))
+    expect(undersizedText).toEqual([])
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.reload()
+  const skipLink = page.getByRole('link', { name: '跳到主要内容' })
+  if (browserName === 'webkit') await skipLink.focus()
+  else await page.keyboard.press('Tab')
+  await expect(skipLink).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#main-content')).toBeFocused()
+  const menu = page.getByRole('button', { name: '打开导航' })
+  await menu.click()
+  const navigationDialog = page.getByRole('dialog', { name: '完整导航' })
+  await expect(navigationDialog).toBeVisible()
+  await expect(navigationDialog.locator('a[href]').first()).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(navigationDialog.locator('a[href], button:not([disabled])').last()).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(navigationDialog).toBeHidden()
+  await expect(menu).toBeFocused()
+
+  await page.goto('/inbox')
+  await expect(page.getByRole('heading', { name: '通用收件箱' })).toBeVisible()
+  await page.context().setOffline(true)
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')))
+  await page.getByLabel('标题').fill('虚构离线草稿')
+  await page.getByLabel('内容').fill('仅用于 P1 浏览器验收的虚构内容。')
+  await page.getByRole('button', { name: '放入收件箱' }).click()
+  await expect(page.locator('.capture-notice')).toContainText('本机草稿')
+  const localDraft = await page.evaluate(() => JSON.parse(localStorage.getItem('ddup.capture-draft.v1')))
+  expect(localDraft.title).toBe('虚构离线草稿')
+  await page.context().setOffline(false)
 
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.goto('/prototype')

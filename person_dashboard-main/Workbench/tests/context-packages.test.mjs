@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -99,14 +100,37 @@ test('explicit package persists a fixed document range and records only referenc
   assert.equal(data.version, 2)
   assert.equal(data.items.length, 1)
   assert.equal(data.items[0].included, true)
-  assert.equal(data.items[0].locator.quote, '上下文篮')
+  assert.match(data.items[0].locator.quote, /上下文篮/)
+  assert.equal(data.items[0].citation.eligible, true)
+  assert.equal(data.items[0].citation.kind, 'source_citation')
+  assert.equal(data.items[0].citation.locator.source_id, hit.source_id)
+  assert.equal(data.items[0].citation.locator.source_version_id, hit.locator.source_version_id)
+  assert.equal(data.items[0].citation.locator.document_id, hit.object_id)
+  assert.equal(data.items[0].citation.locator.locator_type, 'char_range')
+  assert.equal(data.items[0].citation.locator.start_char, hit.locator.start)
+  assert.equal(data.items[0].citation.locator.end_char, hit.locator.end)
+  assert.equal(
+    data.items[0].citation.locator.text_sha256,
+    createHash('sha256').update(data.items[0].locator.quote).digest('hex'),
+  )
   assert.equal(data.resolution.included_count, 1)
+  assert.deepEqual(data.evidence, {
+    citation_count: 1,
+    related_object_count: 0,
+    excluded_count: 0,
+    answer_readiness: {
+      state: 'citation_manifest_ready',
+      generation_enabled: false,
+      reason: '已形成固定来源版本的引用清单；生成式回答仍保持关闭。',
+    },
+  })
 
   const database = new DatabaseSync(f.databasePath)
   try {
     const stored = database.prepare('SELECT * FROM context_package_items').get()
     assert.equal('quote' in stored, false)
     assert.equal('body_text' in stored, false)
+    assert.equal('text_sha256' in stored, false)
     assert.equal(database.prepare("SELECT count(*) AS count FROM audit_events WHERE action IN ('context_package.create', 'context_package.item.add')").get().count, 2)
     assert.equal(database.prepare("SELECT count(*) AS count FROM outbox_events WHERE aggregate_type = 'context_package'").get().count, 2)
   } finally {
@@ -170,6 +194,8 @@ test('forged locators, unavailable objects and expired packages fail without dur
   })
   assert.equal(expired.statusCode, 200, expired.body)
   assert.equal(expired.json().data.effective_status, 'expired')
+  assert.equal(expired.json().data.evidence.answer_readiness.state, 'package_expired')
+  assert.equal(expired.json().data.evidence.answer_readiness.generation_enabled, false)
   const afterExpiry = await f.app.inject({
     method: 'POST', url: `/api/v1/context/packages/${contextPackage.id}/items`, headers: f.writeHeaders('package-expired-add-0000000001', 1),
     payload: addPayload(f.spaceId, hit),
@@ -201,13 +227,51 @@ test('remove and archive are versioned, replay-safe, and archived packages resol
   assert.equal(replay.json().meta.idempotency_replayed, true)
   assert.equal(removed.json().data.version, 3)
 
+  const readded = await f.app.inject({
+    method: 'POST', url: `/api/v1/context/packages/${contextPackage.id}/items`,
+    headers: f.writeHeaders('package-readd-before-archive-0001', 3), payload: addPayload(f.spaceId, hit),
+  })
+  assert.equal(readded.statusCode, 200, readded.body)
+  assert.equal(readded.json().data.version, 4)
+
   const archived = await f.app.inject({
-    method: 'POST', url: `/api/v1/context/packages/${contextPackage.id}/transitions`, headers: f.writeHeaders('package-archive-000000000001', 3),
+    method: 'POST', url: `/api/v1/context/packages/${contextPackage.id}/transitions`, headers: f.writeHeaders('package-archive-000000000001', 4),
     payload: { space_id: f.spaceId, action: 'archive' },
   })
   assert.equal(archived.statusCode, 200, archived.body)
   assert.equal(archived.json().data.effective_status, 'archived')
   assert.equal(archived.json().data.resolution.included_count, 0)
+  assert.equal(archived.json().data.items[0].citation.eligible, false)
+  assert.equal(archived.json().data.items[0].citation.locator, null)
+  assert.equal(archived.json().data.evidence.citation_count, 0)
+  assert.equal(archived.json().data.evidence.answer_readiness.state, 'package_archived')
+})
+
+test('empty packages expose deterministic no-evidence refusal readiness without creating answers or citations', async (t) => {
+  const f = await fixture(t)
+  const contextPackage = await createPackage(f)
+  const response = await f.app.inject({
+    method: 'GET', url: `/api/v1/context/packages/${contextPackage.id}?space_id=${f.spaceId}`, headers: headers({ cookie: f.cookie }),
+  })
+  assert.equal(response.statusCode, 200, response.body)
+  assert.deepEqual(response.json().data.evidence, {
+    citation_count: 0,
+    related_object_count: 0,
+    excluded_count: 0,
+    answer_readiness: {
+      state: 'refused_no_citable_evidence',
+      generation_enabled: false,
+      reason: '当前范围没有固定 SourceVersion 的原文证据；事实回答必须拒绝。',
+    },
+  })
+
+  const database = new DatabaseSync(f.databasePath)
+  try {
+    assert.equal(database.prepare('SELECT count(*) AS count FROM answers').get().count, 0)
+    assert.equal(database.prepare('SELECT count(*) AS count FROM answer_citations').get().count, 0)
+  } finally {
+    database.close()
+  }
 })
 
 test('context packages survive a service restart without persisting resolved body copies', async (t) => {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   IconBrandTiktok,
   IconBrain,
@@ -55,25 +55,102 @@ const mediaNavigation = [
   { to: "/douyin", label: "抖音数据", icon: IconBrandTiktok },
 ];
 
+const mobileNavigation = [
+  { to: "/", label: "今日", icon: IconHome, end: true },
+  { to: "/projects", label: "项目", icon: IconBriefcase2 },
+  { to: "/inbox", label: "捕获", icon: IconInbox },
+  { to: "/runtime", label: "问 AI", icon: IconRobot },
+  { to: "/context", label: "知识", icon: IconBrain },
+];
+
 export function AppShell({ children, onOpenSearch, sync }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileLayout, setMobileLayout] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches,
+  );
+  const [networkNotice, setNetworkNotice] = useState(() =>
+    typeof navigator !== "undefined" && !navigator.onLine
+      ? "当前离线：可继续浏览已加载页面和编辑本机草稿，提交操作会等待你恢复网络后手动重试。"
+      : "",
+  );
+  const asideRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const mainRef = useRef(null);
+  const previousPathRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => setMobileLayout(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setMobileOpen(false);
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...asideRef.current.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) => !element.hidden && element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+    asideRef.current?.querySelector('a[href], button:not([disabled])')?.focus();
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+    if (previousPathRef.current && previousPathRef.current !== location.pathname) {
+      mainRef.current?.focus();
+    }
+    previousPathRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    let clearRecovered;
+    const offline = () => setNetworkNotice("当前离线：可继续浏览已加载页面和编辑本机草稿，提交操作会等待你恢复网络后手动重试。");
+    const online = () => {
+      setNetworkNotice("网络已恢复。请检查本机草稿后手动提交，系统不会自动重放写操作。");
+      clearRecovered = window.setTimeout(() => setNetworkNotice(""), 6000);
+    };
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    return () => {
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
+      window.clearTimeout(clearRecovered);
+    };
+  }, []);
+
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">跳到主要内容</a>
+      {networkNotice ? <div aria-live="polite" className="network-notice" role="status">{networkNotice}</div> : null}
       <header className="mobile-header">
         <button
+          aria-controls="workbench-navigation"
+          aria-expanded={mobileOpen}
           aria-label="打开导航"
           className="icon-button"
           onClick={() => setMobileOpen(true)}
+          ref={menuButtonRef}
           type="button"
         >
           <IconMenu2 aria-hidden="true" />
@@ -101,7 +178,16 @@ export function AppShell({ children, onOpenSearch, sync }) {
         />
       ) : null}
 
-      <aside className={`sidebar${mobileOpen ? " sidebar--open" : ""}`}>
+      <aside
+        aria-hidden={mobileLayout && !mobileOpen ? "true" : undefined}
+        aria-label={mobileOpen ? "完整导航" : undefined}
+        aria-modal={mobileOpen ? "true" : undefined}
+        className={`sidebar${mobileOpen ? " sidebar--open" : ""}`}
+        id="workbench-navigation"
+        inert={mobileLayout && !mobileOpen ? "" : undefined}
+        ref={asideRef}
+        role={mobileOpen ? "dialog" : undefined}
+      >
         <div className="sidebar__top">
           <div className="sidebar__brand-row">
             <NavLink className="sidebar__brand" onClick={() => setMobileOpen(false)} to="/">
@@ -180,7 +266,26 @@ export function AppShell({ children, onOpenSearch, sync }) {
         </div>
       </aside>
 
-      <main className="app-main">{children}</main>
+      <main className="app-main" id="main-content" ref={mainRef} tabIndex="-1">{children}</main>
+
+      {localWorkbench ? (
+        <nav aria-label="移动端主要导航" className="mobile-bottom-nav">
+          {mobileNavigation.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                className={({ isActive }) => `mobile-bottom-nav__item${isActive ? " mobile-bottom-nav__item--active" : ""}`}
+                end={item.end}
+                key={item.to}
+                to={item.to}
+              >
+                <Icon aria-hidden="true" stroke={1.8} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      ) : null}
 
       <button
         aria-label="打开全局搜索"

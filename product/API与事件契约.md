@@ -1,11 +1,11 @@
 # 个人上下文智能工作台：API 与事件契约
 
-> 版本：V1.5  
-> 日期：2026-08-25  
+> 版本：V1.11
+> 日期：2026-09-07
 > 状态：正式设计基线；G3 已确认  
 > 范围：MVP 本机单用户、REST JSON + SSE、`/api/v1`  
 > 真源关系：对象语义见《领域模型与数据字典》，授权见《权限安全与审计设计》  
-> 实现状态：基础会话/安全、Project/Milestone/Task、人工讨论转决策、文本/链接 Capture、DailyPlan/DailyReview、受控 Markdown Source/Document 与权限优先全文检索已实现并进入 OpenAPI；其余领域仍为设计契约，不得称为生产可用
+> 实现状态：基础会话/安全、核心业务对象、Markdown Source 生命周期、权限优先检索、ContextPackage/AnswerAttempt、本地保守直接引文 Answer/Claim/Citation、三类 Candidate 治理、低敏审计与本地备份恢复已进入 OpenAPI 1.18.0；开放式改写/推理回答、通用 NLI、外部动作和在线覆盖恢复仍未实现
 
 ## 1. 契约目标
 
@@ -228,7 +228,7 @@ Cookie、CSRF、Origin 和 Host 的具体生成/校验属于服务安全实现�
 
 #### 7.1.1 当前同步 Markdown 切片
 
-OpenAPI（当前版本 1.9.0）已实现 `POST /api/v1/sources/imports/markdown`：浏览器只提交明确选择的 `.md/.markdown` 文件名与正文，不提交本地路径；服务端在 1 MiB 上限内规范化并同步完成内容哈希存储、Source/SourceVersion/Document 与 FTS 索引，因此成功返回 `201`。相同内容在同空间/项目范围内去重；数据库失败会回滚记录并补偿删除本次新建且未引用的 blob。其他格式、异步 Job、重试解析和 Source 生命周期端点仍是后续设计，不得由该同步切片外推。
+OpenAPI（当前版本 1.16.0）已实现 `POST /api/v1/sources/imports/markdown`：浏览器只提交明确选择的 `.md/.markdown` 文件名与正文，不提交本地路径；服务端在 1 MiB 上限内规范化并同步完成内容哈希存储、Source/SourceVersion/Document 与 FTS 索引，因此成功返回 `201`。相同内容在同空间/项目范围内去重；数据库失败会回滚记录并补偿删除本次新建且未引用的 blob。其他格式、异步 Job、重试解析和 Source 生命周期端点仍是后续设计，不得由该同步切片外推。
 
 ### 7.2 Knowledge 与 Citation
 
@@ -247,11 +247,14 @@ OpenAPI（当前版本 1.9.0）已实现 `POST /api/v1/sources/imports/markdown`
 | POST | `/api/v1/context/search` | 权限先于正文；返回命中、引用定位和 scope explanation |
 | POST | `/api/v1/context/packages` | 创建有过期时间的最小上下文 manifest |
 | GET | `/api/v1/context/packages/{id}` | 仅返回当前仍可访问的 manifest 摘要 |
+| GET/POST | `/api/v1/context/answer-attempts` | 列表或创建持久化回答前安全检查；不生成答案 |
+| GET | `/api/v1/context/answer-attempts/{id}` | 读取固定上下文版本、拒答原因和引用快照 |
+| POST | `/api/v1/context/answer-attempts/{id}/validate-draft` | 不保存候选句的提取式逐句预检；不是语义蕴含或事实验证 |
 | POST | `/api/v1/context/answers` | 创建 Native RAG Run；返回 `202` + `run_id` |
 
 #### 7.3.1 当前显式 ContextPackage 切片
 
-OpenAPI 1.7.0 已实现以下回环 API：
+OpenAPI 1.17.0 已实现以下回环 API：
 
 | Method | Path | 当前行为 |
 |---|---|---|
@@ -261,7 +264,21 @@ OpenAPI 1.7.0 已实现以下回环 API：
 | DELETE | `/api/v1/context/packages/{packageId}/items/{itemId}` | 只移除包引用，不删除业务对象 |
 | POST | `/api/v1/context/packages/{packageId}/transitions` | 当前只支持 `archive`；归档包不再解析正文 |
 
-创建/加入/移除/归档要求 `Idempotency-Key`；修改和归档还要求 `If-Match`。包项只持久化 ID、类型与定位，不持久化 title/quote/body。过期、归档、对象缺失或 SourceVersion 漂移会在读取时排除。本切片不调用 Answer 或 Runtime。
+创建/加入/移除/归档要求 `Idempotency-Key`；修改和归档还要求 `If-Match`。包项只持久化 ID、类型与定位，不持久化 title/quote/body。过期、归档、对象缺失或 SourceVersion 漂移会在读取时排除。读取详情时为有效 Document 范围派生 `source_id + source_version_id + document_id + char_range + text_sha256` Citation Manifest；Project/Task/Capture 只能标为相关对象。响应同时返回 `answer_readiness`：无可引用证据时为 `refused_no_citable_evidence`，有证据时为 `citation_manifest_ready`，但 `generation_enabled` 恒为 `false`。本切片不创建 Citation/Answer，不调用模型或 Runtime。
+
+#### 7.3.2 当前 AnswerAttempt 安全检查切片
+
+`POST /api/v1/context/answer-attempts` 要求 `space_id + context_package_id + context_package_version + question` 与 Idempotency-Key。服务端在同一事务内重新授权并解析 ContextPackage：版本变化返回 `VERSION_CONFLICT`，过期/归档返回 `INVALID_STATE_TRANSITION`，不可访问空间统一返回 `OBJECT_NOT_AVAILABLE`。
+
+问题先经过确定性危险意图检查。危险意图持久化 `refused_unsafe_intent`，无可引用 Document 时持久化 `refused_no_citable_evidence`；两者都不保存引用快照。有证据时只保存 `evidence_ready`，其 `answer_attempt_citations` 固定 Source、SourceVersion、Document、字符范围和正文 SHA-256，不复制 quote/body。所有状态的 `generation_enabled=false`，响应不存在答案正文字段，也不调用模型、Runtime 或外部服务。`GET /api/v1/context/answer-attempts` 和 `GET /api/v1/context/answer-attempts/{id}` 只在授权空间内读取这些安全记录。
+
+只有用户明确选入的固定原文范围会进入证据安全检查。确定性规则识别指令覆盖、角色冒充、敏感信息索取和外部外泄模式；命中时沿用拒答状态并使用 `UNSAFE_EVIDENCE_*` 原因码，`safety.scope=evidence`，不保存引用快照、不回显命中片段，也不扫描上下文篮外正文。
+
+列表、单条读取和幂等重放会按快照中的精确 Source/SourceVersion/Document、半开字符范围和 `text_sha256` 重新复核。响应中的 `integrity.state` 为 `verified/invalid/not_applicable`，每条引用附 `verified/source_unavailable/range_invalid/hash_mismatch`；任何失效都只报告当前完整性并要求后续生成失败关闭，不改写历史状态、不新增审计事件，也不返回原文。
+
+响应同时派生 `generation_gate`，按 `blocked_refusal → blocked_integrity → blocked_model_unavailable` 的优先级失败关闭。当前没有获准的回答 Runtime/Profile，因而即使证据通过也只返回 `ANSWER_RUNTIME_UNAVAILABLE`、`available=false` 和空运行时标识；该投影不是健康探测，不创建 Run、Answer、Citation 或审计写入。
+
+`POST /api/v1/context/answer-attempts/{id}/validate-draft` 是独立的无持久化提取式预检。服务端先重新授权 AnswerAttempt 并复核全部固定引用；拒答记录返回 `blocked_refusal`，引用漂移返回 `blocked_integrity`。通过前置门后，每条候选句只能在其显式引用序号对应的固定字符范围内做连续原文包含检查。响应不回显候选句或来源正文，只返回序号、布尔结果、原因码和命中的引用序号，并固定声明 `semantic_entailment=false`、`persistence_enabled=false`、`generation_enabled=false`。重复请求结果一致且不新增 AnswerAttempt、Audit 或 Outbox；改写、概括、推断、跨引用组合和事实真伪均不在当前能力范围。
 
 搜索请求：
 
@@ -482,10 +499,14 @@ Workbench/shared/contracts/
 - migration 006 已建立 Source/SourceVersion/Document 与可重建 `context_search` FTS5 trigram 索引；项目、任务、Capture 和 Document 通过数据库触发器保持统一检索投影；
 - `/api/v1/sources`、`/sources/imports/markdown` 与 `POST /api/v1/context/search` 已实现，项目/类型/日期/空间过滤在标题、片段与定位返回前执行；短于 3 字符的查询使用有界 LIKE 回退；
 - Document 命中返回固定 `source_version_id` 与字符范围/短摘录；该定位是引用基础，不等于已实现 Citation 或引用问答；
+- ContextPackage 详情已派生 Citation Manifest，逐项区分 `source_citation/object_locator/excluded`，原文引用绑定 Source、SourceVersion、Document、字符范围和片段 SHA-256；Manifest 不落库，空篮或只有业务对象时明确返回无证据拒答就绪状态，生成式能力始终关闭；
+- migration 011/013 与 `/api/v1/context/answer-attempts*` 已实现持久化回答前安全检查及最终 Answer/Claim/Citation：默认本地 `local-extractive-v1` 只允许固定原文中的直接引文声明；每条声明在写入前通过保守蕴含校验，最终引用绑定 SourceVersion/Document/字符范围/SHA-256；无证据、危险问题、来源不可信指令、越界引用和不支持推断整份失败关闭；读取时漂移或归档会隐藏回答正文；
 - G5b 后，`POST /api/v1/context/search` 增加向后兼容的 `hybrid` 状态：默认 `disabled`；实验模式把权限过滤后的 Document 稳定 chunks 发送给 token 保护的回环 sidecar，并在危险意图、无合格证据、派生投影损坏、超时或模型不可用时拒绝或回退 FTS；
 - dense 命中返回固定 `source_version_id + start/end + quote`；chunk ID 绑定 SourceVersion、Document、字符范围、处理版本和正文哈希，同一文档的多个 dense chunk 只保留最高名次；
 - synthetic calibration/blind 把实验阈值从无有效召回的 `0.72` 修正为 `0.50`，但总开关和生成式回答仍关闭；该分值不是通用置信度；
 - sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；单模型槽忙时 `/rank` 返回 `503 {"error":"runtime_busy"}`，Workbench 视为可恢复运行时故障并回退已授权 FTS；查询结果不生成 Answer，也不写知识真源；
-- OpenAPI 已同步至 1.6.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
+- Source 已支持 Markdown 不可变新版本、归档/恢复和精确原文范围读取；候选已扩展至 Task/Knowledge/Decision，提供预览、类型绑定审批、应用与无后续变更时的安全撤销；低敏审计查询进入正式 UI；
+- 本地备份 API 已支持 SQLite 在线快照、受控来源文件、manifest 摘要和复核；恢复通过停机 CLI 只写空目录；
+- OpenAPI 已同步至 1.18.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 
-尚未实现：Markdown 新版本/归档、其他文件/图片/语音导入、链接抓取、KnowledgeItem/Citation/Answer、动态 Context ScopeRule、重排、AI Decision Candidate、Runtime 私有 resume/steer、备份恢复 API 和完整审计 UI。Task Candidate Run/Approval 与 Runtime SSE 已实现首版；受保护混合检索仅为默认关闭的实验路径，不等于引用问答或生产向量服务。
+尚未实现：开放式改写/推理回答与通用 NLI 评测、Markdown/XLSX 之外的文件/图片/语音导入、链接抓取、动态 Context ScopeRule、重排、Runtime 私有 resume/steer 和跨设备在线恢复。当前保守回答只构造经原文包含验证的直接引文，不等于通用事实核验；受保护混合检索仍是默认关闭的实验路径。

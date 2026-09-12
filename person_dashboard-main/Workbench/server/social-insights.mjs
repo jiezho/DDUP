@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import matter from "gray-matter";
+import { parseSafeFrontmatter as matter } from "./safe-frontmatter.mjs";
 import { toString } from "mdast-util-to-string";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";

@@ -17,9 +17,36 @@ export const TaskCandidateProposalSchema = z.object({
   due_date: LocalDateSchema,
 }).strict()
 
+export const KnowledgeCandidateProposalSchema = z.object({
+  project_id: UuidV7Schema,
+  title: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(20_000),
+  source_refs: z.array(z.object({
+    source_id: UuidV7Schema,
+    source_version_id: UuidV7Schema,
+    document_id: UuidV7Schema,
+    start_char: z.number().int().min(0),
+    end_char: z.number().int().positive(),
+  }).strict()).min(1).max(20),
+}).strict()
+
+export const DecisionCandidateProposalSchema = z.object({
+  project_id: UuidV7Schema,
+  title: z.string().trim().min(1).max(200),
+  statement: z.string().trim().min(1).max(20_000),
+  rationale: z.string().trim().max(20_000).default(''),
+}).strict()
+
+export const CANDIDATE_PROPOSAL_SCHEMAS = Object.freeze({
+  task: TaskCandidateProposalSchema,
+  knowledge: KnowledgeCandidateProposalSchema,
+  decision: DecisionCandidateProposalSchema,
+})
+
 export const CandidateListQuerySchema = z.object({
   space_id: UuidV7Schema,
-  status: z.enum(['pending', 'approved', 'rejected', 'applied', 'failed']).optional(),
+  status: z.enum(['pending', 'approved', 'rejected', 'applied', 'failed', 'reverted']).optional(),
+  candidate_type: z.enum(['task', 'knowledge', 'decision']).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 }).strict()
 
@@ -27,7 +54,7 @@ export const CandidateSpaceQuerySchema = z.object({ space_id: UuidV7Schema }).st
 
 export const ApprovalRequestSchema = z.object({
   space_id: UuidV7Schema,
-  reason_code: z.enum(['apply_task_candidate']).default('apply_task_candidate'),
+  reason_code: z.enum(['apply_task_candidate', 'apply_knowledge_candidate', 'apply_decision_candidate']),
 }).strict()
 
 export const ApprovalListQuerySchema = z.object({
@@ -44,4 +71,15 @@ export const ApprovalResolveSchema = z.object({
 export const CandidateApplySchema = z.object({
   space_id: UuidV7Schema,
   approval_id: UuidV7Schema,
+}).strict()
+
+export const CandidateRevertSchema = z.object({
+  space_id: UuidV7Schema,
+  reason: z.enum(['owner_requested', 'incorrect_candidate', 'superseded']).default('owner_requested'),
+}).strict()
+
+export const GovernanceAuditQuerySchema = z.object({
+  space_id: UuidV7Schema,
+  action: z.string().trim().min(1).max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
 }).strict()

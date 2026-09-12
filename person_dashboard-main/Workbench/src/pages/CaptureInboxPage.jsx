@@ -13,6 +13,23 @@ import { PageHeader } from "../components/PageHeader";
 import { createCapture, loadCaptureInbox, transitionCapture } from "../lib/projects-api";
 
 const statusLabels = { inbox: "待整理", processed: "已处理", archived: "已归档" };
+const draftStorageKey = "ddup.capture-draft.v1";
+
+function loadLocalDraft() {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(draftStorageKey) || "null");
+    if (!value || typeof value !== "object") return null;
+    return {
+      kind: value.kind === "link" ? "link" : "text",
+      title: typeof value.title === "string" ? value.title.slice(0, 200) : "",
+      body: typeof value.body === "string" ? value.body.slice(0, 20000) : "",
+      url: typeof value.url === "string" ? value.url.slice(0, 2048) : "",
+      projectId: typeof value.projectId === "string" ? value.projectId.slice(0, 100) : "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 function safeError(error) {
   if (error?.code === "VERSION_CONFLICT") return "条目已被更新，请刷新后重试。";
@@ -20,13 +37,15 @@ function safeError(error) {
 }
 
 export function CaptureInboxPage() {
+  const initialDraft = useMemo(loadLocalDraft, []);
+  const [recoveredDraft, setRecoveredDraft] = useState(Boolean(initialDraft));
   const [view, setView] = useState("inbox");
   const [state, setState] = useState({ status: "loading", space: null, projects: [], captures: [], error: null });
-  const [kind, setKind] = useState("text");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [url, setUrl] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [kind, setKind] = useState(initialDraft?.kind || "text");
+  const [title, setTitle] = useState(initialDraft?.title || "");
+  const [body, setBody] = useState(initialDraft?.body || "");
+  const [url, setUrl] = useState(initialDraft?.url || "");
+  const [projectId, setProjectId] = useState(initialDraft?.projectId || "");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -42,6 +61,15 @@ export function CaptureInboxPage() {
 
   useEffect(() => { void load(view); }, [view]);
 
+  useEffect(() => {
+    const draft = { kind, title, body, url, projectId };
+    if (![title, body, url, projectId].some((value) => value.trim())) {
+      window.localStorage.removeItem(draftStorageKey);
+      return;
+    }
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+  }, [body, kind, projectId, title, url]);
+
   const activeProjects = useMemo(
     () => state.projects.filter((project) => !["completed", "archived"].includes(project.status)),
     [state.projects],
@@ -49,6 +77,14 @@ export function CaptureInboxPage() {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (!navigator.onLine) {
+      setNotice("当前离线：内容已保存在这台设备的本机草稿中。恢复网络后请检查并手动提交。");
+      return;
+    }
+    if (!state.space) {
+      setNotice("本地工作台尚未连接；内容已保存在本机草稿中，请稍后重试。");
+      return;
+    }
     setBusy(true);
     setNotice("");
     try {
@@ -62,6 +98,9 @@ export function CaptureInboxPage() {
       setTitle("");
       setBody("");
       setUrl("");
+      setProjectId("");
+      setRecoveredDraft(false);
+      window.localStorage.removeItem(draftStorageKey);
       setNotice("已进入本地收件箱；不会自动调用 AI、抓取网页或写入长期知识。");
       if (view !== "inbox") setView("inbox");
       else await load("inbox");
@@ -100,7 +139,8 @@ export function CaptureInboxPage() {
         </form>
       </section>
 
-      {notice ? <p aria-live="polite" className="capture-notice">{notice}</p> : null}
+      {recoveredDraft ? <p className="capture-draft-note">已恢复这台设备上的未提交草稿。草稿不会自动同步或提交。</p> : null}
+      {notice ? <p aria-live="polite" className="capture-notice" role="status">{notice}</p> : null}
       <section aria-label="收件箱条目" className="capture-inbox">
         <header><div><span>INBOX QUEUE</span><h2>捕获条目</h2></div><div className="capture-tabs" role="tablist" aria-label="收件箱状态">{Object.entries(statusLabels).map(([value, label]) => <button aria-selected={view === value} key={value} onClick={() => setView(value)} role="tab" type="button">{label}</button>)}</div></header>
         {state.status === "loading" ? <div className="capture-state"><span className="project-spinner" />正在读取本地收件箱…</div> : null}

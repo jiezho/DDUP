@@ -173,6 +173,67 @@ test('a database failure rolls back source records and compensates the newly wri
   assert.equal(files.length, 0)
 })
 
+test('source versions, exact range reads, archive and restore preserve immutable history', async (t) => {
+  const f = await fixture(t)
+  const imported = await f.app.inject({
+    method: 'POST', url: '/api/v1/sources/imports/markdown',
+    headers: f.writeHeaders('source-lifecycle-import-000001'),
+    payload: importPayload(f.spaceId, null, '# 合成生命周期\n\n第一版固定证据。'),
+  })
+  const first = imported.json().data.source
+  const updated = await f.app.inject({
+    method: 'POST', url: `/api/v1/sources/${first.id}/versions`,
+    headers: f.writeHeaders('source-lifecycle-update-000001', first.version),
+    payload: { space_id: f.spaceId, filename: 'synthetic-evidence-v2.md', content: '# 合成生命周期\n\n第二版固定证据可被准确定位。' },
+  })
+  assert.equal(updated.statusCode, 201, updated.body)
+  const second = updated.json().data.source
+  assert.equal(second.current_version_number, 2)
+  assert.equal(second.version, 2)
+
+  const search = await searchRequest(f, { space_id: f.spaceId, q: '第二版固定证据', types: ['document'] })
+  const hit = search.json().data.items[0]
+  const range = await f.app.inject({
+    method: 'GET',
+    url: `/api/v1/sources/${second.id}/range?${new URLSearchParams({
+      space_id: f.spaceId,
+      source_version_id: second.source_version_id,
+      start_char: String(hit.locator.start),
+      end_char: String(hit.locator.end),
+    })}`,
+    headers: headers({ cookie: f.cookie }),
+  })
+  assert.equal(range.statusCode, 200, range.body)
+  assert.match(range.json().data.text, /第二版固定证据可被准确定位/)
+  assert.equal(range.body.includes(f.sourceStoragePath), false)
+
+  const archived = await f.app.inject({
+    method: 'POST', url: `/api/v1/sources/${second.id}/transitions`,
+    headers: f.writeHeaders('source-lifecycle-archive-00001', second.version),
+    payload: { space_id: f.spaceId, action: 'archive' },
+  })
+  assert.equal(archived.statusCode, 200, archived.body)
+  assert.equal(archived.json().data.status, 'archived')
+  assert.equal((await searchRequest(f, { space_id: f.spaceId, q: '第二版固定证据', types: ['document'] })).json().data.items.length, 0)
+
+  const restored = await f.app.inject({
+    method: 'POST', url: `/api/v1/sources/${second.id}/transitions`,
+    headers: f.writeHeaders('source-lifecycle-restore-00001', archived.json().data.version),
+    payload: { space_id: f.spaceId, action: 'restore' },
+  })
+  assert.equal(restored.statusCode, 200, restored.body)
+  assert.equal(restored.json().data.status, 'ready')
+  assert.equal((await searchRequest(f, { space_id: f.spaceId, q: '第二版固定证据', types: ['document'] })).json().data.items.length, 1)
+
+  const database = new DatabaseSync(f.databasePath)
+  try {
+    assert.deepEqual(database.prepare('SELECT version_number FROM source_versions WHERE source_id = ? ORDER BY version_number').all(first.id).map((row) => row.version_number), [1, 2])
+    assert.equal(database.prepare("SELECT count(*) AS count FROM audit_events WHERE action IN ('source.version.create', 'source.archive', 'source.restore')").get().count, 3)
+  } finally {
+    database.close()
+  }
+})
+
 test('unified search indexes projects, tasks, captures and documents with scope/type/date filters applied before output', async (t) => {
   const f = await fixture(t)
   const project = await f.createProject('合成统一检索项目')

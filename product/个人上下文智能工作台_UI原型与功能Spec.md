@@ -1,8 +1,8 @@
 # 个人上下文智能工作台：UI 原型与功能 Spec
 
-> 文档版本：V1.2  
+> 文档版本：V1.8
 > 原型版本：Prototype 0.2  
-> 日期：2026-08-25  
+> 日期：2026-09-07
 > 文档状态：可进入产品评审与研发拆分  
 > 上位文档：`个人上下文智能工作台_需求分析与产品设计.md`
 > 运行时决策：`Agent运行时融合方案_DeepSeek_Harness与Hermes.md`
@@ -338,15 +338,24 @@ stateDiagram-v2
 
 ### 4.4 P-CONTEXT 个人上下文知识库
 
-#### 当前实现状态（2026-08-27）
+#### 当前实现状态（2026-09-07）
 
 - 正式页面 `/context` 已落地，不再仅是 `/prototype` 中的静态演示；
 - 当前支持受控虚构 Markdown 导入、Source/SourceVersion/Document 版本对象、来源列表和 Project/Task/Capture/Document 统一全文检索；
 - 搜索先限定当前会话可访问的空间，再组合项目、对象类型和日期过滤；Document 命中固定到 `source_version_id + char_range`；
 - 已实现显式 ContextPackage：用户先填写名称、用途和可选有效期，再从授权检索结果逐项加入；文档项锁定 SourceVersion 和字符范围，其他项只保存对象引用；
 - 上下文篮创建、加入、移除和归档均有版本锁、幂等、Audit/Outbox；过期、归档、缺失或版本漂移项保持排除，不返回正文；
+- 上下文篮详情现显示 Citation Manifest 就绪状态：Document 固定范围标为“可作为证据引用”，Project/Task/Capture 标为“仅作为相关对象”，失效项保持排除；空篮或没有 Document 证据时明确提示必须拒绝事实回答；
+- Manifest 只在读取时派生并校验正文片段 SHA-256；上下文篮自身不会自动生成回答；
+- 已实现“回答与引用安全检查”：用户输入问题后，系统固定问题摘要、上下文版本和可引用证据，或记录无证据/危险意图拒答；证据合格时可显式触发本地保守直接引文回答；
+- 历史 AnswerAttempt 在每次读取时复核固定来源、字符范围和哈希；页面区分“证据复核通过”“证据复核失败：后续回答已停止”和拒答记录，不把已漂移引用继续显示为可用；
+- 创建安全检查时只检查用户选入的固定原文范围；来源包含不可信指令时显示“已拒答：来源证据包含不可信指令”，不回显命中片段，也不把该范围保存为引用快照；
+- 每条安全检查显示安全拒答、引用复核失败、运行时不可用或本地提取式运行时就绪；只有最后一种允许生成；
+- 引用复核通过的最近一次 AnswerAttempt 提供“提取式逐句预检”：用户粘贴一条候选句后，只检查它是否原样出现于固定引用范围；页面不保留输入，明确提示这不是语义蕴含或事实正确性判断；拒答或引用漂移时入口失败关闭；
+- AnswerAttempt 不显示或保存答案正文，不把 `evidence_ready` 呈现为已回答，不触发模型、Runtime 或外部服务；版本变化、过期和不可访问范围使用明确失败态；
+- 正式工作台继续沿用天蓝设计系统，主强调色及主要渐变整体略微加深，保持现有语义色、正文对比度与移动布局不变；
 - PC 与 390 px 移动布局已经浏览器走查并保存合成数据截图；
-- 知识网络、默认启用的混合/语义检索、重排和带引用回答仍未实现；上下文篮当前也不会触发模型运行。
+- 最终 Answer/Claim/Citation 已实现，但仅支持经逐句原文蕴含校验的直接引文；知识网络、默认启用的混合/语义检索、重排、开放式改写/推理回答与通用事实核验仍未实现。
 
 #### 页面目标
 
@@ -543,7 +552,7 @@ stateDiagram-v2
 
 | Runtime | 原型状态 | 用户可见定位 | 操作 |
 |---|---|---|---|
-| Native Runtime | 生命周期与 Task Candidate 可用 | 确定性本地 Run；无模型回答；仅一条 L1 Tool | 查看能力 |
+| Native Runtime | 生命周期与三类 Candidate 可用 | 确定性本地 Run；Task/Knowledge/Decision L1 Tool；不执行外部动作 | 查看能力 |
 | DeepSeek Harness | 客户端预检通过、官方服务端未安装 | 研究执行器候选 | 查看 G6a Stop 边界，不提供启动 |
 | Hermes Agent | API 契约已复核、尚未安装 | 移动网关/备选执行器 | 查看 G6b 边界，不提供启用 |
 
@@ -796,7 +805,7 @@ erDiagram
 
 ### 9.2 原型状态
 
-原型主要演示默认态、激活态、弹窗态、抽屉态、搜索结果态、创建成功 Toast 和讨论转决策反馈。加载、错误、离线、权限申请和真实空态在研发阶段补齐。
+原型主要演示默认态、激活态、弹窗态、抽屉态、搜索结果态、创建成功 Toast 和讨论转决策反馈。正式工作台已补齐加载、错误、真实空态、网络离线提示和 Capture 本机草稿；权限申请和各连接器的局部离线状态仍随对应能力补齐。
 
 ---
 
@@ -857,8 +866,8 @@ erDiagram
 | Projects | `GET/POST /api/projects`、`GET/PATCH /api/projects/:id` |
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
-| Context | 已实现受控来源、`POST /api/v1/context/search` 和 ContextPackage 创建/列表/详情/加入/移除/归档；目标 `POST /api/v1/context/answers` 尚未实现 |
-| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE 事件回放、取消、Checkpoint、异常重启收敛、受限安全重试、正式运行中心，以及 Task Candidate L1 与 L2 Approval/apply；Harness 零依赖协议预检已实现但未安装、不可运行；其他 Tool、Runtime 私有 resume/steer 与模型回答尚未实现 |
+| Context | 已实现受控来源、`POST /api/v1/context/search`、ContextPackage 全流程及 AnswerAttempt 创建/列表/读取；目标 `POST /api/v1/context/answers` 尚未实现 |
+| Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE、Checkpoint、安全重试、正式运行中心，以及 Task/Knowledge/Decision Candidate 的预览、L1/L2 Approval/apply/安全撤销；Harness 仍未安装、不可运行；外部 Tool 与 Runtime 私有 resume/steer 尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
 | AI Lab | `/api/ai-lab/signals`、`opportunities`、`evaluations`、`gates` |
@@ -906,7 +915,7 @@ erDiagram
 | 今日 | 聚合布局、任务、项目焦点、简报、待复核 | 实时聚合、任务回链、简报生成 |
 | 项目组合 | 卡片、筛选外观、新建模板 | 查询、权限、归档、真实筛选 |
 | 项目详情 | 六标签、讨论转决策、风险和里程碑 | CRUD、版本、关联、协作 |
-| 上下文知识库 | 正式页已实现受控 Markdown、权限优先全文索引、组合过滤、字符定位和显式上下文篮；PC/390 px E2E 已覆盖 | 图谱、重排、引用回答、默认启用的语义检索和更完整来源生命周期 |
+| 上下文知识库 | 正式页已实现受控 Markdown 不可变版本/归档恢复/精确原文、权限优先检索、显式上下文篮、回答安全检查、提取式预检和本地保守 Answer/Claim/Citation | 图谱、重排、开放式改写/推理回答、通用 NLI、默认启用的语义检索及 Markdown/XLSX 之外格式 |
 | 科研 | Claim/证据、文献和实验视图 | DOI 导入、实验日志、写作校验 |
 | AI Lab | 阶段管道、机会和评测布局 | 信号采集、评测运行、决策门持久化 |
 | 雷达 | 领域筛选、来源/影响卡片 | 抓取、去重、聚类、订阅 |
@@ -914,7 +923,7 @@ erDiagram
 | 计划与复盘 | 目标、日计划、复盘、习惯、时间分布 | 日历同步、统计、提醒 |
 | AI 助手 | 范围、建议、引用示例、操作按钮 | 模型编排、流式输出、审计与审批 |
 | AI 运行中心 | Runtime 状态、松耦合链路、Profile、运行任务和护栏 | Adapter、事件流、审批桥、健康检查和契约回归 |
-| 移动端 | 响应式侧栏/底栏/单列 | PWA、离线草稿、飞书/微信接入 |
+| 移动端 | 900px 以下五入口底栏、侧栏焦点圈定/返回、响应式单列、PWA 静态离线壳、网络状态与本机 Capture 草稿 | 飞书/微信接入及复杂编辑的专项移动视图 |
 
 ---
 

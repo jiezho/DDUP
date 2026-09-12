@@ -91,6 +91,36 @@ function quotedFtsQuery(query) {
     .join(' AND ')
 }
 
+function boundedEvidenceRange(body, matchStart, matchEnd, maxLength = 600) {
+  const hardStart = Math.max(0, matchEnd - maxLength)
+  const hardEnd = Math.min(body.length, matchStart + maxLength)
+  const before = body.slice(hardStart, matchStart)
+  const after = body.slice(matchEnd, hardEnd)
+  const leftBoundary = Math.max(
+    before.lastIndexOf('\n'),
+    before.lastIndexOf('。'),
+    before.lastIndexOf('！'),
+    before.lastIndexOf('？'),
+    before.lastIndexOf('. '),
+    before.lastIndexOf('! '),
+    before.lastIndexOf('? '),
+  )
+  const rightCandidates = [
+    after.indexOf('\n'),
+    after.indexOf('。'),
+    after.indexOf('！'),
+    after.indexOf('？'),
+    after.indexOf('. '),
+    after.indexOf('! '),
+    after.indexOf('? '),
+  ].filter((value) => value >= 0)
+  let start = leftBoundary >= 0 ? hardStart + leftBoundary + 1 : hardStart
+  let end = rightCandidates.length ? matchEnd + Math.min(...rightCandidates) + 1 : hardEnd
+  while (start < matchStart && /\s/u.test(body[start])) start += 1
+  while (end > matchEnd && /\s/u.test(body[end - 1])) end -= 1
+  return { start, end }
+}
+
 function findMatch(title, body, query) {
   const candidates = [query, ...query.split(/\s+/u)].filter(Boolean)
   for (const candidate of candidates) {
@@ -99,11 +129,15 @@ function findMatch(title, body, query) {
     if (titleAt >= 0) return { field: 'title', start: titleAt, end: titleAt + candidate.length, quote: title }
     const bodyAt = body.toLocaleLowerCase('zh-CN').indexOf(needle)
     if (bodyAt >= 0) {
-      const start = Math.max(0, bodyAt - 70)
-      const end = Math.min(body.length, bodyAt + candidate.length + 110)
+      const evidence = boundedEvidenceRange(body, bodyAt, bodyAt + candidate.length)
+      const start = Math.max(0, evidence.start - 70)
+      const end = Math.min(body.length, evidence.end + 110)
       const prefix = start > 0 ? '…' : ''
       const suffix = end < body.length ? '…' : ''
-      return { field: 'body', start: bodyAt, end: bodyAt + candidate.length, quote: `${prefix}${body.slice(start, end).replace(/\s+/g, ' ')}${suffix}` }
+      return {
+        field: 'body', start: evidence.start, end: evidence.end,
+        quote: `${prefix}${body.slice(start, end).replace(/\s+/g, ' ')}${suffix}`,
+      }
     }
   }
   return { field: 'body', start: 0, end: 0, quote: body.slice(0, 180).replace(/\s+/g, ' ') }
@@ -228,6 +262,130 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
     return rows.map(sourceFromRow)
   }
 
+  function requireSource(actor, sourceId, spaceId, { includeArchived = false } = {}) {
+    kernel.visibleSpace(actor, spaceId)
+    const row = database.prepare(`
+      SELECT ${SOURCE_COLUMNS}
+      FROM sources s
+      JOIN source_versions v ON v.source_id = s.id AND v.space_id = s.space_id AND v.version_number = s.current_version_number
+      JOIN documents d ON d.source_id = s.id AND d.space_id = s.space_id
+      WHERE s.id = ? AND s.space_id = ? AND s.deleted_at IS NULL
+        ${includeArchived ? '' : "AND s.status = 'ready' AND d.deleted_at IS NULL"}
+      LIMIT 1
+    `).get(sourceId, spaceId)
+    if (!row) throw publicError(ERROR_CODES.OBJECT_NOT_AVAILABLE, '请求的资源不可用。', { statusCode: 404 })
+    return row
+  }
+
+  function updateMarkdown(session, sourceId, input, { expectedVersion, idempotencyKey, requestId } = {}) {
+    const actor = kernel.actorForSession(session)
+    const markdown = normalizeMarkdown(input.content)
+    const bytes = Buffer.from(markdown, 'utf8')
+    if (!markdown || bytes.byteLength > 1_048_576) {
+      throw publicError(ERROR_CODES.VALIDATION_FAILED, 'Markdown 文件必须包含内容且不超过 1 MiB。', { statusCode: 422, field: 'content' })
+    }
+    const projection = markdownProjection(markdown)
+    if (!projection.plainText) throw publicError(ERROR_CODES.VALIDATION_FAILED, 'Markdown 未包含可检索正文。', { statusCode: 422, field: 'content' })
+    const contentSha256 = sha256(bytes)
+    return kernel.executeIdempotent({
+      actor,
+      commandScope: `source.update:${sourceId}`,
+      key: idempotencyKey,
+      request: { ...input, content: undefined, content_sha256: contentSha256, expected_version: expectedVersion },
+      statusCode: 201,
+      prepare: () => ensureBlob(sourceRoot, contentSha256, bytes),
+      cleanup: (prepared) => {
+        if (!prepared?.created) return
+        const referenced = database.prepare('SELECT 1 FROM source_versions WHERE content_sha256 = ? LIMIT 1').get(contentSha256)
+        if (!referenced) unlinkSync(prepared.absolute)
+      },
+      operation: (prepared) => {
+        const current = requireSource(actor, sourceId, input.space_id)
+        if (current.version !== expectedVersion) throw publicError(ERROR_CODES.VERSION_CONFLICT, '来源已更新，请刷新后重试。', { statusCode: 409 })
+        if (current.content_sha256 === contentSha256) return { source: sourceFromRow(current), deduplicated: true }
+        const duplicate = existingByDigest(current.space_id, current.project_id, contentSha256)
+        if (duplicate) throw publicError(ERROR_CODES.RELATION_CONFLICT, '相同内容已由当前项目中的其他来源持有。', { statusCode: 409 })
+        const title = (input.title || projection.heading || current.title).trim()
+        const timestamp = kernel.nowIso()
+        const nextVersion = current.current_version_number + 1
+        const sourceVersionId = kernel.newId()
+        database.prepare(`
+          INSERT INTO source_versions (
+            id, space_id, project_id, source_id, version_number, content_sha256, media_type,
+            original_filename, byte_size, storage_ref, status, created_at, created_by
+          ) VALUES (?, ?, ?, ?, ?, ?, 'text/markdown', ?, ?, ?, 'ready', ?, ?)
+        `).run(
+          sourceVersionId, current.space_id, current.project_id, current.id, nextVersion,
+          contentSha256, input.filename, bytes.byteLength, prepared.storageRef, timestamp, actor.id,
+        )
+        database.prepare(`
+          UPDATE sources SET title = ?, current_version_number = ?, updated_at = ?, updated_by = ?, version = version + 1
+          WHERE id = ? AND space_id = ? AND version = ? AND status = 'ready' AND deleted_at IS NULL
+        `).run(title, nextVersion, timestamp, actor.id, current.id, current.space_id, current.version)
+        database.prepare(`
+          UPDATE documents SET source_version_id = ?, title = ?, body_text = ?, content_sha256 = ?, language = ?,
+            indexed_at = ?, updated_at = ?, updated_by = ?, version = version + 1
+          WHERE id = ? AND space_id = ? AND source_id = ? AND deleted_at IS NULL
+        `).run(
+          sourceVersionId, title, projection.plainText, contentSha256, detectLanguage(projection.plainText),
+          timestamp, timestamp, actor.id, current.document_id, current.space_id, current.id,
+        )
+        kernel.appendAudit({ spaceId: current.space_id, actor, action: 'source.version.create', objectType: 'source', objectId: current.id, requestId, changed: ['content_sha256', 'current_version_number', 'title', 'version'] })
+        kernel.appendOutbox({ spaceId: current.space_id, aggregate: { id: current.id, version: current.version + 1 }, aggregateType: 'source', eventType: 'source.updated' })
+        return {
+          source: sourceFromRow(requireSource(actor, sourceId, input.space_id)),
+          deduplicated: false,
+        }
+      },
+    })
+  }
+
+  function transitionSource(session, sourceId, input, { expectedVersion, idempotencyKey, requestId } = {}) {
+    const actor = kernel.actorForSession(session)
+    return kernel.executeIdempotent({
+      actor,
+      commandScope: `source.${input.action}:${sourceId}`,
+      key: idempotencyKey,
+      request: { source_id: sourceId, expected_version: expectedVersion, ...input },
+      operation: () => {
+        const current = requireSource(actor, sourceId, input.space_id, { includeArchived: true })
+        if (current.version !== expectedVersion) throw publicError(ERROR_CODES.VERSION_CONFLICT, '来源已更新，请刷新后重试。', { statusCode: 409 })
+        const targetStatus = input.action === 'archive' ? 'archived' : 'ready'
+        if (current.status === targetStatus) return sourceFromRow(current)
+        if (!['ready', 'archived'].includes(current.status)) throw publicError(ERROR_CODES.INVALID_STATE_TRANSITION, '当前来源状态不能执行该操作。', { statusCode: 409 })
+        const timestamp = kernel.nowIso()
+        database.prepare(`UPDATE sources SET status = ?, updated_at = ?, updated_by = ?, version = version + 1 WHERE id = ? AND space_id = ? AND version = ?`)
+          .run(targetStatus, timestamp, actor.id, current.id, current.space_id, current.version)
+        database.prepare(`UPDATE documents SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?, version = version + 1 WHERE source_id = ? AND space_id = ?`)
+          .run(targetStatus === 'archived' ? timestamp : null, targetStatus === 'archived' ? actor.id : null, timestamp, actor.id, current.id, current.space_id)
+        kernel.appendAudit({ spaceId: current.space_id, actor, action: `source.${input.action}`, objectType: 'source', objectId: current.id, requestId, changed: ['status', 'version'] })
+        kernel.appendOutbox({ spaceId: current.space_id, aggregate: { id: current.id, version: current.version + 1 }, aggregateType: 'source', eventType: `source.${input.action}d` })
+        return sourceFromRow(requireSource(actor, sourceId, input.space_id, { includeArchived: true }))
+      },
+    })
+  }
+
+  function readSourceRange(session, sourceId, query) {
+    const actor = kernel.actorForSession(session)
+    const source = requireSource(actor, sourceId, query.space_id)
+    if (source.source_version_id !== query.source_version_id) {
+      throw publicError(ERROR_CODES.RELATION_CONFLICT, '来源版本已变化，请从最新检索结果重新定位。', { statusCode: 409 })
+    }
+    const row = database.prepare('SELECT body_text FROM documents WHERE id = ? AND space_id = ? AND deleted_at IS NULL').get(source.document_id, source.space_id)
+    if (!row || query.end_char > row.body_text.length) throw publicError(ERROR_CODES.RELATION_CONFLICT, '原文定位范围已失效。', { statusCode: 409 })
+    const text = row.body_text.slice(query.start_char, query.end_char)
+    return {
+      source_id: source.id,
+      source_version_id: source.source_version_id,
+      document_id: source.document_id,
+      locator_type: 'char_range',
+      start_char: query.start_char,
+      end_char: query.end_char,
+      text,
+      text_sha256: sha256(text),
+    }
+  }
+
   function search(session, { space_id: spaceId, project_id: projectId, q, types, from, to, limit }) {
     authorizeSearch(session, { space_id: spaceId, project_id: projectId })
     const typePlaceholders = types.map(() => '?').join(', ')
@@ -339,5 +497,8 @@ export function createContextStore({ database, kernel, sourceRoot } = {}) {
     return corpus
   }
 
-  return { authorizeSearch, importMarkdown, listAuthorizedDenseCorpus, listSources, search }
+  return {
+    authorizeSearch, importMarkdown, listAuthorizedDenseCorpus, listSources, readSourceRange,
+    search, transitionSource, updateMarkdown,
+  }
 }

@@ -231,6 +231,8 @@ export function createRunStore({ database, kernel, contextPackageStore, runtimeR
         workbench_run_id: run.id,
         goal: run.goal,
         task_candidate: input.task_candidate,
+        knowledge_candidate: input.knowledge_candidate,
+        decision_candidate: input.decision_candidate,
         context: {
           digest: contextDigest,
           included_count: contextManifest.included.length,
@@ -251,10 +253,10 @@ export function createRunStore({ database, kernel, contextPackageStore, runtimeR
           tool_version: call.tool_version,
           action_level: 'L1',
         })
-        const toolResult = toolGateway.executeCandidateTaskCall(session, run, call, { requestId })
+        const toolResult = toolGateway.executeCandidateCall(session, run, call, { requestId })
         candidateIds.push(toolResult.candidate.id)
         completedToolCallIds.push(call.runtime_tool_call_id)
-        appendEvent(run, 'candidate.created', { candidate_id: toolResult.candidate.id, candidate_type: 'task' })
+        appendEvent(run, 'candidate.created', { candidate_id: toolResult.candidate.id, candidate_type: toolResult.candidate.candidate_type })
         const toolEvent = appendEvent(run, 'tool.completed', {
           runtime_tool_call_id: call.runtime_tool_call_id,
           tool_key: call.tool_key,

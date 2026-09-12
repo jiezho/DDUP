@@ -48,6 +48,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Audit production dependency tree
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Check runtime and SQLite capabilities
         run: npm run check:runtime
 
@@ -57,13 +60,70 @@ jobs:
       - name: Build and run tests
         run: npm test
 
-      - name: Install Chromium headless shell
-        if: runner.os == 'Linux'
-        run: npx playwright install --with-deps --only-shell chromium
-
-      - name: Run project browser acceptance
-        if: runner.os == 'Linux'
-        run: npm run test:e2e
-
       - name: Scan privacy boundary
         run: npm run privacy:scan
+
+  sqlite-full:
+    name: SQLite full / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    defaults:
+      run:
+        working-directory: person_dashboard-main/Workbench
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: person_dashboard-main/Workbench/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run 100k object / 1m relation SQLite reliability gate
+        run: npm run spike:sqlite:full
+
+  browser-matrix:
+    name: Browser / ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
+    defaults:
+      run:
+        working-directory: person_dashboard-main/Workbench
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: person_dashboard-main/Workbench/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install selected browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Build production PWA shell
+        run: npm run build
+      - name: Run responsive, keyboard and offline acceptance
+        run: npm run test:e2e
+        env:
+          WORKBENCH_E2E_BROWSER: ${{ matrix.browser }}
+      - name: Verify production PWA offline boundary
+        run: npm run test:pwa
+        env:
+          WORKBENCH_E2E_BROWSER: ${{ matrix.browser }}

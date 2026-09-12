@@ -9,10 +9,12 @@ import {
   IconFileText,
   IconFilter,
   IconInbox,
+  IconMessageQuestion,
   IconPlus,
   IconRefresh,
   IconSearch,
   IconShieldCheck,
+  IconSparkles,
   IconTrash,
   IconUpload,
 } from "@tabler/icons-react";
@@ -20,16 +22,23 @@ import { PageHeader } from "../components/PageHeader";
 import {
   addContextPackageItem,
   archiveContextPackage,
+  createAnswerAttempt,
   createContextPackage,
+  generateAnswer,
   importMarkdownSource,
   loadContextLibrary,
   loadContextPackage,
+  loadAnswerAttempts,
   removeContextPackageItem,
+  readSourceRange,
   searchContext,
+  transitionSource,
+  updateMarkdownSource,
+  validateAnswerDraft,
 } from "../lib/projects-api";
 
-const typeLabels = { project: "项目", task: "任务", capture: "捕获", document: "来源文档" };
-const typeIcons = { project: IconBriefcase2, task: IconBinaryTree, capture: IconInbox, document: IconFileText };
+const typeLabels = { project: "项目", task: "任务", capture: "捕获", document: "来源文档", knowledge: "知识", decision: "决策" };
+const typeIcons = { project: IconBriefcase2, task: IconBinaryTree, capture: IconInbox, document: IconFileText, knowledge: IconFileText, decision: IconShieldCheck };
 
 function safeError(error) {
   if (error?.status === 413) return "文件超过本地导入上限（1 MiB）。";
@@ -48,16 +57,37 @@ function formatExpiry(value) {
   return new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
+function shortId(value) {
+  return value ? `${value.slice(0, 8)}…${value.slice(-4)}` : "—";
+}
+
 function minimumLocalExpiry() {
   const date = new Date(Date.now() + 60_000);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
 }
 
+function answerAttemptLabel(attempt) {
+  if (attempt.integrity?.state === "invalid") return "证据复核失败：后续回答已停止";
+  if (attempt.answer?.integrity?.state === "invalid") return "回答引用已失效，正文已隐藏";
+  if (attempt.answer) return "回答已生成并通过逐句证据校验";
+  if (attempt.status === "evidence_ready") return "证据复核通过，可生成保守引用回答";
+  if (attempt.safety?.scope === "evidence") return "已拒答：来源证据包含不可信指令";
+  if (attempt.status === "refused_unsafe_intent") return "已拒答：问题触发安全边界";
+  return "已拒答：没有可引用原文";
+}
+
+function generationGateLabel(attempt) {
+  if (attempt.generation_gate?.state === "blocked_integrity") return "引用复核未通过";
+  if (attempt.generation_gate?.state === "blocked_refusal") return "安全拒答";
+  if (attempt.generation_gate?.state === "ready") return "本地提取式运行时已就绪";
+  return "未配置回答运行时";
+}
+
 export function ContextLibraryPage() {
   const [params, setParams] = useSearchParams();
   const initialQuery = params.get("q") || "";
-  const [library, setLibrary] = useState({ status: "loading", space: null, projects: [], sources: [], contextPackages: [], activePackage: null, error: null });
+  const [library, setLibrary] = useState({ status: "loading", space: null, projects: [], sources: [], contextPackages: [], activePackage: null, answerAttempts: [], error: null });
   const [query, setQuery] = useState(initialQuery);
   const [projectId, setProjectId] = useState("");
   const [type, setType] = useState("all");
@@ -74,18 +104,29 @@ export function ContextLibraryPage() {
   const [packageExpiry, setPackageExpiry] = useState("");
   const [packageBusy, setPackageBusy] = useState("");
   const [packageNotice, setPackageNotice] = useState("");
+  const [answerQuestion, setAnswerQuestion] = useState("");
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const [draftSentence, setDraftSentence] = useState("");
+  const [draftValidation, setDraftValidation] = useState(null);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [sourceBusy, setSourceBusy] = useState("");
+  const [sourcePreview, setSourcePreview] = useState(null);
   const fileRef = useRef(null);
 
   const activeProjects = useMemo(
     () => library.projects.filter((project) => !["completed", "archived"].includes(project.status)),
     [library.projects],
   );
+  const latestVerifiableAttempt = useMemo(
+    () => library.answerAttempts.find((attempt) => attempt.status === "evidence_ready" && attempt.integrity?.state === "verified") || null,
+    [library.answerAttempts],
+  );
 
   const load = async () => {
     setLibrary((current) => ({ ...current, status: current.space ? "ready" : "loading", error: null }));
     try {
       const data = await loadContextLibrary();
-      setLibrary({ status: "ready", space: data.space, projects: data.projects, sources: data.sources, contextPackages: data.contextPackages, activePackage: data.activePackage, error: null });
+      setLibrary({ status: "ready", space: data.space, projects: data.projects, sources: data.sources, contextPackages: data.contextPackages, activePackage: data.activePackage, answerAttempts: data.answerAttempts, error: null });
       return data;
     } catch (error) {
       setLibrary((current) => ({ ...current, status: "error", error: safeError(error) }));
@@ -125,6 +166,11 @@ export function ContextLibraryPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    setDraftSentence("");
+    setDraftValidation(null);
+  }, [library.activePackage?.id]);
+
   const submitSource = async (event) => {
     event.preventDefault();
     if (!file || !library.space) return;
@@ -150,6 +196,60 @@ export function ContextLibraryPage() {
       setNotice(safeError(error));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const replaceSource = async (source, nextFile) => {
+    if (!nextFile || !library.space) return;
+    setSourceBusy(source.id);
+    setNotice("");
+    try {
+      const response = await updateMarkdownSource(source.id, {
+        space_id: library.space.id,
+        filename: nextFile.name,
+        title: source.title,
+        content: await nextFile.text(),
+      }, source.version);
+      setNotice(response.data.deduplicated ? "内容未变化，未创建重复版本。" : `已创建不可变版本 v${response.data.source.current_version_number}；旧引用仍绑定原版本。`);
+      await load();
+    } catch (error) {
+      setNotice(safeError(error));
+    } finally {
+      setSourceBusy("");
+    }
+  };
+
+  const changeSourceStatus = async (source) => {
+    if (!library.space) return;
+    const action = source.status === "archived" ? "restore" : "archive";
+    setSourceBusy(source.id);
+    setNotice("");
+    try {
+      await transitionSource(source.id, library.space.id, action, source.version);
+      setNotice(action === "archive" ? "来源已归档并从检索中隐藏；文件与历史版本仍保留。" : "来源已恢复并重新加入授权检索。");
+      await load();
+    } catch (error) {
+      setNotice(safeError(error));
+    } finally {
+      setSourceBusy("");
+    }
+  };
+
+  const openOriginalRange = async (item) => {
+    if (!library.space || item.locator?.type !== "char_range" || !item.source_id) return;
+    setSourceBusy(item.source_id);
+    try {
+      const data = await readSourceRange(item.source_id, {
+        spaceId: library.space.id,
+        sourceVersionId: item.locator.source_version_id,
+        startChar: item.locator.start,
+        endChar: item.locator.end,
+      });
+      setSourcePreview({ title: item.title, ...data });
+    } catch (error) {
+      setNotice(safeError(error));
+    } finally {
+      setSourceBusy("");
     }
   };
 
@@ -192,11 +292,76 @@ export function ContextLibraryPage() {
     setPackageBusy("select");
     setPackageNotice("");
     try {
-      acceptPackage(await loadContextPackage(packageId, library.space.id));
+      const [nextPackage, attempts] = await Promise.all([
+        loadContextPackage(packageId, library.space.id),
+        loadAnswerAttempts(packageId, library.space.id),
+      ]);
+      acceptPackage(nextPackage);
+      setLibrary((current) => ({ ...current, answerAttempts: attempts }));
     } catch (error) {
       setPackageNotice(safeError(error));
     } finally {
       setPackageBusy("");
+    }
+  };
+
+  const submitAnswerAttempt = async (event) => {
+    event.preventDefault();
+    const active = library.activePackage;
+    if (!active || !library.space || answerQuestion.trim().length < 2) return;
+    setAnswerBusy(true);
+    setPackageNotice("");
+    try {
+      const response = await createAnswerAttempt({
+        space_id: library.space.id,
+        context_package_id: active.id,
+        context_package_version: active.version,
+        question: answerQuestion.trim(),
+      });
+      setLibrary((current) => ({ ...current, answerAttempts: [response.data, ...current.answerAttempts] }));
+      setAnswerQuestion("");
+      setPackageNotice(response.data.reason);
+    } catch (error) {
+      setPackageNotice(safeError(error));
+    } finally {
+      setAnswerBusy(false);
+    }
+  };
+
+  const createFinalAnswer = async (attempt) => {
+    if (!library.space) return;
+    setAnswerBusy(true);
+    setPackageNotice("");
+    try {
+      await generateAnswer(attempt.id, library.space.id);
+      const attempts = await loadAnswerAttempts(library.activePackage.id, library.space.id);
+      setLibrary((current) => ({ ...current, answerAttempts: attempts }));
+      setPackageNotice("回答已逐句通过固定原文蕴含校验并持久化；引用仍绑定原 SourceVersion 和字符范围。");
+    } catch (error) {
+      setPackageNotice(safeError(error));
+    } finally {
+      setAnswerBusy(false);
+    }
+  };
+
+  const submitDraftValidation = async (event) => {
+    event.preventDefault();
+    if (!library.space || !latestVerifiableAttempt || !draftSentence.trim()) return;
+    setDraftBusy(true);
+    setDraftValidation(null);
+    try {
+      const response = await validateAnswerDraft(latestVerifiableAttempt.id, {
+        space_id: library.space.id,
+        claims: [{
+          text: draftSentence.trim(),
+          citation_ordinals: latestVerifiableAttempt.citations.map((citation) => citation.ordinal),
+        }],
+      });
+      setDraftValidation(response.data);
+    } catch (error) {
+      setDraftValidation({ state: "error", reason: safeError(error) });
+    } finally {
+      setDraftBusy(false);
     }
   };
 
@@ -280,13 +445,13 @@ export function ContextLibraryPage() {
         </section>
 
         <section aria-label="来源清单" className="context-source-panel">
-          <header><div><span>TRACEABLE SOURCES</span><h2>已就绪来源</h2></div><strong>{library.sources.length}</strong></header>
+          <header><div><span>TRACEABLE SOURCES</span><h2>来源与版本</h2></div><strong>{library.sources.length}</strong></header>
           {library.status === "loading" ? <div className="context-state"><span className="project-spinner" />正在读取来源…</div> : null}
           {library.status === "error" ? <div className="context-state"><p>{library.error}</p><button onClick={load} type="button"><IconRefresh />重试</button></div> : null}
           {library.status === "ready" && !library.sources.length ? <div className="context-state"><IconFileText /><strong>尚无受控来源</strong><p>缺失保持缺失，不用演示数据填充。</p></div> : null}
           {library.sources.length ? <div className="context-source-list">{library.sources.map((source) => {
             const project = library.projects.find((item) => item.id === source.project_id);
-            return <article key={source.id}><IconFileText /><div><strong>{source.title}</strong><span>{source.original_filename} · {formatBytes(source.byte_size)}</span><small>{project ? `项目：${project.name}` : "全局来源"} · v{source.current_version_number} · {source.content_sha256.slice(0, 10)}…</small></div></article>;
+            return <article className={source.status === "archived" ? "is-archived" : ""} key={source.id}><IconFileText /><div><strong>{source.title}</strong><span>{source.original_filename} · {formatBytes(source.byte_size)}</span><small>{project ? `项目：${project.name}` : "全局来源"} · v{source.current_version_number} · {source.status === "archived" ? "已归档" : "检索就绪"} · {source.content_sha256.slice(0, 10)}…</small><div className="context-source-actions">{source.status === "ready" ? <label><IconUpload />创建新版本<input accept=".md,.markdown,text/markdown" disabled={sourceBusy === source.id} onChange={(event) => { void replaceSource(source, event.target.files?.[0]); event.target.value = ""; }} type="file" /></label> : null}<button disabled={sourceBusy === source.id} onClick={() => changeSourceStatus(source)} type="button"><IconArchive />{source.status === "archived" ? "恢复" : "归档"}</button></div></div></article>;
           })}</div> : null}
         </section>
       </div>
@@ -313,9 +478,38 @@ export function ContextLibraryPage() {
             {!library.activePackage ? <div className="context-package-empty"><IconBasket /><strong>尚无有效上下文篮</strong><p>先创建空篮，再从下方授权检索结果中显式加入。</p></div> : null}
             {library.activePackage ? <>
               <div className="context-package-purpose"><strong>{library.activePackage.name}</strong><p>{library.activePackage.purpose}</p><small><IconShieldCheck />{library.activePackage.resolution.reason}</small></div>
+              <div className={`context-package-evidence${library.activePackage.evidence?.citation_count ? " is-ready" : " is-refused"}`}>
+                <IconShieldCheck />
+                <div>
+                  <strong>{library.activePackage.evidence?.citation_count
+                    ? `${library.activePackage.evidence.citation_count} 条可引用原文已固定`
+                    : "当前没有可引用原文"}</strong>
+                  <p>{library.activePackage.evidence?.citation_count
+                    ? `另有 ${library.activePackage.evidence.related_object_count} 个仅用于导航的相关对象；引用已绑定来源版本、字符范围与正文摘要。`
+                    : "项目、任务和捕获只能作为相关对象；没有固定 SourceVersion 证据时必须拒绝事实回答。"}</p>
+                  <small>上下文篮自身不会自动生成回答</small>
+                </div>
+              </div>
+              <section aria-label="回答安全检查" className="context-answer-check">
+                <header><span><IconMessageQuestion /></span><div><strong>回答与引用安全检查</strong><p>本地保守运行时只摘取固定证据原文；每条声明通过逐句蕴含校验后才持久化，不生成无证据推断。</p></div></header>
+                <form aria-label="记录回答安全检查" onSubmit={submitAnswerAttempt}>
+                  <label><span className="sr-only">待检查问题</span><textarea maxLength="1000" minLength="2" onChange={(event) => setAnswerQuestion(event.target.value)} placeholder="输入需要由当前上下文支撑的问题…" required value={answerQuestion} /></label>
+                  <button disabled={answerBusy || answerQuestion.trim().length < 2} type="submit"><IconShieldCheck />记录安全检查</button>
+                </form>
+                {library.answerAttempts.length ? <div className="context-answer-attempts">{library.answerAttempts.slice(0, 5).map((attempt) => <article className={attempt.integrity?.state === "invalid" ? "is-invalid" : attempt.status === "evidence_ready" ? "is-ready" : "is-refused"} key={attempt.id}><strong>{answerAttemptLabel(attempt)}</strong><p>{attempt.question}</p><small>上下文 v{attempt.context_package_version} · {attempt.citation_count} 条固定引用 · {attempt.integrity?.state === "verified" ? "复核通过" : attempt.integrity?.state === "invalid" ? "复核失败" : "无需复核"} · {generationGateLabel(attempt)}</small>{attempt.generation_gate?.state === "ready" && !attempt.answer ? <button disabled={answerBusy} onClick={() => createFinalAnswer(attempt)} type="button"><IconSparkles />生成引用回答</button> : null}{attempt.answer ? <div className="context-final-answer"><p>{attempt.answer.text}</p><ol>{attempt.answer.citations.map((citation) => <li key={citation.id}><strong>[{citation.ordinal}] {citation.source_title}</strong><span>{citation.quote}</span><small>v{citation.source_version_id.slice(0, 8)}… · 字符 {citation.start_char}–{citation.end_char} · {citation.integrity_state}</small></li>)}</ol></div> : null}</article>)}</div> : <small>尚无回答安全检查记录。</small>}
+                <div className="context-draft-validator">
+                  <header><strong>提取式逐句预检</strong><small>只核对候选句是否原样出现于最近一次可用的固定引用；不会保存，也不代表语义蕴含或事实正确。</small></header>
+                  <form aria-label="提取式逐句预检" onSubmit={submitDraftValidation}>
+                    <label><span className="sr-only">候选句</span><textarea maxLength="1000" onChange={(event) => { setDraftSentence(event.target.value); setDraftValidation(null); }} placeholder="粘贴一条需要核对的候选句…" required value={draftSentence} /></label>
+                    <button disabled={draftBusy || !latestVerifiableAttempt || !draftSentence.trim()} type="submit"><IconSearch />{draftBusy ? "正在预检" : "核对原文"}</button>
+                  </form>
+                  {!latestVerifiableAttempt ? <p className="is-muted">需要先获得引用完整性复核通过的回答安全检查记录。</p> : null}
+                  {draftValidation ? <p aria-live="polite" className={`context-draft-result is-${draftValidation.state}`}><strong>{draftValidation.state === "passed" ? "原文定位通过" : draftValidation.state === "failed" ? "未找到原样文本" : "预检已停止"}</strong><span>{draftValidation.reason}</span></p> : null}
+                </div>
+              </section>
               {!library.activePackage.items.length ? <div className="context-package-empty context-package-empty--compact"><IconBasket /><strong>这是一个空篮</strong><p>执行下方检索后，逐项加入需要的范围。</p></div> : <div className="context-package-items">{library.activePackage.items.map((item) => {
                 const Icon = typeIcons[item.object_type] || IconFileText;
-                return <article className={item.included ? "" : "is-excluded"} key={item.item_id}><span><Icon /></span><div><strong>{item.included ? item.title : "对象已不可用"}</strong><small>{typeLabels[item.object_type]}{item.locator?.type === "char_range" ? ` · 字符 ${item.locator.start}–${item.locator.end}` : " · 对象范围"}</small>{!item.included ? <em>已排除：{item.exclusion_reason}</em> : null}</div><button aria-label={`移除 ${item.title || typeLabels[item.object_type]}`} disabled={Boolean(packageBusy)} onClick={() => removeFromPackage(item.item_id)} type="button"><IconTrash /></button></article>;
+                return <article className={item.included ? "" : "is-excluded"} key={item.item_id}><span><Icon /></span><div><strong>{item.included ? item.title : "对象已不可用"}</strong><small>{typeLabels[item.object_type]}{item.locator?.type === "char_range" ? ` · 字符 ${item.locator.start}–${item.locator.end}` : " · 对象范围"}</small>{item.included ? <em className={item.citation?.eligible ? "is-citable" : "is-related"}>{item.citation?.eligible ? "可作为证据引用" : "仅作为相关对象"}</em> : <em>已排除：{item.exclusion_reason}</em>}</div><button aria-label={`移除 ${item.title || typeLabels[item.object_type]}`} disabled={Boolean(packageBusy)} onClick={() => removeFromPackage(item.item_id)} type="button"><IconTrash /></button></article>;
               })}</div>}
             </> : null}
           </div>
@@ -342,8 +536,9 @@ export function ContextLibraryPage() {
           const Icon = typeIcons[item.object_type] || IconFileText;
           const project = library.projects.find((candidate) => candidate.id === item.project_id);
           const included = library.activePackage?.items?.some((candidate) => candidate.included && candidate.object_type === item.object_type && candidate.object_id === item.object_id && (item.locator.type !== "char_range" || (candidate.source_version_id === item.locator.source_version_id && candidate.start_char === item.locator.start && candidate.end_char === item.locator.end)));
-          return <article key={`${item.object_type}-${item.object_id}`}><span className={`context-result-icon context-result-icon--${item.object_type}`}><Icon /></span><div><div className="context-result-title"><span>{typeLabels[item.object_type]}</span><strong>{item.title}</strong></div><p>{item.excerpt}</p><small>{project ? `项目：${project.name}` : "全局范围"} · {item.match.strategy === "fts5_trigram" ? "全文命中" : "短查询匹配"}{item.locator.type === "char_range" ? ` · 原文字符 ${item.locator.start}–${item.locator.end}` : " · 对象定位"}</small></div><button className="context-result-add" disabled={!library.activePackage || Boolean(packageBusy) || included} onClick={() => addToPackage(item)} type="button"><IconPlus />{included ? "已在篮中" : "加入上下文篮"}</button></article>;
+          return <article key={`${item.object_type}-${item.object_id}`}><span className={`context-result-icon context-result-icon--${item.object_type}`}><Icon /></span><div><div className="context-result-title"><span>{typeLabels[item.object_type]}</span><strong>{item.title}</strong></div><p>{item.excerpt}</p><small>{project ? `项目：${project.name}` : "全局范围"} · {item.match.strategy === "fts5_trigram" ? "全文命中" : "短查询匹配"}{item.locator.type === "char_range" ? ` · 原文字符 ${item.locator.start}–${item.locator.end}` : " · 对象定位"}</small></div><div className="context-result-actions">{item.locator.type === "char_range" ? <button disabled={sourceBusy === item.source_id} onClick={() => openOriginalRange(item)} type="button"><IconFileText />打开原文</button> : null}<button className="context-result-add" disabled={!library.activePackage || Boolean(packageBusy) || included} onClick={() => addToPackage(item)} type="button"><IconPlus />{included ? "已在篮中" : "加入上下文篮"}</button></div></article>;
         })}</div> : null}
+        {sourcePreview ? <aside aria-label="固定原文预览" className="context-source-preview"><header><div><strong>{sourcePreview.title}</strong><small>SourceVersion {shortId(sourcePreview.source_version_id)} · 字符 {sourcePreview.start_char}–{sourcePreview.end_char}</small></div><button aria-label="关闭原文预览" onClick={() => setSourcePreview(null)} type="button"><IconTrash /></button></header><pre>{sourcePreview.text}</pre><footer>SHA-256 {sourcePreview.text_sha256}</footer></aside> : null}
         {searchState.scope ? <footer><IconShieldCheck /><span>{searchState.scope.reason}</span><code>{searchState.scope.applied.project_id ? "项目范围" : "全空间范围"} · {searchState.scope.applied.types.map((item) => typeLabels[item]).join(" / ")}</code></footer> : null}
       </section>
     </div>

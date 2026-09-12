@@ -1,5 +1,6 @@
 const DEFAULT_MODEL_ID = 'BAAI/bge-m3'
 const DEFAULT_MODEL_REVISION = '5617a9f61b028005a4858fdac845db406aefb181'
+const DEFAULT_EMBEDDING_STRATEGY = 'title_prefixed_char_windows_max_pool_v1'
 const MAX_RESPONSE_BYTES = 64 * 1024
 const MAX_CANDIDATES = 200
 const MAX_TEXT_CHARS = 2_300
@@ -71,6 +72,9 @@ export function createLoopbackDenseAdapter({
       || payload?.model_id !== expectedModelId
       || payload?.model_revision !== expectedRevision
       || payload?.device !== 'cpu'
+      || payload?.embedding_strategy !== DEFAULT_EMBEDDING_STRATEGY
+      || payload?.window_chars !== 160
+      || payload?.window_overlap_chars !== 40
     ) {
       throw new Error('dense sidecar identity did not match the reviewed model')
     }
@@ -79,6 +83,9 @@ export function createLoopbackDenseAdapter({
       model_id: expectedModelId,
       model_revision: expectedRevision,
       device: 'cpu',
+      embedding_strategy: DEFAULT_EMBEDDING_STRATEGY,
+      window_chars: 160,
+      window_overlap_chars: 40,
     })
   }
 

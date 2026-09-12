@@ -1,6 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import XLSX from "xlsx";
+import {
+  readControlledLegacyWorkbook,
+  VaultXlsxError,
+} from "./vault-xlsx-reader.mjs";
 
 const INTERNAL_CONTENT = Symbol("vaultDocumentContent");
 const INTERNAL_DOCUMENT_MAP = Symbol("vaultDocumentMap");
@@ -1927,21 +1930,7 @@ async function loadSnapshotWorkDetails(snapshot, vaultRoot, works, files, pages)
   return details;
 }
 
-async function workbookSheets(filePath) {
-  try {
-    const workbook = XLSX.read(await fs.readFile(filePath), { type: "buffer" });
-    return workbook.SheetNames.map((sheetName) => ({
-      sheetName,
-      rows: XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-        defval: null,
-      }),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-async function loadLegacyWorkDetails(vaultRoot, works) {
+async function loadLegacyWorkDetails(vaultRoot, works, errors) {
   const absoluteRawRoot = path.join(vaultRoot, DOUYIN_RAW_ROOT);
   let entries = [];
   try {
@@ -1981,12 +1970,35 @@ async function loadLegacyWorkDetails(vaultRoot, works) {
     } catch {
       continue;
     }
+    const parsedWorkbooks = [];
+    let workbookFailed = false;
     for (const name of names.filter((value) => value.endsWith(".xlsx"))) {
       const absolutePath = path.join(directory, name);
-      for (const sheet of await workbookSheets(absolutePath)) {
+      try {
+        parsedWorkbooks.push(
+          await readControlledLegacyWorkbook(vaultRoot, absolutePath),
+        );
+      } catch (error) {
+        workbookFailed = true;
+        const relativePath = toPosixPath(path.relative(vaultRoot, absolutePath));
+        errors.push({
+          path: error instanceof VaultXlsxError
+            ? error.relativePath ?? relativePath
+            : relativePath,
+          code: error instanceof VaultXlsxError
+            ? error.code
+            : "XLSX_PARSE_FAILED",
+          details: error instanceof VaultXlsxError ? error.details : {},
+        });
+        break;
+      }
+    }
+    if (workbookFailed) continue;
+    for (const workbook of parsedWorkbooks) {
+      for (const sheet of workbook.sheets) {
         applyDetailRows(detail, sheet.sheetName, sheet.rows);
       }
-      detail.sourcePaths.push(toPosixPath(path.relative(vaultRoot, absolutePath)));
+      detail.sourcePaths.push(workbook.relativePath);
     }
     details[work.id] = detail;
   }
@@ -2165,7 +2177,7 @@ function detailFieldNames(detail) {
   return fields;
 }
 
-async function loadDouyinAnalytics(vaultRoot, latest, snapshots, douyin) {
+async function loadDouyinAnalytics(vaultRoot, latest, snapshots, douyin, errors) {
   const files = await listSnapshotSheetFiles(latest);
   const findFile = (pattern) => files.find((file) => pattern.test(file.name)) ?? null;
   const contentDailyFile = findFile(DOUYIN_ACCOUNT_CONTENT_30D_PATTERN);
@@ -2198,7 +2210,11 @@ async function loadDouyinAnalytics(vaultRoot, latest, snapshots, douyin) {
     files,
     pages,
   );
-  const legacyDetails = await loadLegacyWorkDetails(vaultRoot, douyin.works);
+  const legacyDetails = await loadLegacyWorkDetails(
+    vaultRoot,
+    douyin.works,
+    errors,
+  );
   const workDetails = { ...legacyDetails, ...snapshotDetails };
   await attachWorkSnapshotHistory(vaultRoot, snapshots, douyin.works);
 
@@ -2814,6 +2830,7 @@ export async function buildVaultIndex(vaultRoot) {
           latestDouyinSnapshot,
           douyinSnapshots,
           douyin,
+          errors,
         );
         douyin.qualityIssues.push(...douyin.analytics.qualityIssues);
       } catch (analyticsError) {

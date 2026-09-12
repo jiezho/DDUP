@@ -21,3 +21,11 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
+
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // 离线壳是渐进增强；注册失败不能阻断本地工作台。
+    });
+  });
+}

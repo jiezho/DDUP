@@ -15,13 +15,14 @@ import {
 } from "@tabler/icons-react";
 import { PageHeader } from "../components/PageHeader";
 import {
-  applyTaskCandidate,
+  applyCandidate,
   cancelAgentRun,
   createAgentRun,
   loadRunDetails,
   loadRuntimePackage,
   loadRuntimeWorkspace,
-  requestTaskCandidateApproval,
+  requestCandidateApproval,
+  revertCandidate,
   resolveTaskCandidateApproval,
   retryAgentRun,
   runtimeEventStreamUrl,
@@ -41,7 +42,10 @@ const candidateStatusLabels = {
   rejected: "已拒绝",
   applied: "已应用",
   failed: "失败",
+  reverted: "已撤销",
 };
+
+const candidateTypeLabels = { task: "任务", knowledge: "知识", decision: "决策" };
 
 const eventLabels = {
   "run.queued": "运行已排队",
@@ -62,11 +66,14 @@ const emptyRunForm = {
   packageId: "",
   goal: "",
   candidateEnabled: false,
+  candidateType: "task",
   projectId: "",
   title: "",
   description: "",
   priority: "normal",
   dueDate: "",
+  body: "",
+  rationale: "",
 };
 
 function safeError(error) {
@@ -101,6 +108,7 @@ export function RuntimePage() {
     runs: [],
     candidates: [],
     approvals: [],
+    auditEvents: [],
     contextPackages: [],
     error: null,
   });
@@ -213,7 +221,13 @@ export function RuntimePage() {
   }, [detail.run?.id, detail.run?.terminal, workspace.space?.id]);
 
   const approvalByCandidate = useMemo(
-    () => new Map(workspace.approvals.map((approval) => [approval.subject_id, approval])),
+    () => {
+      const latest = new Map();
+      workspace.approvals.forEach((approval) => {
+        if (!latest.has(approval.subject_id)) latest.set(approval.subject_id, approval);
+      });
+      return latest;
+    },
     [workspace.approvals],
   );
   const includedProjectIds = useMemo(
@@ -236,6 +250,27 @@ export function RuntimePage() {
     setBusy(true);
     setNotice("");
     try {
+      const sourceRefs = (packageDetail?.items || [])
+        .filter((item) => item.included && item.object_type === "document" && item.citation?.eligible)
+        .map((item) => item.citation.locator);
+      const candidateKey = `${runForm.candidateType}_candidate`;
+      const proposal = runForm.candidateType === "task" ? {
+        project_id: runForm.projectId,
+        title: runForm.title,
+        description: runForm.description,
+        priority: runForm.priority,
+        due_date: runForm.dueDate || null,
+      } : runForm.candidateType === "knowledge" ? {
+        project_id: runForm.projectId,
+        title: runForm.title,
+        body: runForm.body,
+        source_refs: sourceRefs.map(({ source_id, source_version_id, document_id, start_char, end_char }) => ({ source_id, source_version_id, document_id, start_char, end_char })),
+      } : {
+        project_id: runForm.projectId,
+        title: runForm.title,
+        statement: runForm.body,
+        rationale: runForm.rationale,
+      };
       const payload = {
         space_id: workspace.space.id,
         context_package_id: selectedPackage.id,
@@ -243,20 +278,14 @@ export function RuntimePage() {
         goal: runForm.goal,
         budget: { max_steps: 3, max_tool_calls: runForm.candidateEnabled ? 1 : 0 },
         ...(runForm.candidateEnabled ? {
-          task_candidate: {
-            project_id: runForm.projectId,
-            title: runForm.title,
-            description: runForm.description,
-            priority: runForm.priority,
-            due_date: runForm.dueDate || null,
-          },
+          [candidateKey]: proposal,
         } : {}),
       };
       const response = await createAgentRun(payload);
       setNotice(runForm.candidateEnabled
-        ? "运行已完成，任务仍是待确认候选，尚未写入项目。"
+        ? `运行已完成，${candidateTypeLabels[runForm.candidateType]}仍是待确认候选，尚未写入项目。`
         : "确定性运行已完成并保存事件与检查点；没有生成模型回答。");
-      setRunForm((current) => ({ ...current, goal: "", title: "", description: "", dueDate: "" }));
+      setRunForm((current) => ({ ...current, goal: "", title: "", description: "", body: "", rationale: "", dueDate: "" }));
       await load();
       setSelectedRunId(response.data.id);
     } catch (error) {
@@ -289,18 +318,20 @@ export function RuntimePage() {
     setBusyId(candidate.id);
     setNotice("");
     try {
-      if (action === "request") await requestTaskCandidateApproval(candidate.id, workspace.space.id);
+      if (action === "request") await requestCandidateApproval(candidate.id, candidate.candidate_type, workspace.space.id);
       if (action === "approve" || action === "reject") {
         await resolveTaskCandidateApproval(approval.id, workspace.space.id, approval.version, action);
       }
       if (action === "apply") {
-        await applyTaskCandidate(candidate.id, approval.id, workspace.space.id, candidate.version);
+        await applyCandidate(candidate.id, approval.id, workspace.space.id, candidate.version);
       }
+      if (action === "revert") await revertCandidate(candidate.id, workspace.space.id, candidate.version);
       setNotice({
         request: "已建立 24 小时有效的 L2 审批，批准本身不会写入任务。",
         approve: "候选已批准，但仍未写入项目；请再次选择应用。",
         reject: "候选已拒绝，不会写入项目。",
-        apply: "候选已通过审批范围复核，并作为项目任务写入一次。",
+        apply: "候选已通过审批范围复核，并作为对应业务对象写入一次。",
+        revert: "刚应用且未发生后续变更的对象已安全撤销，审计记录继续保留。",
       }[action]);
       await load();
     } catch (error) {
@@ -339,19 +370,20 @@ export function RuntimePage() {
       ) : null}
 
       <section className="runtime-launcher" aria-labelledby="runtime-launcher-title">
-        <header><div><span>NEW NATIVE RUN</span><h2 id="runtime-launcher-title">启动确定性运行</h2><p>选择已经明确确认的上下文篮。任务候选需要项目本身也在篮中。</p></div><IconBolt /></header>
+        <header><div><span>NEW NATIVE RUN</span><h2 id="runtime-launcher-title">启动确定性运行</h2><p>选择已经明确确认的上下文篮。任务、知识和决策候选都需要项目本身在篮中。</p></div><IconBolt /></header>
         <form aria-label="启动确定性运行" onSubmit={submitRun}>
           <label><span>上下文篮</span><select onChange={(event) => setRunForm({ ...runForm, packageId: event.target.value })} required value={runForm.packageId}><option value="">请选择</option>{workspace.contextPackages.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}</select></label>
           <label className="runtime-field--goal"><span>本次目标</span><input maxLength="2000" onChange={(event) => setRunForm({ ...runForm, goal: event.target.value })} placeholder="明确描述要验证或推进的目标" required value={runForm.goal} /></label>
-          <label className="runtime-candidate-toggle"><input checked={runForm.candidateEnabled} disabled={!allowedProjects.length} onChange={(event) => setRunForm({ ...runForm, candidateEnabled: event.target.checked })} type="checkbox" /><span>同时生成一个待确认任务候选</span><small>{allowedProjects.length ? "候选不会直接写入项目" : "当前篮未包含项目，不能创建任务候选"}</small></label>
+          <label className="runtime-candidate-toggle"><input checked={runForm.candidateEnabled} disabled={!allowedProjects.length} onChange={(event) => setRunForm({ ...runForm, candidateEnabled: event.target.checked })} type="checkbox" /><span>同时生成一个待确认候选</span><small>{allowedProjects.length ? "候选不会直接写入项目或其他真源" : "当前篮未包含项目，不能创建候选"}</small></label>
           {runForm.candidateEnabled ? <div className="runtime-candidate-fields">
+            <label><span>候选类型</span><select onChange={(event) => setRunForm({ ...runForm, candidateType: event.target.value })} value={runForm.candidateType}><option value="task">任务</option><option value="knowledge">知识</option><option value="decision">决策</option></select></label>
             <label><span>目标项目</span><select onChange={(event) => setRunForm({ ...runForm, projectId: event.target.value })} required value={runForm.projectId}>{allowedProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-            <label className="runtime-field--wide"><span>任务标题</span><input maxLength="240" onChange={(event) => setRunForm({ ...runForm, title: event.target.value })} required value={runForm.title} /></label>
-            <label><span>优先级</span><select onChange={(event) => setRunForm({ ...runForm, priority: event.target.value })} value={runForm.priority}><option value="low">低</option><option value="normal">普通</option><option value="high">高</option><option value="urgent">紧急</option></select></label>
-            <label><span>目标日期</span><input onChange={(event) => setRunForm({ ...runForm, dueDate: event.target.value })} type="date" value={runForm.dueDate} /></label>
-            <label className="runtime-field--wide"><span>任务说明</span><textarea maxLength="20000" onChange={(event) => setRunForm({ ...runForm, description: event.target.value })} rows="3" value={runForm.description} /></label>
+            <label className="runtime-field--wide"><span>{candidateTypeLabels[runForm.candidateType]}标题</span><input maxLength="240" onChange={(event) => setRunForm({ ...runForm, title: event.target.value })} required value={runForm.title} /></label>
+            {runForm.candidateType === "task" ? <><label><span>优先级</span><select onChange={(event) => setRunForm({ ...runForm, priority: event.target.value })} value={runForm.priority}><option value="low">低</option><option value="normal">普通</option><option value="high">高</option><option value="urgent">紧急</option></select></label><label><span>目标日期</span><input onChange={(event) => setRunForm({ ...runForm, dueDate: event.target.value })} type="date" value={runForm.dueDate} /></label><label className="runtime-field--wide"><span>任务说明</span><textarea maxLength="20000" onChange={(event) => setRunForm({ ...runForm, description: event.target.value })} rows="3" value={runForm.description} /></label></> : null}
+            {runForm.candidateType === "knowledge" ? <label className="runtime-field--wide"><span>知识正文</span><textarea maxLength="20000" onChange={(event) => setRunForm({ ...runForm, body: event.target.value })} required rows="3" value={runForm.body} /><small>将绑定当前篮中的全部固定文档范围；当前共有 {(packageDetail?.items || []).filter((item) => item.included && item.citation?.eligible).length} 条。</small></label> : null}
+            {runForm.candidateType === "decision" ? <><label className="runtime-field--wide"><span>决策陈述</span><textarea maxLength="20000" onChange={(event) => setRunForm({ ...runForm, body: event.target.value })} required rows="3" value={runForm.body} /></label><label className="runtime-field--wide"><span>理由</span><textarea maxLength="20000" onChange={(event) => setRunForm({ ...runForm, rationale: event.target.value })} rows="3" value={runForm.rationale} /></label></> : null}
           </div> : null}
-          <button disabled={busy || !runForm.packageId || !runForm.goal.trim() || (runForm.candidateEnabled && (!runForm.projectId || !runForm.title.trim()))} type="submit"><IconSparkles />{busy ? "启动中…" : "启动运行"}</button>
+          <button disabled={busy || !runForm.packageId || !runForm.goal.trim() || (runForm.candidateEnabled && (!runForm.projectId || !runForm.title.trim() || (["knowledge", "decision"].includes(runForm.candidateType) && !runForm.body.trim()) || (runForm.candidateType === "knowledge" && !(packageDetail?.items || []).some((item) => item.included && item.citation?.eligible))))} type="submit"><IconSparkles />{busy ? "启动中…" : "启动运行"}</button>
         </form>
       </section>
 
@@ -381,18 +413,26 @@ export function RuntimePage() {
       </div>
 
       <section className="runtime-approvals" aria-labelledby="runtime-approvals-title">
-        <header><div><span>GOVERNED CANDIDATES</span><h2 id="runtime-approvals-title">待确认与候选</h2><p>申请审批、作出决定和应用是三个独立动作；只有最后一步会创建项目任务。</p></div><strong>{pendingCount}</strong></header>
+        <header><div><span>GOVERNED CANDIDATES</span><h2 id="runtime-approvals-title">待确认与候选</h2><p>申请审批、作出决定和应用是三个独立动作；变更可先预览，低风险对象仅在没有后续变更时允许撤销。</p></div><strong>{pendingCount}</strong></header>
         {!workspace.candidates.length ? <div className="runtime-state runtime-state--compact"><IconShieldCheck /><strong>没有待确认候选</strong><p>这里不会填充模拟审批。</p></div> : null}
         <div className="runtime-candidate-list">{workspace.candidates.map((candidate) => {
           const approval = approvalByCandidate.get(candidate.id);
           const project = workspace.projects.find((item) => item.id === candidate.project_id);
           const effectiveApproval = approval?.effective_status || approval?.status;
-          return <article key={candidate.id}><div className="runtime-candidate-card__head"><span className={`runtime-status runtime-status--${candidate.status}`}>{candidateStatusLabels[candidate.status]}</span><code>{shortId(candidate.id)}</code></div><h3>{candidate.proposal.title}</h3><p>{candidate.proposal.description || "没有补充说明。"}</p><dl><div><dt>项目</dt><dd>{project?.name || shortId(candidate.project_id)}</dd></div><div><dt>优先级</dt><dd>{candidate.proposal.priority}</dd></div><div><dt>日期</dt><dd>{candidate.proposal.due_date || "未设置"}</dd></div><div><dt>审批</dt><dd>{effectiveApproval || "未申请"}</dd></div></dl><div className="runtime-candidate-card__actions">
+          const detailText = candidate.proposal.description || candidate.proposal.body || candidate.proposal.statement || "没有补充说明。";
+          return <article key={candidate.id}><div className="runtime-candidate-card__head"><span className={`runtime-status runtime-status--${candidate.status}`}>{candidateStatusLabels[candidate.status]}</span><code>{shortId(candidate.id)}</code></div><h3>{candidate.proposal.title}</h3><p>{detailText}</p><dl><div><dt>类型</dt><dd>{candidateTypeLabels[candidate.candidate_type]}</dd></div><div><dt>项目</dt><dd>{project?.name || shortId(candidate.project_id)}</dd></div><div><dt>变更预览</dt><dd>新建 · {candidate.preview?.fields?.join(" / ")}</dd></div><div><dt>审批</dt><dd>{effectiveApproval || "未申请"}</dd></div></dl><div className="runtime-candidate-card__actions">
             {candidate.status === "pending" && !approval ? <button disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "request")} type="button"><IconShieldCheck />申请 L2 审批</button> : null}
             {candidate.status === "pending" && effectiveApproval === "pending" ? <><button disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "approve")} type="button"><IconCheck />批准范围</button><button className="is-reject" disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "reject")} type="button"><IconX />拒绝</button></> : null}
-            {candidate.status === "approved" && effectiveApproval === "approved" ? <button disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "apply")} type="button"><IconCheck />应用为项目任务</button> : null}
+            {candidate.status === "approved" && effectiveApproval === "approved" ? <button disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "apply")} type="button"><IconCheck />应用为{candidateTypeLabels[candidate.candidate_type]}</button> : null}
+            {candidate.status === "applied" && candidate.reversible ? <button disabled={busyId === candidate.id} onClick={() => candidateCommand(candidate, "revert")} type="button"><IconRepeat />安全撤销</button> : null}
           </div>{approval ? <small className="runtime-candidate-card__expiry">审批有效期：{formatTime(approval.expires_at)}</small> : null}</article>;
         })}</div>
+      </section>
+
+      <section className="runtime-approvals" aria-labelledby="runtime-policy-title">
+        <header><div><span>POLICY &amp; AUDIT</span><h2 id="runtime-policy-title">策略与审计</h2><p>这里只显示低敏元数据；候选正文、上下文正文和存储路径不会写入审计列表。</p></div><strong>{workspace.auditEvents.length}</strong></header>
+        <div className="runtime-policy-summary"><span>空间默认 AI 策略</span><strong>{workspace.space?.default_ai_policy || "—"}</strong><small>所有候选写入仍由 Workbench 权限、审批范围和幂等校验控制。</small></div>
+        <ol className="runtime-audit-list">{workspace.auditEvents.slice(0, 20).map((event) => <li key={event.id}><div><strong>{event.action}</strong><small>{event.object_type} · {shortId(event.object_id)}</small></div><time>{formatTime(event.occurred_at)}</time><span>{event.outcome}</span></li>)}</ol>
       </section>
     </div>
   );

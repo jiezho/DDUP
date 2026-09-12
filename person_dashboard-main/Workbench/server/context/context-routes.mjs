@@ -7,10 +7,18 @@ import {
   ArchiveContextPackageSchema,
   ContextPackageSpaceQuerySchema,
   ContextSearchQuerySchema,
+  CreateAnswerAttemptSchema,
   CreateContextPackageSchema,
+  GenerateAnswerSchema,
   ImportMarkdownSchema,
+  ListAnswerAttemptsQuerySchema,
   ListContextPackagesQuerySchema,
   ListSourcesQuerySchema,
+  ReadSourceRangeQuerySchema,
+  SourceSpaceQuerySchema,
+  TransitionSourceSchema,
+  UpdateMarkdownSourceSchema,
+  ValidateAnswerDraftSchema,
 } from './context-contracts.mjs'
 
 function parse(schema, value) {
@@ -46,7 +54,7 @@ function writeEnvelope(request, result, scope) {
   return okEnvelope(request.id, result.data, { scope, idempotency_replayed: result.replayed })
 }
 
-export function registerContextRoutes(app, { contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf }) {
+export function registerContextRoutes(app, { answerAttemptStore, contextStore, contextPackageStore, protectedSearchService, requireSession, requireCsrf }) {
   app.get('/api/v1/sources', { preHandler: requireSession }, async (request) => {
     const query = parse(ListSourcesQuerySchema, request.query)
     return okEnvelope(request.id, { items: contextStore.listSources(request.workbenchSession, query) }, { scope: { space_id: query.space_id } })
@@ -63,6 +71,24 @@ export function registerContextRoutes(app, { contextStore, contextPackageStore, 
       scope: { space_id: input.space_id, project_id: input.project_id },
       idempotency_replayed: result.replayed,
     })
+  })
+
+  app.get('/api/v1/sources/:sourceId/range', { preHandler: requireSession }, async (request) => {
+    const query = parse(ReadSourceRangeQuerySchema, request.query)
+    return okEnvelope(request.id, contextStore.readSourceRange(request.workbenchSession, request.params.sourceId, query), { scope: { space_id: query.space_id } })
+  })
+
+  app.post('/api/v1/sources/:sourceId/versions', { preHandler: requireCsrf }, async (request, reply) => {
+    const input = parse(UpdateMarkdownSourceSchema, request.body)
+    const result = contextStore.updateMarkdown(request.workbenchSession, request.params.sourceId, input, writeOptions(request))
+    reply.code(result.statusCode)
+    return writeEnvelope(request, result, { space_id: input.space_id })
+  })
+
+  app.post('/api/v1/sources/:sourceId/transitions', { preHandler: requireCsrf }, async (request) => {
+    const input = parse(TransitionSourceSchema, request.body)
+    const result = contextStore.transitionSource(request.workbenchSession, request.params.sourceId, input, writeOptions(request))
+    return writeEnvelope(request, result, { space_id: input.space_id })
   })
 
   app.post('/api/v1/context/search', { preHandler: requireSession }, async (request) => {
@@ -110,6 +136,50 @@ export function registerContextRoutes(app, { contextStore, contextPackageStore, 
   app.post('/api/v1/context/packages/:packageId/transitions', { preHandler: requireCsrf }, async (request) => {
     const input = parse(ArchiveContextPackageSchema, request.body)
     const result = contextPackageStore.archivePackage(request.workbenchSession, request.params.packageId, input.space_id, writeOptions(request))
+    return writeEnvelope(request, result, { space_id: input.space_id })
+  })
+
+  app.get('/api/v1/context/answer-attempts', { preHandler: requireSession }, async (request) => {
+    const query = parse(ListAnswerAttemptsQuerySchema, request.query)
+    return okEnvelope(request.id, { items: answerAttemptStore.listAttempts(request.workbenchSession, query) }, { scope: { space_id: query.space_id } })
+  })
+
+  app.post('/api/v1/context/answer-attempts', { preHandler: requireCsrf }, async (request, reply) => {
+    const input = parse(CreateAnswerAttemptSchema, request.body)
+    const result = answerAttemptStore.createAttempt(request.workbenchSession, input, {
+      idempotencyKey: request.headers['idempotency-key'],
+      requestId: request.id,
+    })
+    reply.code(result.statusCode)
+    return writeEnvelope(request, result, { space_id: input.space_id })
+  })
+
+  app.get('/api/v1/context/answer-attempts/:attemptId', { preHandler: requireSession }, async (request) => {
+    const query = parse(ContextPackageSpaceQuerySchema, request.query)
+    return okEnvelope(request.id, answerAttemptStore.getAttempt(request.workbenchSession, request.params.attemptId, query.space_id), { scope: { space_id: query.space_id } })
+  })
+
+  app.post('/api/v1/context/answer-attempts/:attemptId/validate-draft', { preHandler: requireCsrf }, async (request) => {
+    const input = parse(ValidateAnswerDraftSchema, request.body)
+    return okEnvelope(
+      request.id,
+      answerAttemptStore.validateDraft(request.workbenchSession, request.params.attemptId, input),
+      { scope: { space_id: input.space_id } },
+    )
+  })
+
+  app.get('/api/v1/context/answer-attempts/:attemptId/answer', { preHandler: requireSession }, async (request) => {
+    const query = parse(ContextPackageSpaceQuerySchema, request.query)
+    return okEnvelope(request.id, answerAttemptStore.getAnswer(request.workbenchSession, request.params.attemptId, query.space_id), { scope: { space_id: query.space_id } })
+  })
+
+  app.post('/api/v1/context/answer-attempts/:attemptId/generate', { preHandler: requireCsrf }, async (request, reply) => {
+    const input = parse(GenerateAnswerSchema, request.body)
+    const result = answerAttemptStore.generateAnswer(request.workbenchSession, request.params.attemptId, input, {
+      idempotencyKey: request.headers['idempotency-key'],
+      requestId: request.id,
+    })
+    reply.code(result.statusCode)
     return writeEnvelope(request, result, { space_id: input.space_id })
   })
 }

@@ -38,7 +38,7 @@ export function createNativeRuntime({ mode = 'complete', now = Date.now } = {}) 
       runtime_version: descriptor.runtime_version,
       details: [],
     }),
-    start: ({ context, task_candidate: taskCandidate }) => {
+    start: ({ context, task_candidate: taskCandidate, knowledge_candidate: knowledgeCandidate, decision_candidate: decisionCandidate }) => {
       if (mode === 'hold') return { outcome: 'running', events: [] }
       if (mode === 'fail') {
         throw publicError(ERROR_CODES.RUNTIME_PROTOCOL_ERROR, '本地确定性 Runtime 演练失败。', { statusCode: 503, retryable: true })
@@ -54,13 +54,17 @@ export function createNativeRuntime({ mode = 'complete', now = Date.now } = {}) 
             generated_answer: false,
           },
         }],
-        tool_calls: taskCandidate ? [{
-          runtime_tool_call_id: 'native-task-candidate-1',
-          tool_key: 'candidate.task.create.v1',
+        tool_calls: [
+          taskCandidate && { candidate: taskCandidate, type: 'task' },
+          knowledgeCandidate && { candidate: knowledgeCandidate, type: 'knowledge' },
+          decisionCandidate && { candidate: decisionCandidate, type: 'decision' },
+        ].filter(Boolean).map(({ candidate, type }) => ({
+          runtime_tool_call_id: `native-${type}-candidate-1`,
+          tool_key: `candidate.${type}.create.v1`,
           tool_version: '1.0.0',
-          arguments: taskCandidate,
+          arguments: candidate,
           purpose_code: 'user_structured_request',
-        }] : [],
+        })),
       }
     },
     cancel: () => ({ outcome: 'cancelled' }),

@@ -1,0 +1,60 @@
+{
+  "schema_version": "dd-up-sidecar-p1-endurance-v1",
+  "generated_at": "2026-09-11T01:57:02.041Z",
+  "status": "passed_p1_local_endurance",
+  "data_classification": "explicitly_synthetic",
+  "endpoint_scope": "127.0.0.1_loopback_only",
+  "authentication": {
+    "unauthorized_health_status": 401
+  },
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "device": "cpu",
+    "embedding_strategy": "title_prefixed_char_windows_max_pool_v1",
+    "window_chars": 160,
+    "window_overlap_chars": 40
+  },
+  "workload": {
+    "warmup_requests": 2,
+    "sequential_requests": 100,
+    "concurrent_rounds": 10,
+    "concurrency": 2,
+    "request_timeout_ms": 120000,
+    "candidate_count": 4,
+    "total_measured_requests": 120
+  },
+  "measurements": {
+    "elapsed_ms": 26571.39,
+    "throughput_requests_per_second": 4.516,
+    "sequential": {
+      "requests": 100,
+      "p50_ms": 239.81,
+      "p95_ms": 264.52,
+      "max_ms": 349.11,
+      "errors": 0,
+      "ranked": 100,
+      "bounded_busy": 0
+    },
+    "concurrent": {
+      "requests": 20,
+      "p50_ms": 3.87,
+      "p95_ms": 252.96,
+      "max_ms": 278.41,
+      "errors": 0,
+      "ranked": 10,
+      "bounded_busy": 10
+    },
+    "total_errors": 0,
+    "error_codes": [],
+    "identity_stable_after_run": true,
+    "sequential_stable": true,
+    "bounded_concurrency": true
+  },
+  "interpretation_limits": [
+    "local_cpu_endurance_sample_not_production_capacity",
+    "runtime_busy_is_an_expected_bounded_concurrency_outcome",
+    "not_a_multi_day_memory_leak_test",
+    "no_real_data_no_generated_answer_no_production_enablement"
+  ]
+}

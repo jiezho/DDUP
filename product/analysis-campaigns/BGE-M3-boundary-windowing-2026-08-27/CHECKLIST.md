@@ -23,22 +23,22 @@
 
 - [x] Q1/Q2 diagnostic script complete
 - [x] failed-query smoke complete
-- [ ] full 21-query Q1 result recorded durably
-- [ ] full 21-query Q2 result recorded durably
-- [ ] Q3 integration decision recorded
-- [ ] Q3 sidecar implementation and performance evidence complete when eligible
-- [ ] any redesign reflected in `PLAN.md`
+- [x] full 21-query Q1 result recorded durably
+- [x] full 21-query Q2 result recorded durably
+- [x] Q3 integration decision recorded
+- [x] Q3 sidecar implementation and performance evidence complete when eligible
+- [x] any redesign reflected in `PLAN.md`
 
-当前状态：三条历史失败查询 smoke 已完成；完整 21 条运行因外部模型执行审批服务 403 暂缓。未达到完整质量门前不启动 Q3，也不修改正式 sidecar 排序策略。
+当前状态：完整 21 条评测已完成，`window_160_40` 的可回答召回与 Top-1 均为 100%，且无答案、危险意图、权限泄漏和 locator 门均通过；默认关闭的实验 sidecar 已采用同一策略并通过本地耐久切片。
 
 ## Aggregation
 
-- [ ] stable support vs contradiction vs ambiguity classified
-- [ ] highest-impact slices summarized first
-- [ ] campaign report written
+- [x] stable support vs contradiction vs ambiguity classified
+- [x] highest-impact slices summarized first
+- [x] campaign report written
 
 ## Closeout
 
-- [ ] campaign outcome summarized in 1–2 sentences
-- [ ] implementation task plan updated
-- [ ] next route recorded explicitly
+- [x] campaign outcome summarized in 1–2 sentences
+- [x] implementation task plan updated
+- [x] next route recorded explicitly

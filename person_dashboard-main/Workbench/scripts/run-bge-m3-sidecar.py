@@ -21,6 +21,9 @@ MAX_REQUEST_BYTES = 1024 * 1024
 MAX_CANDIDATES = 200
 MAX_TEXT_CHARS = 2300
 MAX_CACHED_VECTORS = 512
+WINDOW_CHARS = 160
+WINDOW_OVERLAP_CHARS = 40
+EMBEDDING_STRATEGY = "title_prefixed_char_windows_max_pool_v1"
 IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 
 
@@ -93,28 +96,51 @@ class ModelRuntime:
         digest = hashlib.sha256(candidate["text"].encode("utf-8")).hexdigest()
         return f'{candidate["candidate_id"]}:{digest}'
 
+    @staticmethod
+    def _candidate_passages(text: str) -> list[str]:
+        title, separator, body = text.partition("\n")
+        if not separator or len(body) <= WINDOW_CHARS:
+            return [text]
+        passages = []
+        step = WINDOW_CHARS - WINDOW_OVERLAP_CHARS
+        start = 0
+        while start < len(body):
+            end = min(len(body), start + WINDOW_CHARS)
+            passages.append(f"{title}\n{body[start:end]}")
+            if end == len(body):
+                break
+            start += step
+        return passages
+
     def _document_vectors(self, candidates: list[dict[str, str]]):
         keys = [self._cache_key(item) for item in candidates]
         missing_indexes = [index for index, key in enumerate(keys) if key not in self._vector_cache]
         if missing_indexes:
+            passages = []
+            owners = []
+            for index in missing_indexes:
+                for passage in self._candidate_passages(candidates[index]["text"]):
+                    passages.append(passage)
+                    owners.append(index)
             encoded = self._np.asarray(self._model.encode(
-                [candidates[index]["text"] for index in missing_indexes],
+                passages,
                 batch_size=4,
                 max_length=128,
                 return_dense=True,
                 return_sparse=False,
                 return_colbert_vecs=False,
             )["dense_vecs"], dtype=self._np.float32)
-            for offset, index in enumerate(missing_indexes):
-                self._vector_cache[keys[index]] = encoded[offset].copy()
+            for index in missing_indexes:
+                offsets = [offset for offset, owner in enumerate(owners) if owner == index]
+                self._vector_cache[keys[index]] = encoded[offsets].copy()
         vectors = []
         for key in keys:
             vector = self._vector_cache[key]
             self._vector_cache.move_to_end(key)
             vectors.append(vector)
-        while len(self._vector_cache) > MAX_CACHED_VECTORS:
+        while sum(len(value) for value in self._vector_cache.values()) > MAX_CACHED_VECTORS:
             self._vector_cache.popitem(last=False)
-        return self._np.stack(vectors)
+        return vectors
 
     def rank(self, query: str, candidates: list[dict[str, str]], limit: int) -> list[dict[str, object]]:
         if not self._lock.acquire(blocking=False):
@@ -125,10 +151,10 @@ class ModelRuntime:
                 return_dense=True, return_sparse=False, return_colbert_vecs=False,
             )["dense_vecs"], dtype=self._np.float32)[0]
             document_vectors = self._document_vectors(candidates)
-            ranked = [
-                {"candidate_id": item["candidate_id"], "score": float(self._np.dot(query_vector, document_vectors[index]))}
-                for index, item in enumerate(candidates)
-            ]
+            ranked = []
+            for index, item in enumerate(candidates):
+                window_scores = self._np.dot(document_vectors[index], query_vector)
+                ranked.append({"candidate_id": item["candidate_id"], "score": float(self._np.max(window_scores))})
             ranked.sort(key=lambda item: (-item["score"], item["candidate_id"]))
             return ranked[:limit]
         finally:
@@ -164,6 +190,9 @@ def handler_factory(runtime: ModelRuntime, token: str):
                 return
             self.send_json(HTTPStatus.OK, {
                 "status": "ok", "model_id": MODEL_ID, "model_revision": MODEL_REVISION, "device": "cpu",
+                "embedding_strategy": EMBEDDING_STRATEGY,
+                "window_chars": WINDOW_CHARS,
+                "window_overlap_chars": WINDOW_OVERLAP_CHARS,
             })
 
         def do_POST(self) -> None:
@@ -222,6 +251,8 @@ def main() -> int:
     print(json.dumps({
         "status": "ready", "host": "127.0.0.1", "port": args.port,
         "model_id": MODEL_ID, "model_revision": MODEL_REVISION, "device": "cpu",
+        "embedding_strategy": EMBEDDING_STRATEGY,
+        "window_chars": WINDOW_CHARS, "window_overlap_chars": WINDOW_OVERLAP_CHARS,
     }), flush=True)
     try:
         server.serve_forever(poll_interval=0.25)

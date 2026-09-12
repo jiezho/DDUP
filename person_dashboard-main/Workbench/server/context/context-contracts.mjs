@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { isUuidV7 } from '../../shared/contracts/ids.mjs'
 
-export const CONTEXT_OBJECT_TYPES = Object.freeze(['project', 'task', 'capture', 'document'])
+export const CONTEXT_OBJECT_TYPES = Object.freeze(['project', 'task', 'capture', 'document', 'knowledge', 'decision'])
 
 const UuidV7Schema = z.string().refine(isUuidV7, '必须是 UUIDv7。')
 const LocalDateSchema = z
@@ -40,6 +40,36 @@ export const ListSourcesQuerySchema = z
     limit: z.coerce.number().int().min(1).max(200).default(100),
   })
   .strict()
+
+export const SourceSpaceQuerySchema = z.object({ space_id: UuidV7Schema }).strict()
+
+export const UpdateMarkdownSourceSchema = z
+  .object({
+    space_id: UuidV7Schema,
+    filename: MarkdownFilenameSchema,
+    title: z.string().trim().min(1).max(200).optional(),
+    content: z.string().min(1).max(1_000_000),
+  })
+  .strict()
+
+export const TransitionSourceSchema = z
+  .object({ space_id: UuidV7Schema, action: z.enum(['archive', 'restore']) })
+  .strict()
+
+export const ReadSourceRangeQuerySchema = z
+  .object({
+    space_id: UuidV7Schema,
+    source_version_id: UuidV7Schema,
+    start_char: z.coerce.number().int().min(0),
+    end_char: z.coerce.number().int().positive(),
+  })
+  .strict()
+  .refine((value) => value.end_char > value.start_char && value.end_char - value.start_char <= 20_000, {
+    message: '原文定位范围必须有效且不超过 20000 个字符。',
+    path: ['end_char'],
+  })
+
+export const GenerateAnswerSchema = z.object({ space_id: UuidV7Schema }).strict()
 
 export const ContextSearchQuerySchema = z
   .object({
@@ -103,4 +133,32 @@ export const AddContextPackageItemSchema = z
 
 export const ArchiveContextPackageSchema = z
   .object({ space_id: UuidV7Schema, action: z.literal('archive') })
+  .strict()
+
+export const CreateAnswerAttemptSchema = z
+  .object({
+    space_id: UuidV7Schema,
+    context_package_id: UuidV7Schema,
+    context_package_version: z.number().int().min(1),
+    question: z.string().trim().min(2).max(1000).refine((value) => /[\p{L}\p{N}]/u.test(value), '问题必须包含文字或数字。'),
+  })
+  .strict()
+
+export const ListAnswerAttemptsQuerySchema = z
+  .object({
+    space_id: UuidV7Schema,
+    context_package_id: UuidV7Schema,
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+  })
+  .strict()
+
+export const ValidateAnswerDraftSchema = z
+  .object({
+    space_id: UuidV7Schema,
+    claims: z.array(z.object({
+      text: z.string().trim().min(1).max(1000),
+      citation_ordinals: z.array(z.number().int().min(1)).min(1).max(20)
+        .refine((items) => new Set(items).size === items.length, '引用序号不能重复。'),
+    }).strict()).min(1).max(20),
+  })
   .strict()

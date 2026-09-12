@@ -2,7 +2,7 @@
 
 > 编号：G6b  
 > 日期：2026-09-01  
-> 状态：**待用户确认；当前仅完成官方 API 契约复核和零依赖 synthetic 协议预检，Hermes 未安装、未启动、未连接任何真实消息平台或模型。**
+> 状态：**待用户确认；当前已提交能力仅包括官方 API 契约复核和零依赖 synthetic 协议预检。工作树另存在未提交的 Hermes 下载包与解压源码，但尚未审计、安装、启动或连接任何真实消息平台/模型，不构成 G6b 已执行。**
 
 ## 1. 本次需要确认的推荐项
 
@@ -22,7 +22,7 @@
 
 ## 2. 已完成且不需要额外授权的工作
 
-本轮没有下载或执行 Hermes，只完成：
+已提交的 Workbench 实现没有安装或执行 Hermes，只完成：
 
 1. 复核官方 `HTTP + SSE` API：`/v1/capabilities`、Runs、状态、事件、审批、steer 和 stop；
 2. 确认 API server 是 `server_agent`，工具在 Hermes 服务端宿主执行，默认完整工具面包含终端、文件、网络、记忆和 skills；
@@ -36,6 +36,18 @@
 4. Registry 如实显示 `api_contract_reviewed_not_installed / connected=false`；Native 仍是唯一执行器。
 
 这些代码验证的是“Workbench 能安全识别已复核契约”，不是“当前 Hermes 服务可用”。
+
+### 2.1 当前工作树异常事实
+
+2026-09-01 复核时发现 `experiments/hermes-poc/` 下存在约 196.8 MB、6,172 个未提交文件，包括约 64.2 MB 的 `hermes-agent-v2026.7.7.2.tar.gz` 和解压源码。当前没有证据表明这些文件已经完成 G6b 授权、来源/哈希/许可证/安装脚本审查、隔离安装或运行测试。
+
+在用户作出 G6b 决定前：
+
+- 不运行安装脚本、服务端或 Agent；
+- 不配置模型、消息平台、凭据或业务数据；
+- 不将该目录提交为产品依赖或 POC 结果；
+- Registry 继续保持 `connected=false`；
+- 后续由用户决定进入 G6b-P1 审计，或移除这些未验收下载物。
 
 ## 3. G6b 后的建议实验顺序
 

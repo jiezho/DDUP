@@ -15,7 +15,7 @@ Workbench 提供可复用的读取、索引和可视化能力，不包含任何�
 - 社媒洞察的本地只读展示
 - 灵感库与内容中心
 - 抖音数据面板及完整数据模板
-- 本地 API 与正式 UI 中的显式 ContextPackage、`native-v1` 确定性 Run 生命周期、Task Candidate L1/L2 审批应用、SSE、Checkpoint、重启安全收敛和受限重试谱系（无模型回答、无外部动作）
+- 本地 API 与正式 UI 中的显式 ContextPackage、派生 Citation Manifest、持久化 AnswerAttempt、安全拒答与读取时引用复核、本地保守直接引文 Answer/Claim/Citation、`native-v1` 确定性 Run 生命周期、Task/Knowledge/Decision Candidate、差异预览、L1/L2 审批应用与安全撤销、低敏审计查询、SSE、Checkpoint、来源版本/归档恢复、精确原文读取及本地一致性备份（只允许证据原样声明，不提供开放式模型推理；引用漂移后隐藏回答正文；无外部动作）
 - DeepSeek Harness 的零依赖 stdio JSON-RPC 协议预检与真实性状态卡（官方运行时未安装、不可运行）
 - Hermes 的零依赖 HTTP+SSE 契约预检与真实性状态卡（G6b 未确认、软件未安装、不可运行）
 
@@ -29,7 +29,7 @@ Workbench 提供可复用的读取、索引和可视化能力，不包含任何�
 
 ## 快速开始
 
-环境要求：Node.js 22 或更新版本。
+环境要求：Node.js `>=24.15.0 <25`；推荐使用仓库版本文件指定的 Node 24.19.0。Node 22 或更低版本不属于当前验证基线。
 
 ```bash
 npm install

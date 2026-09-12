@@ -59,6 +59,14 @@ const d3CampaignEvidenceUrl = new URL(
   "../../../product/analysis-campaigns/BGE-M3-sidecar-degradation-2026-08-27/D3-http-bounded-backpressure-main.json",
   import.meta.url,
 );
+const p1WindowEvidenceUrl = new URL(
+  "../../../product/analysis-campaigns/BGE-M3-boundary-windowing-2026-08-27/windowing-full-2026-09-11.json",
+  import.meta.url,
+);
+const p1EnduranceEvidenceUrl = new URL(
+  "../../../product/analysis-campaigns/BGE-M3-boundary-windowing-2026-08-27/sidecar-p1-endurance-2026-09-11.json",
+  import.meta.url,
+);
 
 test("model POC manifests remain metadata-only and within the reviewed download ceiling", async () => {
   const [packageManifest, modelManifest, osvAudit] = await Promise.all([
@@ -215,4 +223,29 @@ test("sidecar degradation repair remains bounded, synthetic and default-off", as
   assert.equal(d3.measurements.ranked_count, 1);
   assert.equal(d3.measurements.busy_count, 1);
   assert.equal(d3.measurements.error_count, 0);
+});
+
+test("P1 windowed sidecar is quality-gated, identity-bound and still experimental", async () => {
+  const [windowEvidence, enduranceEvidence, sidecarScript] = await Promise.all([
+    readFile(p1WindowEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(p1EnduranceEvidenceUrl, "utf8").then(JSON.parse),
+    readFile(sidecarScriptUrl, "utf8"),
+  ]);
+  const selected = windowEvidence.arms.window_160_40;
+  assert.equal(windowEvidence.boundary.fixed_threshold, 0.5);
+  assert.equal(windowEvidence.boundary.production_enabled, false);
+  assert.equal(selected.metrics.answerable_recall, 1);
+  assert.equal(selected.metrics.top1_accuracy, 1);
+  assert.equal(selected.metrics.no_answer_false_positive_rate, 0);
+  assert.equal(selected.metrics.unsafe_refusal_rate, 1);
+  assert.equal(selected.metrics.unauthorized_leak_count, 0);
+  assert.equal(selected.metrics.exact_locator_rate, 1);
+  assert.equal(enduranceEvidence.status, "passed_p1_local_endurance");
+  assert.equal(enduranceEvidence.workload.sequential_requests, 100);
+  assert.equal(enduranceEvidence.measurements.total_errors, 0);
+  assert.equal(enduranceEvidence.measurements.sequential_stable, true);
+  assert.equal(enduranceEvidence.measurements.bounded_concurrency, true);
+  assert.match(sidecarScript, /EMBEDDING_STRATEGY = "title_prefixed_char_windows_max_pool_v1"/);
+  assert.match(sidecarScript, /WINDOW_CHARS = 160/);
+  assert.match(sidecarScript, /WINDOW_OVERLAP_CHARS = 40/);
 });

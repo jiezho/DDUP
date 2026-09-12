@@ -1,23 +1,16 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.11.0
+  version: 1.18.0
   description: >-
-    Local-loopback MVP contract. Foundation session/security and the durable
-    project, milestone, task, manual discussion-to-decision, explicit text/link
-    capture, daily focus/review, controlled Markdown source intake, and authorized
-    context full-text search, explicit context-package slices, and a deterministic
-    local Native Runtime lifecycle are implemented. The Native Runtime persists only
-    scope digests and safe replay events; it generates no answer. Its only Runtime-callable
-    tool creates a non-authoritative task candidate. Applying that candidate requires a separate
-    local L2 approval with a scope digest and creates no external effect. Run history now
-    includes bounded JSON replay, recoverable SSE, durable Workbench checkpoints, safe
-    restart failure convergence, and retry lineage for eligible zero-tool runs. Harness remains
-    disconnected; its registry descriptor exposes only a zero-dependency stdio JSON-RPC protocol
-    preflight with no health or Run availability.
-    A default-off protected hybrid-search path may
-    call a token-authenticated fixed-identity loopback sidecar after authorization and automatically
-    falls back to FTS5; it does not generate answers. Other product domains remain out of scope.
+    Local-loopback MVP contract. It covers durable project work, explicit capture and daily
+    planning, immutable controlled Markdown versions, authorization-first search, explicit
+    ContextPackages, AnswerAttempt safety snapshots, and a local conservative Answer/Claim/Citation
+    path that persists only direct quotes entailed by revalidated fixed ranges. It also covers the
+    deterministic Native Run lifecycle, Task/Knowledge/Decision candidates, digest-bound L2
+    approval, safe apply/revert, redacted governance audit reads, and verified local backup bundles
+    with offline empty-directory restore. Open-ended inference, external actions, Harness/Hermes
+    execution, and the default-off hybrid-search experiment remain outside the production path.
 servers:
   - url: http://127.0.0.1:8787
 paths:
@@ -591,6 +584,48 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/sources/{sourceId}/range:
+    get:
+      operationId: readSourceRange
+      description: Re-authorizes and returns only one exact range from the current immutable SourceVersion; storage paths are never exposed.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: sourceId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: source_version_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: start_char, required: true, schema: { type: integer, minimum: 0 } }
+        - { in: query, name: end_char, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/sources/{sourceId}/versions:
+    post:
+      operationId: createMarkdownSourceVersion
+      description: Creates a new immutable Markdown SourceVersion and atomically moves the searchable Document projection to it.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: sourceId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/sources/{sourceId}/transitions:
+    post:
+      operationId: transitionSource
+      description: Archives or restores a controlled source without deleting its immutable versions.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: sourceId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
   /api/v1/context/search:
     post:
       operationId: searchAuthorizedContext
@@ -650,13 +685,22 @@ paths:
   /api/v1/context/packages/{packageId}:
     get:
       operationId: getContextPackage
-      description: Resolves only explicit items that remain authorized and version-valid; unavailable entries are returned as excluded without body text.
+      description: Resolves only explicit items that remain authorized and version-valid. Each item distinguishes a fixed-version source citation from an object locator; unavailable entries are excluded without body text. The evidence summary deterministically refuses factual-answer readiness when no citable source range exists and always reports generation_enabled=false.
       security: [{ localSession: [] }]
       parameters:
         - { in: path, name: packageId, required: true, schema: { type: string, format: uuid } }
         - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
       responses:
-        "200": { $ref: "#/components/responses/Success" }
+        "200":
+          description: Resolved context package with citation eligibility and answer readiness.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ContextPackageResolved" }
         "404": { $ref: "#/components/responses/Error" }
   /api/v1/context/packages/{packageId}/items:
     post:
@@ -717,6 +761,134 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/context/answer-attempts:
+    get:
+      operationId: listAnswerAttempts
+      description: Lists durable safety-check records for one authorized ContextPackage, including fixed citation references and their current read-time integrity state, but no excerpts or generated answer text. Any source, range, or hash drift is reported as invalid and must fail closed for downstream generation.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: context_package_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createAnswerAttempt
+      description: >-
+        Re-resolves the authorized ContextPackage at the exact client-observed version, applies a
+        deterministic unsafe-intent gate, and persists either an evidence-ready citation-reference
+        snapshot or an explicit refusal. The command is idempotent, audited, and does not generate an
+        answer itself; generation_enabled reflects whether the approved local answer provider is configured.
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnswerAttemptCreate" }
+      responses:
+        "201":
+          description: Durable evidence-ready or refusal attempt; use the separate generate command for an Answer.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AnswerAttempt" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/context/answer-attempts/{attemptId}:
+    get:
+      operationId: getAnswerAttempt
+      description: Returns one authorized durable safety-check record and revalidates each fixed citation against its exact SourceVersion, Document, character range, and SHA-256. No source quote or generated answer text is included.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: One answer-attempt safety record.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AnswerAttempt" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/context/answer-attempts/{attemptId}/validate-draft:
+    post:
+      operationId: validateAnswerDraft
+      description: >-
+        Re-authorizes an evidence-ready AnswerAttempt, revalidates every fixed citation, and
+        checks whether each candidate sentence occurs verbatim inside at least one explicitly
+        referenced citation range. This is a non-persistent extractive preflight, not semantic
+        entailment, factual verification, answer generation, or creation of Answer/Citation truth.
+        Candidate text and source excerpts are never returned or stored.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnswerDraftValidationRequest" }
+      responses:
+        "200":
+          description: Extractive preflight result or a fail-closed refusal/integrity block; no candidate or source text.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AnswerDraftValidation" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/context/answer-attempts/{attemptId}/answer:
+    get:
+      operationId: getFinalAnswer
+      description: Returns the immutable validated Answer, its claim verdicts and final SourceVersion character-range citations, or null before generation.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/context/answer-attempts/{attemptId}/generate:
+    post:
+      operationId: generateFinalAnswer
+      description: Uses the approved local conservative runtime and persists an Answer only when every direct-quote claim is entailed by its revalidated fixed citation range.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [space_id]
+              properties:
+                space_id: { type: string, format: uuid }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/runtimes:
     get:
       operationId: listRuntimes
@@ -870,7 +1042,8 @@ paths:
       security: [{ localSession: [] }]
       parameters:
         - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
-        - { in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, applied, failed] } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, applied, failed, reverted] } }
+        - { in: query, name: candidate_type, schema: { type: string, enum: [task, knowledge, decision] } }
         - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
         "200": { $ref: "#/components/responses/Success" }
@@ -888,7 +1061,7 @@ paths:
   /api/v1/candidates/{candidateId}/approvals:
     post:
       operationId: requestCandidateApproval
-      description: Creates one expiring L2 approval bound to the task proposal digest; it does not apply the candidate.
+      description: Creates one expiring L2 approval bound to the typed proposal digest; it does not apply the candidate.
       security: [{ localSession: [] }]
       parameters:
         - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
@@ -904,8 +1077,8 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
   /api/v1/candidates/{candidateId}/apply:
     post:
-      operationId: applyTaskCandidate
-      description: Revalidates candidate bytes, approval scope, expiry, space, project state and candidate version before creating one local task.
+      operationId: applyCandidate
+      description: Revalidates candidate bytes, approval scope, expiry, space, project state and candidate version before creating one local task, knowledge item, or decision.
       security: [{ localSession: [] }]
       parameters:
         - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
@@ -920,6 +1093,30 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/candidates/{candidateId}/revert:
+    post:
+      operationId: revertCandidate
+      description: Soft-deletes a just-applied local object only while its version and downstream relationship set remain unchanged.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/governance/audit-events:
+    get:
+      operationId: listGovernanceAuditEvents
+      description: Returns authorized low-sensitive audit metadata without candidate bodies, source excerpts, credentials, or storage paths.
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: action, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
   /api/v1/approvals:
     get:
       operationId: listApprovals
@@ -958,6 +1155,28 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/system/backups:
+    get:
+      operationId: listLocalBackups
+      security: [{ localSession: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createLocalBackup
+      description: Creates and verifies an online SQLite snapshot plus controlled source files under the local backup root.
+      security: [{ localSession: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/system/backups/{backupId}/verify:
+    get:
+      operationId: verifyLocalBackup
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: backupId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
 components:
   securitySchemes:
     localSession:
@@ -1318,6 +1537,252 @@ components:
       properties:
         space_id: { type: string, format: uuid }
         action: { const: archive }
+    ContextCitationLocator:
+      type: object
+      additionalProperties: false
+      required: [source_id, source_version_id, document_id, locator_type, start_char, end_char, text_sha256]
+      properties:
+        source_id: { type: string, format: uuid }
+        source_version_id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        locator_type: { const: char_range }
+        start_char: { type: integer, minimum: 0 }
+        end_char: { type: integer, minimum: 1 }
+        text_sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+    ContextCitationEligibility:
+      type: object
+      additionalProperties: false
+      required: [eligible, kind, reason, locator]
+      properties:
+        eligible: { type: boolean }
+        kind: { type: string, enum: [source_citation, object_locator, excluded] }
+        reason: { type: [string, "null"] }
+        locator:
+          oneOf:
+            - $ref: "#/components/schemas/ContextCitationLocator"
+            - type: "null"
+    ContextAnswerReadiness:
+      type: object
+      additionalProperties: false
+      required: [state, generation_enabled, reason]
+      properties:
+        state: { type: string, enum: [citation_manifest_ready, refused_no_citable_evidence, package_expired, package_archived] }
+        generation_enabled: { const: false }
+        reason: { type: string }
+    ContextPackageEvidence:
+      type: object
+      additionalProperties: false
+      required: [citation_count, related_object_count, excluded_count, answer_readiness]
+      properties:
+        citation_count: { type: integer, minimum: 0 }
+        related_object_count: { type: integer, minimum: 0 }
+        excluded_count: { type: integer, minimum: 0 }
+        answer_readiness: { $ref: "#/components/schemas/ContextAnswerReadiness" }
+    ContextPackageResolved:
+      type: object
+      additionalProperties: true
+      required: [items, evidence]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            required: [citation]
+            properties:
+              citation: { $ref: "#/components/schemas/ContextCitationEligibility" }
+        evidence: { $ref: "#/components/schemas/ContextPackageEvidence" }
+    AnswerAttemptCreate:
+      type: object
+      additionalProperties: false
+      required: [space_id, context_package_id, context_package_version, question]
+      properties:
+        space_id: { type: string, format: uuid }
+        context_package_id: { type: string, format: uuid }
+        context_package_version: { type: integer, minimum: 1 }
+        question: { type: string, minLength: 2, maxLength: 1000 }
+    AnswerDraftClaimInput:
+      type: object
+      additionalProperties: false
+      required: [text, citation_ordinals]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 1000 }
+        citation_ordinals:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+    AnswerDraftValidationRequest:
+      type: object
+      additionalProperties: false
+      required: [space_id, claims]
+      properties:
+        space_id: { type: string, format: uuid }
+        claims:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: "#/components/schemas/AnswerDraftClaimInput" }
+    AnswerDraftClaimResult:
+      type: object
+      additionalProperties: false
+      required: [ordinal, supported, reason_code, matched_citation_ordinal]
+      properties:
+        ordinal: { type: integer, minimum: 1 }
+        supported: { type: boolean }
+        reason_code: { type: string, enum: [EXACT_TEXT_FOUND, EXACT_TEXT_NOT_FOUND, CITATION_NOT_AVAILABLE] }
+        matched_citation_ordinal: { type: [integer, "null"], minimum: 1 }
+    AnswerDraftValidation:
+      type: object
+      additionalProperties: false
+      required: [state, reason_code, reason, claim_count, supported_count, unsupported_count, semantic_entailment, persistence_enabled, generation_enabled, claims]
+      properties:
+        state: { type: string, enum: [passed, failed, blocked_refusal, blocked_integrity] }
+        reason_code: { type: string, enum: [ALL_CLAIMS_EXACTLY_SUPPORTED, CLAIM_NOT_EXACTLY_SUPPORTED, ANSWER_ATTEMPT_REFUSED, CITATION_INTEGRITY_NOT_VERIFIED] }
+        reason: { type: string }
+        claim_count: { type: integer, minimum: 1, maximum: 20 }
+        supported_count: { type: integer, minimum: 0, maximum: 20 }
+        unsupported_count: { type: integer, minimum: 0, maximum: 20 }
+        semantic_entailment: { const: false }
+        persistence_enabled: { const: false }
+        generation_enabled: { const: false }
+        claims:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/AnswerDraftClaimResult" }
+    AnswerAttemptCitation:
+      type: object
+      additionalProperties: false
+      required: [id, ordinal, source_id, source_version_id, document_id, locator_type, start_char, end_char, text_sha256, integrity_state]
+      properties:
+        id: { type: string, format: uuid }
+        ordinal: { type: integer, minimum: 1 }
+        source_id: { type: string, format: uuid }
+        source_version_id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        locator_type: { const: char_range }
+        start_char: { type: integer, minimum: 0 }
+        end_char: { type: integer, minimum: 1 }
+        text_sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        integrity_state: { type: string, enum: [verified, source_unavailable, range_invalid, hash_mismatch] }
+    AnswerAttemptIntegrity:
+      type: object
+      additionalProperties: false
+      required: [state, verified_count, invalid_count, reason]
+      properties:
+        state: { type: string, enum: [verified, invalid, not_applicable] }
+        verified_count: { type: integer, minimum: 0 }
+        invalid_count: { type: integer, minimum: 0 }
+        reason: { type: string }
+    AnswerAttemptSafety:
+      type: object
+      additionalProperties: false
+      required: [state, scope, reason_code, reason]
+      properties:
+        state: { type: string, enum: [passed, refused, not_applicable] }
+        scope: { type: [string, "null"], enum: [question, evidence, null] }
+        reason_code: { type: [string, "null"] }
+        reason: { type: string }
+    AnswerGenerationGate:
+      type: object
+      additionalProperties: false
+      required: [state, reason_code, reason, available, runtime_id, profile_id]
+      properties:
+        state: { type: string, enum: [ready, blocked_refusal, blocked_integrity, blocked_model_unavailable] }
+        reason_code: { type: [string, "null"], enum: [ANSWER_ATTEMPT_REFUSED, CITATION_INTEGRITY_NOT_VERIFIED, ANSWER_RUNTIME_UNAVAILABLE, null] }
+        reason: { type: string }
+        available: { type: boolean }
+        runtime_id: { type: [string, "null"] }
+        profile_id: { type: [string, "null"] }
+    AnswerAttempt:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - space_id
+        - context_package_id
+        - context_package_version
+        - context_digest
+        - question
+        - question_sha256
+        - status
+        - refusal_code
+        - generation_enabled
+        - citation_count
+        - related_object_count
+        - excluded_count
+        - created_at
+        - created_by
+        - version
+        - reason
+        - citations
+        - integrity
+        - safety
+        - generation_gate
+      properties:
+        id: { type: string, format: uuid }
+        space_id: { type: string, format: uuid }
+        context_package_id: { type: string, format: uuid }
+        context_package_version: { type: integer, minimum: 1 }
+        context_digest: { type: string, pattern: "^[a-f0-9]{64}$" }
+        question: { type: string, minLength: 2, maxLength: 1000 }
+        question_sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        status: { type: string, enum: [evidence_ready, refused_no_citable_evidence, refused_unsafe_intent] }
+        refusal_code: { type: [string, "null"] }
+        generation_enabled: { type: boolean }
+        citation_count: { type: integer, minimum: 0 }
+        related_object_count: { type: integer, minimum: 0 }
+        excluded_count: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid }
+        version: { const: 1 }
+        reason: { type: string }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/AnswerAttemptCitation" }
+        integrity: { $ref: "#/components/schemas/AnswerAttemptIntegrity" }
+        safety: { $ref: "#/components/schemas/AnswerAttemptSafety" }
+        generation_gate: { $ref: "#/components/schemas/AnswerGenerationGate" }
+    FinalAnswer:
+      type: object
+      additionalProperties: true
+      required: [id, answer_attempt_id, text, runtime_key, validation_status, claims, citations]
+      properties:
+        id: { type: string, format: uuid }
+        answer_attempt_id: { type: string, format: uuid }
+        text: { type: string, minLength: 1, maxLength: 30000 }
+        runtime_key: { const: local-extractive-v1 }
+        validation_status: { const: supported }
+        claims:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            required: [ordinal, text, claim_kind, entailment_status, reason_code]
+            properties:
+              ordinal: { type: integer, minimum: 1 }
+              text: { type: string, minLength: 1, maxLength: 5000 }
+              claim_kind: { type: string, enum: [direct_quote, inference] }
+              entailment_status: { const: entailed }
+              reason_code: { const: DIRECT_QUOTE_ENTAILED }
+        citations:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [ordinal, source_id, source_version_id, document_id, start_char, end_char, text_sha256, quote, integrity_state]
+            properties:
+              ordinal: { type: integer, minimum: 1 }
+              source_id: { type: string, format: uuid }
+              source_version_id: { type: string, format: uuid }
+              document_id: { type: string, format: uuid }
+              start_char: { type: integer, minimum: 0 }
+              end_char: { type: integer, minimum: 1 }
+              text_sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+              quote: { type: string }
+              integrity_state: { type: string, enum: [verified, invalid] }
     SuccessEnvelope:
       type: object
       additionalProperties: false

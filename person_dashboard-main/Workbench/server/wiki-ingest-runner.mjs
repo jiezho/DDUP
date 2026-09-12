@@ -12,7 +12,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import matter from "gray-matter";
+import { parseSafeFrontmatter as matter } from "./safe-frontmatter.mjs";
 
 import { detectCodexCli } from "./codex-runner.mjs";
 import {
