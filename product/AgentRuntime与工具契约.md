@@ -352,7 +352,7 @@ Runtime 不能通过拆分子 Run 绕过总预算、工具动作等级或 Space 
 - 消息平台身份映射、附件、审批、重复投递和数据驻留需独立 POC。
 - 只有形成移动入口或专项执行显著收益并通过 G6b，才进入可选能力。
 
-2026-09-01 已完成不安装软件的 API 契约预检：Registry 更新为 `readiness=api_contract_reviewed_not_installed`，仍保持 `status=candidate/connected=false`。`hermes-api-contract-poc-v1` 只识别官方 `hermes.api_server.capabilities`、强制 Bearer 鉴权、`server_agent` 与服务端工具执行语义，以及精确的 Runs/SSE/approval/steer/stop 端点；SSE 单帧上限 64 KiB，消息、命令、路径、run/session/approval 标识均不保存原文，只形成类型、布尔状态、大小和 SHA-256 摘要，未知事件与无 `deny` 的审批事件失败关闭。descriptor 中的 streaming/tool/approval/steer/cancel/child/usage 仅表示“官方契约已声明且预检可识别”，不表示服务已安装或可调用。由于 Hermes API Server 默认在宿主执行完整工具集，实际下载、启动、消息平台或模型接入均受 `Hermes隔离POC实施授权_待确认.md` 的 G6b 控制。
+2026-09-01 已完成不安装软件的 API 契约预检：Registry 更新为 `readiness=api_contract_reviewed_not_installed`，仍保持 `status=candidate/connected=false`。`hermes-api-contract-poc-v1` 只识别官方 `hermes.api_server.capabilities`、强制 Bearer 鉴权、`server_agent` 与服务端工具执行语义，以及精确的 Runs/SSE/approval/steer/stop 端点；SSE 单帧上限 64 KiB，消息、命令、路径、run/session/approval 标识均不保存原文，只形成类型、布尔状态、大小和 SHA-256 摘要，未知事件与无 `deny` 的审批事件失败关闭。descriptor 中的 streaming/tool/approval/steer/cancel/child/usage 仅表示“官方契约已声明且预检可识别”，不表示服务已安装或可调用。2026-09-12 G6b 全部按推荐项确认，但 P1 审计发现固定版本/依赖公告和默认完整宿主工具面不满足安装门，已在安装前 Stop；见 `Hermes隔离POC实施授权.md` 与 `Hermes隔离POC供应链审计报告.md`。
 
 ## 12. 协议与供应链安全
 

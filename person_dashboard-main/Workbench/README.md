@@ -17,7 +17,7 @@ Workbench 提供可复用的读取、索引和可视化能力，不包含任何�
 - 抖音数据面板及完整数据模板
 - 本地 API 与正式 UI 中的显式 ContextPackage、派生 Citation Manifest、持久化 AnswerAttempt、安全拒答与读取时引用复核、本地保守直接引文 Answer/Claim/Citation、`native-v1` 确定性 Run 生命周期、Task/Knowledge/Decision Candidate、差异预览、L1/L2 审批应用与安全撤销、低敏审计查询、SSE、Checkpoint、来源版本/归档恢复、精确原文读取及本地一致性备份（只允许证据原样声明，不提供开放式模型推理；引用漂移后隐藏回答正文；无外部动作）
 - DeepSeek Harness 的零依赖 stdio JSON-RPC 协议预检与真实性状态卡（官方运行时未安装、不可运行）
-- Hermes 的零依赖 HTTP+SSE 契约预检与真实性状态卡（G6b 未确认、软件未安装、不可运行）
+- Hermes 的零依赖 HTTP+SSE 契约预检与真实性状态卡（G6b 已确认但 P1 审计 Stop，软件未安装、不可运行）
 
 暂不公开展示：
 

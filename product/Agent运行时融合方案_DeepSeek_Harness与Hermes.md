@@ -5,7 +5,7 @@
 > 评估对象：DeepSeek Harness、Nous Research Hermes Agent  
 > 决策状态：Harness 进入隔离 POC；Hermes 进入可选运行时/移动网关对照评估，不做硬融合
 
-> 实现状态更新：Harness G6a 已按 Windows 服务端发行缺口 Stop；Hermes 已完成零依赖 HTTP+SSE 契约预检但仍未安装、未连接。官方 API Server 的工具在服务端宿主执行，后续隔离安装与 synthetic 消息网关实验必须先通过 `Hermes隔离POC实施授权_待确认.md`（G6b）。
+> 实现状态更新：Harness G6a 已按 Windows 服务端发行缺口 Stop；Hermes G6b 已于 2026-09-12 全部按推荐项确认，但 G6b-P1 因当前版本/依赖公告和默认完整宿主工具面在安装前 Stop。Hermes 仍未安装、未连接；详见 `Hermes隔离POC实施授权.md` 与 `Hermes隔离POC供应链审计报告.md`。
 
 ## 0. 结论先行
 

@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G6a 已确认并执行。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮及其 Citation Manifest、持久化 AnswerAttempt 安全检查、无持久化提取式逐句预检、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。AnswerAttempt 只在本地固定用户明确提交的问题及 SHA-256、上下文版本、引用快照或拒答原因；读取时复核精确来源、范围和哈希，漂移即失败关闭。逐句预检只判断候选句能否在显式引用范围内原样定位，不保存输入，也不代表语义蕴含或事实正确。两者都不生成答案，也不是最终 Citation/Answer 真源。DeepSeek Harness 固定包审计和官方客户端传输预检已通过，但当前 Windows 发行物缺少可启动的 SDK 服务端/Profile，G6a 按 Stop 收口并保持不可创建正式 Run。Hermes 已完成零依赖 API 契约/SSE 预检，仍未安装、未连接，G6b 待确认。生成式回答、通用 Tool/Approval 与 Runtime 私有 resume 尚未接入，不应视为现有生产能力。
+> 当前阶段：G1–G6b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮及其 Citation Manifest、持久化 AnswerAttempt 安全检查、无持久化提取式逐句预检、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。AnswerAttempt 只在本地固定用户明确提交的问题及 SHA-256、上下文版本、引用快照或拒答原因；读取时复核精确来源、范围和哈希，漂移即失败关闭。逐句预检只判断候选句能否在显式引用范围内原样定位，不保存输入，也不代表语义蕴含或事实正确。DeepSeek Harness G6a 已按 Windows 服务端发行缺口 Stop。Hermes G6b-P1 的来源与完整性审计通过，但当前版本/依赖公告和默认完整宿主工具面触发安装前 Stop；仍未安装、未连接。生成式回答、Runtime 私有 resume 及外部 Runtime 集成不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -81,7 +81,7 @@ flowchart TB
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
 | 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
 | DeepSeek Harness | 固定包供应链与官方客户端 synthetic 传输预检通过；Windows 官方 SDK 服务端/Profile 缺失，Registry 中不可运行 | `client_preflight_passed_server_missing / poc_not_connected` |
-| Hermes | 官方 HTTP+SSE Runs API、Bearer 鉴权和服务端工具执行语义已复核；Registry 中可见但未安装、不可运行 | `api_contract_reviewed_not_installed / candidate_not_connected` |
+| Hermes | G6b 已确认；官方来源/完整性通过，当前版本与依赖安全及默认完整宿主工具面未通过安装门，已 Stop | `api_contract_reviewed_not_installed / candidate_not_connected` |
 | 飞书 / 移动连接器 | 高频捕获、任务、讨论、提醒和复盘 | 后续计划 |
 
 ## 四、界面预览
@@ -134,7 +134,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19；2026-09-07 完整回归与生产构建 250/250 通过，隐私扫描通过。Citation Manifest/AnswerAttempt/提取式逐句预检安全链路专项 21/21，覆盖正常、失败、危险问题/无证据/来源不可信指令拒答、命中片段不回显、来源/范围/哈希漂移、原文精确命中/改写/缺失引用、无持久化、回答运行时不可用失败关闭、跨空间、版本冲突、重复请求与重启恢复；Native Runtime 生命周期专项 7/7、Task Candidate/Approval 专项 3/3、运行中心静态契约专项 2/2、Harness 协议预检专项 4/4、Hermes API/SSE 协议预检专项 4/4、G6a 隔离客户端/CLI POC 2/2 的既有证据保持有效。新增桌面/390px Playwright 用例已补齐，但本轮 Chromium 启动因权限审批服务 403 未执行；最近一次全站 E2E 通过与加深蓝色主题合成截图仍为 2026-09-02 的 1/1。受保护混合检索另有仓库外 BGE-M3 回环冒烟、独立合成盲测、边界质量失败和 sidecar D1–D3 短样本修复证据。构建存在主包大于 500 kB 的非阻塞提示。
+当前验证快照：Node 24.19；2026-09-12 本地生产构建、265/265 测试、隐私扫描、生产依赖审计和 Windows SQLite 10 万对象/100 万关系全规模门通过；GitHub Actions 的 Windows/Linux 主验证、双平台全量 SQLite 与 Chromium/Firefox/WebKit 共 7/7 通过。Hermes G6b-P1 只执行来源、哈希、许可证、依赖和启动面静态审查，未执行安装或进程。构建仍有主包大于 500 kB 的非阻塞提示。
 
 ## 六、仓库结构
 
@@ -177,7 +177,8 @@ DDUP/
 - [DeepSeek Harness 与 Hermes 融合方案](product/Agent运行时融合方案_DeepSeek_Harness与Hermes.md)
 - [DeepSeek Harness 隔离 POC 实施授权（G6a 已确认）](product/Harness隔离POC实施授权.md)
 - [DeepSeek Harness 隔离 POC 运行报告（Windows Runtime Stop）](product/Harness隔离POC运行报告.md)
-- [Hermes 隔离 POC 实施授权（G6b 待确认）](product/Hermes隔离POC实施授权_待确认.md)
+- [Hermes 隔离 POC 实施授权（G6b 已确认，P1 Stop）](product/Hermes隔离POC实施授权.md)
+- [Hermes 隔离 POC 供应链审计报告](product/Hermes隔离POC供应链审计报告.md)
 - [DeepSeek Harness 项目适用性评估](research/DeepSeek_Harness_项目适用性评估.md)
 - [Hermes Agent 项目适用性评估](research/Hermes_Agent_项目适用性评估.md)
 - [个人 AI 助手与知识库调研报告](research/个人AI助手与知识库调研报告.md)
@@ -203,7 +204,7 @@ DDUP/
 1. 受保护 Hybrid SearchProvider 已按 G5b 落地但默认关闭；正式检索继续以 FTS 为稳定基线；
 2. sidecar 重复 passage 编码与无界等待已完成短样本修复；下一步聚焦长文相邻主题错排、英文长尾漏召回和长时稳定，不下载 reranker；
 3. 显式 ContextPackage 已作为独立范围层落地；下一步只能在质量、提示注入、泄漏、回退、背压和资源门全部通过后，才将其连接生成式引用问答；
-4. Native Runtime 生命周期、Task Candidate Tool/Approval、运行中心、SSE、Checkpoint 与安全重试已落地；Harness G6a 因 Windows 官方服务端发行缺口按 Stop 收口；Hermes 零依赖 API 契约预检已完成并保持不可运行，下一步等待 G6b 决定是否进入隔离安装与 synthetic 消息网关 POC。
+4. Native Runtime 生命周期、Task Candidate Tool/Approval、运行中心、SSE、Checkpoint 与安全重试已落地；Harness G6a 因 Windows 官方服务端发行缺口按 Stop 收口；Hermes G6b-P1 因当前版本/依赖公告及默认完整宿主工具面在安装前 Stop，继续保持不可运行。只有新的可验证安全版本或另行批准的补丁/容器方案通过审查，才重新进入 synthetic 网关 POC。
 
 ## 九、隐私与发布边界
 

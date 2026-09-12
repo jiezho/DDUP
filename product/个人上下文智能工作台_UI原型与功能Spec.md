@@ -554,7 +554,7 @@ stateDiagram-v2
 |---|---|---|---|
 | Native Runtime | 生命周期与三类 Candidate 可用 | 确定性本地 Run；Task/Knowledge/Decision L1 Tool；不执行外部动作 | 查看能力 |
 | DeepSeek Harness | 客户端预检通过、官方服务端未安装 | 研究执行器候选 | 查看 G6a Stop 边界，不提供启动 |
-| Hermes Agent | API 契约已复核、尚未安装 | 移动网关/备选执行器 | 查看 G6b 边界，不提供启用 |
+| Hermes Agent | G6b-P1 审计 Stop、尚未安装 | 移动网关/备选执行器候选 | 查看审计边界，不提供启用 |
 
 #### 交互规则
 
