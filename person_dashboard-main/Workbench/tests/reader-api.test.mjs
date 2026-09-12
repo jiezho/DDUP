@@ -38,7 +38,9 @@ async function startFixture(t, { readerExplanationService = null } = {}) {
   const vite = await createViteServer({
     configFile: false,
     logLevel: "silent",
-    server: { middlewareMode: true },
+    // API fixtures do not need HMR. Disabling the watcher also avoids a
+    // Windows libuv fs-event assertion when Vite watches a temporary Vault.
+    server: { middlewareMode: true, watch: null },
     plugins: [workbenchApiPlugin({ vaultRoot, readerExplanationService })],
   });
   const server = http.createServer(vite.middlewares);
