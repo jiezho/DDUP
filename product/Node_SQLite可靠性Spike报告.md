@@ -2,7 +2,8 @@
 
 > 版本：V1.0  
 > 日期：2026-08-24  
-> 状态：Windows 阶段通过；Linux/CI 阶段待执行  
+> 状态：Windows 与 Linux/CI 阶段均通过
+> 远端复核：2026-09-12，GitHub Actions 双平台 SQLite 全规模门通过
 > 对应决策：G2 A5、A7；ADR-002、ADR-003  
 > 结论边界：本报告验证技术可行性，不代表正式业务 Schema、Repository 或生产数据迁移已完成
 

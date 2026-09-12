@@ -866,7 +866,7 @@ erDiagram
 | Projects | `GET/POST /api/projects`、`GET/PATCH /api/projects/:id` |
 | Project objects | `/api/projects/:id/documents|knowledge|discussions|decisions|tasks` |
 | Capture | `POST /api/captures`、`POST /api/captures/:id/classify` |
-| Context | 已实现受控来源、`POST /api/v1/context/search`、ContextPackage 全流程及 AnswerAttempt 创建/列表/读取；目标 `POST /api/v1/context/answers` 尚未实现 |
+| Context | 已实现受控来源、`POST /api/v1/context/search`、ContextPackage、AnswerAttempt 创建/列表/读取，以及本地保守直接引文 Answer/Claim/Citation；开放式回答仍未实现 |
 | Agent Runtime | 已实现 `native-v1` 确定性生命周期、JSON/SSE、Checkpoint、安全重试、正式运行中心，以及 Task/Knowledge/Decision Candidate 的预览、L1/L2 Approval/apply/安全撤销；Harness 仍未安装、不可运行；外部 Tool 与 Runtime 私有 resume/steer 尚未实现 |
 | Assistant | `POST /api/assistant/runs`、`GET /api/assistant/runs/:id/events` |
 | Research | `/api/research/claims`、`/api/research/experiments`、`/api/research/literature` |
@@ -916,11 +916,12 @@ erDiagram
 | 项目组合 | 卡片、筛选外观、新建模板 | 查询、权限、归档、真实筛选 |
 | 项目详情 | 六标签、讨论转决策、风险和里程碑 | CRUD、版本、关联、协作 |
 | 上下文知识库 | 正式页已实现受控 Markdown 不可变版本/归档恢复/精确原文、权限优先检索、显式上下文篮、回答安全检查、提取式预检和本地保守 Answer/Claim/Citation | 图谱、重排、开放式改写/推理回答、通用 NLI、默认启用的语义检索及 Markdown/XLSX 之外格式 |
+| 专业工作台 | `/professional` 已实现科研问题/实验/固定证据 Claim，以及 AI 机会/指标评测/Go-Stop；`/growth` 已实现前沿专题/固定来源信号、学习方向/练习/反馈与轻量习惯；全部复用 Project、Task、Source、权限与审计真源 | 自动实验、外部抓取/订阅、模型评分、音频与文献元数据抓取 |
 | 科研 | Claim/证据、文献和实验视图 | DOI 导入、实验日志、写作校验 |
 | AI Lab | 阶段管道、机会和评测布局 | 信号采集、评测运行、决策门持久化 |
-| 雷达 | 领域筛选、来源/影响卡片 | 抓取、去重、聚类、订阅 |
-| 学习提升 | 多方向、英语模板和学习闭环 | 计划引擎、练习、音频、评估 |
-| 计划与复盘 | 目标、日计划、复盘、习惯、时间分布 | 日历同步、统计、提醒 |
+| 雷达 | `/growth` 正式页已实现领域、成熟度、限制、影响、处置、复查日期和固定来源信号 | 外部抓取、自动去重/聚类、订阅和自动周报 |
+| 学习提升 | `/growth` 已实现通用方向、目标/基线/成功标准、计划练习、反思/反馈/决定及学术英语 focus | 知识地图可视化、音频、模型评估 |
+| 计划与复盘 | 既有 Today/DailyReview 继续持有行动真源；`/growth` 增加不替代 Task 的周期目标和防重复打卡 | 日历同步、长期统计、提醒 |
 | AI 助手 | 范围、建议、引用示例、操作按钮 | 模型编排、流式输出、审计与审批 |
 | AI 运行中心 | Runtime 状态、松耦合链路、Profile、运行任务和护栏 | Adapter、事件流、审批桥、健康检查和契约回归 |
 | 移动端 | 900px 以下五入口底栏、侧栏焦点圈定/返回、响应式单列、PWA 静态离线壳、网络状态与本机 Capture 草稿 | 飞书/微信接入及复杂编辑的专项移动视图 |

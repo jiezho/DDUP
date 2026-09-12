@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Personal AI Workbench Local API
-  version: 1.18.0
+  version: 1.20.0
   description: >-
     Local-loopback MVP contract. It covers durable project work, explicit capture and daily
     planning, immutable controlled Markdown versions, authorization-first search, explicit
@@ -9,7 +9,13 @@ info:
     path that persists only direct quotes entailed by revalidated fixed ranges. It also covers the
     deterministic Native Run lifecycle, Task/Knowledge/Decision candidates, digest-bound L2
     approval, safe apply/revert, redacted governance audit reads, and verified local backup bundles
-    with offline empty-directory restore. Open-ended inference, external actions, Harness/Hermes
+    with offline empty-directory restore. The professional workspace adds versioned research
+    questions, experiments, exact-range evidence claims, AI opportunities, metric evaluations,
+    explicit Go/Stop decisions, and optional follow-up tasks that remain in the original Project.
+    The growth workspace adds manually curated frontier topics, exactly located source signals,
+    explicit review dispositions, reusable learning tracks, practice feedback, and idempotent
+    lightweight routine check-ins while retaining Project, Task, Source, permission, and audit truth.
+    Open-ended inference, external actions, Harness/Hermes
     execution, and the default-off hybrid-search experiment remain outside the production path.
 servers:
   - url: http://127.0.0.1:8787
@@ -1177,6 +1183,307 @@ paths:
         - { in: query, name: space_id, required: true, schema: { type: string, format: uuid } }
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/v1/professional/projects/{projectId}:
+    get:
+      operationId: getProfessionalProjectWorkspace
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/projects/{projectId}/research/questions:
+    post:
+      operationId: createResearchQuestion
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResearchQuestionCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/research/questions/{questionId}/transitions:
+    post:
+      operationId: transitionResearchQuestion
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: questionId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { enum: [start_testing, answer, archive, reopen] }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/research/questions/{questionId}/experiments:
+    post:
+      operationId: createResearchExperiment
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: questionId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResearchExperimentCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/professional/research/experiments/{experimentId}/results:
+    post:
+      operationId: recordResearchExperimentResult
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: experimentId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResearchResultRecord" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/research/questions/{questionId}/claims:
+    post:
+      operationId: createResearchEvidenceClaim
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: questionId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResearchClaimCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/projects/{projectId}/ai/opportunities:
+    post:
+      operationId: createAiOpportunity
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiOpportunityCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/ai/opportunities/{opportunityId}/transitions:
+    post:
+      operationId: transitionAiOpportunity
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: opportunityId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { enum: [start_exploring, validate, reject, archive, reopen] }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/professional/ai/opportunities/{opportunityId}/experiments:
+    post:
+      operationId: createAiExperiment
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: opportunityId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiExperimentCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/professional/ai/experiments/{experimentId}/results:
+    post:
+      operationId: recordAiExperimentResult
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: experimentId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiResultRecord" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/growth/projects/{projectId}:
+    get:
+      operationId: getGrowthWorkspace
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/growth/projects/{projectId}/radar/topics:
+    post:
+      operationId: createRadarTopic
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RadarTopicCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/growth/radar/topics/{topicId}/signals:
+    post:
+      operationId: createRadarSignal
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: topicId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RadarSignalCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/growth/radar/topics/{topicId}/reviews:
+    post:
+      operationId: reviewRadarTopic
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: topicId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RadarTopicReview" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/growth/projects/{projectId}/learning/tracks:
+    post:
+      operationId: createLearningTrack
+      security: [{ localSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningTrackCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/growth/learning/tracks/{trackId}/practices:
+    post:
+      operationId: createLearningPractice
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: trackId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningPracticeCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/growth/learning/practices/{practiceId}/results:
+    post:
+      operationId: recordLearningPracticeResult
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: practiceId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningPracticeResult" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/growth/learning/tracks/{trackId}/routines:
+    post:
+      operationId: createLearningRoutine
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: trackId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningRoutineCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/v1/growth/learning/routines/{routineId}/checkins:
+    post:
+      operationId: createLearningCheckin
+      security: [{ localSession: [] }]
+      parameters:
+        - { in: path, name: routineId, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LearningCheckinCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     localSession:
@@ -1247,6 +1554,168 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   schemas:
+    ResearchQuestionCreate:
+      type: object
+      additionalProperties: false
+      required: [title, problem_statement, hypothesis, success_criteria]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        problem_statement: { type: string, minLength: 1, maxLength: 10000 }
+        hypothesis: { type: string, minLength: 1, maxLength: 10000 }
+        success_criteria: { type: string, minLength: 1, maxLength: 10000 }
+    ResearchExperimentCreate:
+      type: object
+      additionalProperties: false
+      required: [title, method, variables, expected_outcome]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        method: { type: string, minLength: 1, maxLength: 20000 }
+        variables: { type: string, minLength: 1, maxLength: 10000 }
+        expected_outcome: { type: string, minLength: 1, maxLength: 10000 }
+    ResearchResultRecord:
+      type: object
+      additionalProperties: false
+      required: [result_summary, decision, follow_up_task_title]
+      properties:
+        result_summary: { type: string, minLength: 1, maxLength: 20000 }
+        decision: { enum: [continue, stop] }
+        follow_up_task_title: { type: [string, "null"], maxLength: 240 }
+    ResearchClaimCreate:
+      type: object
+      additionalProperties: false
+      required: [experiment_id, statement, evidence_direction, evidence_strength, evidence]
+      properties:
+        experiment_id: { type: string, format: uuid }
+        statement: { type: string, minLength: 1, maxLength: 10000 }
+        evidence_direction: { enum: [supports, challenges, mixed] }
+        evidence_strength: { enum: [weak, moderate, strong] }
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [source_id, source_version_id, document_id, start_char, end_char]
+          properties:
+            source_id: { type: string, format: uuid }
+            source_version_id: { type: string, format: uuid }
+            document_id: { type: string, format: uuid }
+            start_char: { type: integer, minimum: 0 }
+            end_char: { type: integer, minimum: 1 }
+    AiOpportunityCreate:
+      type: object
+      additionalProperties: false
+      required: [title, problem_statement, target_user, value_hypothesis, feasibility_hypothesis]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        problem_statement: { type: string, minLength: 1, maxLength: 10000 }
+        target_user: { type: string, minLength: 1, maxLength: 2000 }
+        value_hypothesis: { type: string, minLength: 1, maxLength: 10000 }
+        feasibility_hypothesis: { type: string, minLength: 1, maxLength: 10000 }
+    AiExperimentCreate:
+      type: object
+      additionalProperties: false
+      required: [title, evaluation_method, metric_name, baseline_value, target_value]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        evaluation_method: { type: string, minLength: 1, maxLength: 10000 }
+        metric_name: { type: string, minLength: 1, maxLength: 200 }
+        baseline_value: { type: [number, "null"] }
+        target_value: { type: number }
+    AiResultRecord:
+      type: object
+      additionalProperties: false
+      required: [observed_value, evidence_summary, decision, follow_up_task_title]
+      properties:
+        observed_value: { type: number }
+        evidence_summary: { type: string, minLength: 1, maxLength: 20000 }
+        decision: { enum: [go, stop] }
+        follow_up_task_title: { type: [string, "null"], maxLength: 240 }
+    RadarTopicCreate:
+      type: object
+      additionalProperties: false
+      required: [title, domain, synthesis, maturity, limitations, impact_summary, disposition, next_review_date]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        domain: { enum: [ai, it, energy, research_methods, custom] }
+        synthesis: { type: string, minLength: 1, maxLength: 20000 }
+        maturity: { enum: [emerging, experimental, early_adoption, maturing, established] }
+        limitations: { type: string, minLength: 1, maxLength: 10000 }
+        impact_summary: { type: string, minLength: 1, maxLength: 10000 }
+        disposition: { enum: [track, validate, ignore] }
+        next_review_date: { type: [string, "null"], format: date }
+    RadarTopicReview:
+      type: object
+      additionalProperties: false
+      required: [maturity, limitations, impact_summary, disposition, next_review_date, follow_up_task_title]
+      properties:
+        maturity: { enum: [emerging, experimental, early_adoption, maturing, established] }
+        limitations: { type: string, minLength: 1, maxLength: 10000 }
+        impact_summary: { type: string, minLength: 1, maxLength: 10000 }
+        disposition: { enum: [track, validate, ignore] }
+        next_review_date: { type: [string, "null"], format: date }
+        follow_up_task_title: { type: [string, "null"], maxLength: 240 }
+    RadarSignalCreate:
+      type: object
+      additionalProperties: false
+      required: [summary, classification, published_on, evidence]
+      properties:
+        summary: { type: string, minLength: 1, maxLength: 10000 }
+        classification: { enum: [primary_fact, secondary_report, opinion, inference] }
+        published_on: { type: [string, "null"], format: date }
+        evidence:
+          type: object
+          additionalProperties: false
+          required: [source_id, source_version_id, document_id, start_char, end_char]
+          properties:
+            source_id: { type: string, format: uuid }
+            source_version_id: { type: string, format: uuid }
+            document_id: { type: string, format: uuid }
+            start_char: { type: integer, minimum: 0 }
+            end_char: { type: integer, minimum: 1 }
+    LearningTrackCreate:
+      type: object
+      additionalProperties: false
+      required: [title, category, focus, goal, baseline, success_criteria]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        category: { enum: [english, research_methods, programming_ai, professional, custom] }
+        focus: { enum: [academic_reading, academic_writing, daily_speaking, general] }
+        goal: { type: string, minLength: 1, maxLength: 10000 }
+        baseline: { type: string, minLength: 1, maxLength: 10000 }
+        success_criteria: { type: string, minLength: 1, maxLength: 10000 }
+    LearningPracticeCreate:
+      type: object
+      additionalProperties: false
+      required: [title, practice_type, planned_for, instructions]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        practice_type: { enum: [reading, writing, speaking, exercise, project, review] }
+        planned_for: { type: [string, "null"], format: date }
+        instructions: { type: string, minLength: 1, maxLength: 10000 }
+    LearningPracticeResult:
+      type: object
+      additionalProperties: false
+      required: [reflection, feedback, self_rating, decision, follow_up_task_title]
+      properties:
+        reflection: { type: string, minLength: 1, maxLength: 20000 }
+        feedback: { type: string, minLength: 1, maxLength: 20000 }
+        self_rating: { type: [integer, "null"], minimum: 1, maximum: 5 }
+        decision: { enum: [continue, adjust, complete] }
+        follow_up_task_title: { type: [string, "null"], maxLength: 240 }
+    LearningRoutineCreate:
+      type: object
+      additionalProperties: false
+      required: [title, cadence, target_count]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        cadence: { enum: [daily, weekly] }
+        target_count: { type: integer, minimum: 1, maximum: 100 }
+    LearningCheckinCreate:
+      type: object
+      additionalProperties: false
+      required: [local_date, completed_count, note]
+      properties:
+        local_date: { type: string, format: date }
+        completed_count: { type: integer, minimum: 0, maximum: 100 }
+        note: { type: string, maxLength: 10000 }
     AgentRunCreate:
       type: object
       additionalProperties: false

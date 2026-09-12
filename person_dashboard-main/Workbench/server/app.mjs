@@ -18,6 +18,10 @@ import {
 } from './http/local-security.mjs'
 import { registerProjectRoutes } from './projects/project-routes.mjs'
 import { createProjectStore } from './projects/project-store.mjs'
+import { registerProfessionalRoutes } from './professional/professional-routes.mjs'
+import { createProfessionalStore } from './professional/professional-store.mjs'
+import { registerGrowthRoutes } from './growth/growth-routes.mjs'
+import { createGrowthStore } from './growth/growth-store.mjs'
 import { createNativeRuntime } from './runtime/native-runtime.mjs'
 import { registerGovernanceRoutes } from './runtime/governance-routes.mjs'
 import { createRuntimeRegistry } from './runtime/runtime-registry.mjs'
@@ -54,6 +58,8 @@ export function createWorkbenchApp({
   const sessions = createLocalSessionStore({ bootstrapToken, now, ttlMs: sessionTtlMs })
   const database = databasePath ? openWorkbenchDatabase({ databasePath, appVersion, now }) : null
   const projectStore = database ? createProjectStore({ database, now }) : null
+  const professionalStore = database ? createProfessionalStore({ database, projectStore }) : null
+  const growthStore = database ? createGrowthStore({ database, projectStore }) : null
   const backupService = database
     ? createBackupService({
         database,
@@ -207,6 +213,8 @@ export function createWorkbenchApp({
 
   if (projectStore) {
     registerProjectRoutes(app, { projectStore, requireSession, requireCsrf })
+    registerProfessionalRoutes(app, { professionalStore, requireSession, requireCsrf })
+    registerGrowthRoutes(app, { growthStore, requireSession, requireCsrf })
     registerBackupRoutes(app, { backupService, projectStore, requireSession, requireCsrf })
   }
   if (contextStore) {

@@ -432,3 +432,93 @@ export function runtimeEventStreamUrl(runId, spaceId, afterSeq = 0) {
   const query = new URLSearchParams({ space_id: spaceId, after_seq: String(afterSeq) });
   return `/api/v1/runs/${encodeURIComponent(runId)}/events/stream?${query.toString()}`;
 }
+
+export async function loadProfessionalWorkspace(projectId) {
+  const response = await call(`/api/v1/professional/projects/${encodeURIComponent(projectId)}`);
+  return response.data;
+}
+
+export function createResearchQuestion(projectId, input) {
+  return write(`/api/v1/professional/projects/${encodeURIComponent(projectId)}/research/questions`, { body: input });
+}
+
+export function transitionResearchQuestion(questionId, version, action) {
+  return write(`/api/v1/professional/research/questions/${encodeURIComponent(questionId)}/transitions`, {
+    body: { action },
+    version,
+  });
+}
+
+export function createResearchExperiment(questionId, input) {
+  return write(`/api/v1/professional/research/questions/${encodeURIComponent(questionId)}/experiments`, { body: input });
+}
+
+export function recordResearchResult(experimentId, version, input) {
+  return write(`/api/v1/professional/research/experiments/${encodeURIComponent(experimentId)}/results`, {
+    body: input,
+    version,
+  });
+}
+
+export function createResearchClaim(questionId, input) {
+  return write(`/api/v1/professional/research/questions/${encodeURIComponent(questionId)}/claims`, { body: input });
+}
+
+export function createAiOpportunity(projectId, input) {
+  return write(`/api/v1/professional/projects/${encodeURIComponent(projectId)}/ai/opportunities`, { body: input });
+}
+
+export function transitionAiOpportunity(opportunityId, version, action) {
+  return write(`/api/v1/professional/ai/opportunities/${encodeURIComponent(opportunityId)}/transitions`, {
+    body: { action },
+    version,
+  });
+}
+
+export function createAiExperiment(opportunityId, input) {
+  return write(`/api/v1/professional/ai/opportunities/${encodeURIComponent(opportunityId)}/experiments`, { body: input });
+}
+
+export function recordAiResult(experimentId, version, input) {
+  return write(`/api/v1/professional/ai/experiments/${encodeURIComponent(experimentId)}/results`, {
+    body: input,
+    version,
+  });
+}
+
+export async function loadGrowthWorkspace(projectId) {
+  const response = await call(`/api/v1/growth/projects/${encodeURIComponent(projectId)}`);
+  return response.data;
+}
+
+export function createRadarTopic(projectId, input) {
+  return write(`/api/v1/growth/projects/${encodeURIComponent(projectId)}/radar/topics`, { body: input });
+}
+
+export function createRadarSignal(topicId, input) {
+  return write(`/api/v1/growth/radar/topics/${encodeURIComponent(topicId)}/signals`, { body: input });
+}
+
+export function reviewRadarTopic(topicId, version, input) {
+  return write(`/api/v1/growth/radar/topics/${encodeURIComponent(topicId)}/reviews`, { body: input, version });
+}
+
+export function createLearningTrack(projectId, input) {
+  return write(`/api/v1/growth/projects/${encodeURIComponent(projectId)}/learning/tracks`, { body: input });
+}
+
+export function createLearningPractice(trackId, input) {
+  return write(`/api/v1/growth/learning/tracks/${encodeURIComponent(trackId)}/practices`, { body: input });
+}
+
+export function recordLearningPractice(practiceId, version, input) {
+  return write(`/api/v1/growth/learning/practices/${encodeURIComponent(practiceId)}/results`, { body: input, version });
+}
+
+export function createLearningRoutine(trackId, input) {
+  return write(`/api/v1/growth/learning/tracks/${encodeURIComponent(trackId)}/routines`, { body: input });
+}
+
+export function createLearningCheckin(routineId, input) {
+  return write(`/api/v1/growth/learning/routines/${encodeURIComponent(routineId)}/checkins`, { body: input });
+}

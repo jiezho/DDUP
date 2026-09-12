@@ -5,7 +5,7 @@
 > 状态：正式设计基线；G3 已确认  
 > 范围：MVP 本机单用户、REST JSON + SSE、`/api/v1`  
 > 真源关系：对象语义见《领域模型与数据字典》，授权见《权限安全与审计设计》  
-> 实现状态：基础会话/安全、核心业务对象、Markdown Source 生命周期、权限优先检索、ContextPackage/AnswerAttempt、本地保守直接引文 Answer/Claim/Citation、三类 Candidate 治理、低敏审计与本地备份恢复已进入 OpenAPI 1.18.0；开放式改写/推理回答、通用 NLI、外部动作和在线覆盖恢复仍未实现
+> 实现状态：基础会话/安全、核心业务对象、Markdown Source 生命周期、权限优先检索、ContextPackage/AnswerAttempt、本地保守直接引文 Answer/Claim/Citation、三类 Candidate 治理、低敏审计、本地备份恢复，以及科研/AI Lab/前沿/学习专业工作台已进入 OpenAPI 1.20.0；开放式改写/推理回答、通用 NLI、外部动作和在线覆盖恢复仍未实现
 
 ## 1. 契约目标
 
@@ -312,7 +312,7 @@ OpenAPI 1.17.0 已实现以下回环 API：
 
 ### 9.1 Run
 
-> 2026-09-01 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态、JSON/SSE 回放、Checkpoint、异常重启安全收敛和受限重试谱系；它不调用模型、不生成回答。唯一 Runtime 可调用工具 `candidate.task.create.v1` 只创建 L1 Task Candidate；L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行。正式 AI 运行中心已显示真实 Run、事件、Checkpoint 和 Task Candidate 审批/应用；steer、Runtime 私有 resume 和其他候选类型仍未实现。DeepSeek Harness 已公开零依赖协议预检元数据但保持 `connected=false`，Hermes 仍为未连接候选。
+> 2026-09-12 当前落地边界：`native-v1` 已实现确定性本地生命周期、持久化事件、幂等开始、乐观锁取消、错误终态、JSON/SSE 回放、Checkpoint、异常重启安全收敛和受限重试谱系；它不调用开放式模型。Runtime Tool 已扩展为 Task/Knowledge/Decision 三类 L1 Candidate，L2 `candidate.apply.v1` 只能由本地拥有者经独立 Approval resolve 后执行，并支持受限安全撤销。正式 AI 运行中心已显示真实 Run、事件、Checkpoint、三类 Candidate、审批/应用与低敏审计；steer、Runtime 私有 resume 和外部 Tool 仍未实现。DeepSeek Harness 与 Hermes 都保持 `connected=false`。
 
 | Method | Path | 说明 |
 |---|---|---|
@@ -331,7 +331,7 @@ OpenAPI 1.17.0 已实现以下回环 API：
 
 ### 9.2 Candidate 与 Approval
 
-当前实现只覆盖 Task Candidate：创建审批、批准/拒绝与应用是三个独立命令；批准本身不写 Task。应用前再次校验 proposal bytes/digest、Approval scope/expiry、候选版本、空间权限和项目状态。正式待确认 UI 已覆盖 Task Candidate；Knowledge/Decision 等 Candidate 与撤销仍未实现。
+当前实现覆盖 Task、Knowledge、Decision Candidate：创建审批、批准/拒绝与应用是三个独立命令；批准本身不写业务真源。应用前再次校验 proposal bytes/digest、Approval scope/expiry、候选版本、空间权限和项目状态；只有目标未发生后续修改且无受保护关系时才允许安全软撤销。
 
 | Method | Path | 说明 |
 |---|---|---|
@@ -357,6 +357,39 @@ OpenAPI 1.17.0 已实现以下回环 API：
 | POST | `/api/v1/restores` | L4；恢复到新目录并等待受控切换 |
 
 首期不提供通过 API 修改监听地址、读取密钥或返回物理备份路径的能力。
+
+### 9.4 Professional Workspace
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/v1/professional/projects/{projectId}` | 读取同一 Project 下的科研或 AI Lab 专业投影 |
+| `POST` | `/api/v1/professional/projects/{projectId}/research/questions` | 创建研究问题、假设与成功标准 |
+| `POST` | `/api/v1/professional/research/questions/{questionId}/transitions` | 开始验证、回答、归档或重新打开研究问题 |
+| `POST` | `/api/v1/professional/research/questions/{questionId}/experiments` | 创建研究实验 |
+| `POST` | `/api/v1/professional/research/experiments/{experimentId}/results` | 记录结果、Continue/Stop 及可选回链任务 |
+| `POST` | `/api/v1/professional/research/questions/{questionId}/claims` | 创建绑定固定 SourceVersion/Document/字符范围的研究 Claim |
+| `POST` | `/api/v1/professional/projects/{projectId}/ai/opportunities` | 创建 AI 应用机会卡 |
+| `POST` | `/api/v1/professional/ai/opportunities/{opportunityId}/transitions` | 探索、验证、停止、归档或重新打开机会卡 |
+| `POST` | `/api/v1/professional/ai/opportunities/{opportunityId}/experiments` | 创建带基线、目标和方法的指标评测 |
+| `POST` | `/api/v1/professional/ai/experiments/{experimentId}/results` | 记录实测值、证据摘要、Go/Stop 及可选回链任务 |
+
+所有写端点继续要求本地 Session、同源 CSRF、`Idempotency-Key`；现有对象更新还要求 `If-Match`。研究 Claim 的证据定位由服务端重新读取正文并计算 SHA-256，不接受客户端自报哈希。读取专业工作台时再次检查来源状态、版本、字符范围和哈希，失败则返回 `evidence_integrity=invalid`。
+
+### 9.5 Growth Workspace
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/v1/growth/projects/{projectId}` | 读取前沿跟踪或学习提升项目投影 |
+| `POST` | `/api/v1/growth/projects/{projectId}/radar/topics` | 创建成熟度、限制、影响、处置和复查日期明确的前沿专题 |
+| `POST` | `/api/v1/growth/radar/topics/{topicId}/signals` | 增加带事实/转述/观点/推断标记和固定来源范围的信号 |
+| `POST` | `/api/v1/growth/radar/topics/{topicId}/reviews` | 复核专题并可原子创建回链 Task |
+| `POST` | `/api/v1/growth/projects/{projectId}/learning/tracks` | 创建通用学习方向或学术英语 focus |
+| `POST` | `/api/v1/growth/learning/tracks/{trackId}/practices` | 创建计划练习 |
+| `POST` | `/api/v1/growth/learning/practices/{practiceId}/results` | 记录反思、反馈、自评、继续/调整/达成决定及可选 Task |
+| `POST` | `/api/v1/growth/learning/tracks/{trackId}/routines` | 创建不替代项目任务的轻量习惯 |
+| `POST` | `/api/v1/growth/learning/routines/{routineId}/checkins` | 按本地日期记录一次防重复打卡 |
+
+Radar Signal 与 Research Claim 使用相同的固定证据原则：服务端重读已授权 SourceVersion/Document 范围并计算 SHA-256，读取时重新复核；不接收客户端自报哈希。学习自评和反馈均为用户明确输入，不声称模型评判。
 
 ## 10. SSE 事件契约
 
@@ -507,6 +540,6 @@ Workbench/shared/contracts/
 - sidecar 只提供 `/health` 和 `/rank`，Workbench 校验固定 `model_id`、revision、CPU、响应大小和分值范围；单模型槽忙时 `/rank` 返回 `503 {"error":"runtime_busy"}`，Workbench 视为可恢复运行时故障并回退已授权 FTS；查询结果不生成 Answer，也不写知识真源；
 - Source 已支持 Markdown 不可变新版本、归档/恢复和精确原文范围读取；候选已扩展至 Task/Knowledge/Decision，提供预览、类型绑定审批、应用与无后续变更时的安全撤销；低敏审计查询进入正式 UI；
 - 本地备份 API 已支持 SQLite 在线快照、受控来源文件、manifest 摘要和复核；恢复通过停机 CLI 只写空目录；
-- OpenAPI 已同步至 1.18.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
+- OpenAPI 已同步至 1.20.0；测试、正式构建、隐私扫描和本地回环试运行按发布门执行。
 
 尚未实现：开放式改写/推理回答与通用 NLI 评测、Markdown/XLSX 之外的文件/图片/语音导入、链接抓取、动态 Context ScopeRule、重排、Runtime 私有 resume/steer 和跨设备在线恢复。当前保守回答只构造经原文包含验证的直接引文，不等于通用事实核验；受保护混合检索仍是默认关闭的实验路径。

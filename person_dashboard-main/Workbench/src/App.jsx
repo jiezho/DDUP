@@ -20,6 +20,8 @@ import { CaptureInboxPage } from "./pages/CaptureInboxPage";
 import { TodayPage } from "./pages/TodayPage";
 import { ContextLibraryPage } from "./pages/ContextLibraryPage";
 import { RuntimePage } from "./pages/RuntimePage";
+import { ProfessionalPage } from "./pages/ProfessionalPage";
+import { GrowthPage } from "./pages/GrowthPage";
 
 const localWorkbench = import.meta.env.VITE_WORKBENCH_HOSTED !== "true";
 
@@ -114,6 +116,8 @@ function WorkbenchApp() {
           {localWorkbench ? <Route path="/inbox" element={<CaptureInboxPage />} /> : null}
           {localWorkbench ? <Route path="/context" element={<ContextLibraryPage />} /> : null}
           {localWorkbench ? <Route path="/runtime" element={<RuntimePage />} /> : null}
+          {localWorkbench ? <Route path="/professional" element={<ProfessionalPage />} /> : null}
+          {localWorkbench ? <Route path="/growth" element={<GrowthPage />} /> : null}
           {localWorkbench ? (
             <Route
               path="/social-insights"

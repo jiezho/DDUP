@@ -1025,6 +1025,288 @@ CREATE INDEX answer_claims_answer_idx ON answer_claims(space_id, answer_id, ordi
 CREATE INDEX answer_citations_answer_idx ON answer_citations(space_id, answer_id, ordinal);
 `
 
+const migration014 = `
+CREATE TABLE research_questions (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  problem_statement TEXT NOT NULL CHECK (length(problem_statement) BETWEEN 1 AND 10000),
+  hypothesis TEXT NOT NULL CHECK (length(hypothesis) BETWEEN 1 AND 10000),
+  success_criteria TEXT NOT NULL CHECK (length(success_criteria) BETWEEN 1 AND 10000),
+  status TEXT NOT NULL CHECK (status IN ('open', 'testing', 'answered', 'archived')),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE research_experiments (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  research_question_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  method TEXT NOT NULL CHECK (length(method) BETWEEN 1 AND 20000),
+  variables TEXT NOT NULL CHECK (length(variables) BETWEEN 1 AND 10000),
+  expected_outcome TEXT NOT NULL CHECK (length(expected_outcome) BETWEEN 1 AND 10000),
+  result_summary TEXT NOT NULL DEFAULT '' CHECK (length(result_summary) <= 20000),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'completed', 'stopped')),
+  decision TEXT NOT NULL CHECK (decision IN ('pending', 'continue', 'stop')),
+  follow_up_task_id TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (research_question_id, space_id) REFERENCES research_questions(id, space_id),
+  FOREIGN KEY (follow_up_task_id, space_id, project_id) REFERENCES tasks(id, space_id, project_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE research_claims (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  research_question_id TEXT NOT NULL,
+  experiment_id TEXT NOT NULL,
+  statement TEXT NOT NULL CHECK (length(statement) BETWEEN 1 AND 10000),
+  evidence_direction TEXT NOT NULL CHECK (evidence_direction IN ('supports', 'challenges', 'mixed')),
+  evidence_strength TEXT NOT NULL CHECK (evidence_strength IN ('weak', 'moderate', 'strong')),
+  source_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  document_id TEXT NOT NULL,
+  start_char INTEGER NOT NULL CHECK (start_char >= 0),
+  end_char INTEGER NOT NULL CHECK (end_char > start_char),
+  text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version = 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (research_question_id, space_id) REFERENCES research_questions(id, space_id),
+  FOREIGN KEY (experiment_id, space_id) REFERENCES research_experiments(id, space_id),
+  FOREIGN KEY (source_id, space_id) REFERENCES sources(id, space_id),
+  FOREIGN KEY (source_version_id, space_id) REFERENCES source_versions(id, space_id),
+  FOREIGN KEY (document_id, space_id) REFERENCES documents(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE ai_opportunities (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  problem_statement TEXT NOT NULL CHECK (length(problem_statement) BETWEEN 1 AND 10000),
+  target_user TEXT NOT NULL CHECK (length(target_user) BETWEEN 1 AND 2000),
+  value_hypothesis TEXT NOT NULL CHECK (length(value_hypothesis) BETWEEN 1 AND 10000),
+  feasibility_hypothesis TEXT NOT NULL CHECK (length(feasibility_hypothesis) BETWEEN 1 AND 10000),
+  status TEXT NOT NULL CHECK (status IN ('draft', 'exploring', 'validated', 'rejected', 'archived')),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE ai_experiments (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  opportunity_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  evaluation_method TEXT NOT NULL CHECK (length(evaluation_method) BETWEEN 1 AND 10000),
+  metric_name TEXT NOT NULL CHECK (length(metric_name) BETWEEN 1 AND 200),
+  baseline_value REAL,
+  target_value REAL NOT NULL,
+  observed_value REAL,
+  evidence_summary TEXT NOT NULL DEFAULT '' CHECK (length(evidence_summary) <= 20000),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'completed', 'stopped')),
+  decision TEXT NOT NULL CHECK (decision IN ('pending', 'go', 'stop')),
+  follow_up_task_id TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (opportunity_id, space_id) REFERENCES ai_opportunities(id, space_id),
+  FOREIGN KEY (follow_up_task_id, space_id, project_id) REFERENCES tasks(id, space_id, project_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX research_questions_project_idx ON research_questions(space_id, project_id, updated_at DESC, id DESC);
+CREATE INDEX research_experiments_question_idx ON research_experiments(space_id, research_question_id, updated_at DESC, id DESC);
+CREATE INDEX research_claims_question_idx ON research_claims(space_id, research_question_id, created_at DESC, id DESC);
+CREATE INDEX ai_opportunities_project_idx ON ai_opportunities(space_id, project_id, updated_at DESC, id DESC);
+CREATE INDEX ai_experiments_opportunity_idx ON ai_experiments(space_id, opportunity_id, updated_at DESC, id DESC);
+`
+
+const migration015 = `
+CREATE TABLE radar_topics (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  domain TEXT NOT NULL CHECK (domain IN ('ai', 'it', 'energy', 'research_methods', 'custom')),
+  synthesis TEXT NOT NULL CHECK (length(synthesis) BETWEEN 1 AND 20000),
+  maturity TEXT NOT NULL CHECK (maturity IN ('emerging', 'experimental', 'early_adoption', 'maturing', 'established')),
+  limitations TEXT NOT NULL CHECK (length(limitations) BETWEEN 1 AND 10000),
+  impact_summary TEXT NOT NULL CHECK (length(impact_summary) BETWEEN 1 AND 10000),
+  disposition TEXT NOT NULL CHECK (disposition IN ('track', 'validate', 'ignore')),
+  next_review_date TEXT,
+  status TEXT NOT NULL CHECK (status IN ('active', 'archived')),
+  follow_up_task_id TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (follow_up_task_id, space_id, project_id) REFERENCES tasks(id, space_id, project_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE radar_signals (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  topic_id TEXT NOT NULL,
+  summary TEXT NOT NULL CHECK (length(summary) BETWEEN 1 AND 10000),
+  classification TEXT NOT NULL CHECK (classification IN ('primary_fact', 'secondary_report', 'opinion', 'inference')),
+  published_on TEXT,
+  source_id TEXT NOT NULL,
+  source_version_id TEXT NOT NULL,
+  document_id TEXT NOT NULL,
+  start_char INTEGER NOT NULL CHECK (start_char >= 0),
+  end_char INTEGER NOT NULL CHECK (end_char > start_char),
+  text_sha256 TEXT NOT NULL CHECK (length(text_sha256) = 64),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version = 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (topic_id, space_id) REFERENCES radar_topics(id, space_id),
+  FOREIGN KEY (source_id, space_id) REFERENCES sources(id, space_id),
+  FOREIGN KEY (source_version_id, space_id) REFERENCES source_versions(id, space_id),
+  FOREIGN KEY (document_id, space_id) REFERENCES documents(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE learning_tracks (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  category TEXT NOT NULL CHECK (category IN ('english', 'research_methods', 'programming_ai', 'professional', 'custom')),
+  focus TEXT NOT NULL CHECK (focus IN ('academic_reading', 'academic_writing', 'daily_speaking', 'general')),
+  goal TEXT NOT NULL CHECK (length(goal) BETWEEN 1 AND 10000),
+  baseline TEXT NOT NULL CHECK (length(baseline) BETWEEN 1 AND 10000),
+  success_criteria TEXT NOT NULL CHECK (length(success_criteria) BETWEEN 1 AND 10000),
+  status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'archived')),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE learning_practices (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  track_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  practice_type TEXT NOT NULL CHECK (practice_type IN ('reading', 'writing', 'speaking', 'exercise', 'project', 'review')),
+  planned_for TEXT,
+  instructions TEXT NOT NULL CHECK (length(instructions) BETWEEN 1 AND 10000),
+  reflection TEXT NOT NULL DEFAULT '' CHECK (length(reflection) <= 20000),
+  feedback TEXT NOT NULL DEFAULT '' CHECK (length(feedback) <= 20000),
+  self_rating INTEGER CHECK (self_rating BETWEEN 1 AND 5),
+  decision TEXT NOT NULL CHECK (decision IN ('pending', 'continue', 'adjust', 'complete')),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'completed')),
+  follow_up_task_id TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (track_id, space_id) REFERENCES learning_tracks(id, space_id),
+  FOREIGN KEY (follow_up_task_id, space_id, project_id) REFERENCES tasks(id, space_id, project_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE learning_routines (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  track_id TEXT NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+  cadence TEXT NOT NULL CHECK (cadence IN ('daily', 'weekly')),
+  target_count INTEGER NOT NULL CHECK (target_count BETWEEN 1 AND 100),
+  status TEXT NOT NULL CHECK (status IN ('active', 'paused', 'archived')),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version >= 1),
+  deleted_at TEXT,
+  deleted_by TEXT REFERENCES principals(id),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (track_id, space_id) REFERENCES learning_tracks(id, space_id),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE TABLE learning_checkins (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  routine_id TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  completed_count INTEGER NOT NULL CHECK (completed_count BETWEEN 0 AND 100),
+  note TEXT NOT NULL DEFAULT '' CHECK (length(note) <= 10000),
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL REFERENCES principals(id),
+  version INTEGER NOT NULL CHECK (version = 1),
+  FOREIGN KEY (project_id, space_id) REFERENCES projects(id, space_id),
+  FOREIGN KEY (routine_id, space_id) REFERENCES learning_routines(id, space_id),
+  UNIQUE (routine_id, local_date),
+  UNIQUE (id, space_id)
+) STRICT;
+
+CREATE INDEX radar_topics_project_idx ON radar_topics(space_id, project_id, updated_at DESC, id DESC);
+CREATE INDEX radar_signals_topic_idx ON radar_signals(space_id, topic_id, created_at DESC, id DESC);
+CREATE INDEX learning_tracks_project_idx ON learning_tracks(space_id, project_id, updated_at DESC, id DESC);
+CREATE INDEX learning_practices_track_idx ON learning_practices(space_id, track_id, updated_at DESC, id DESC);
+CREATE INDEX learning_routines_track_idx ON learning_routines(space_id, track_id, updated_at DESC, id DESC);
+CREATE INDEX learning_checkins_routine_idx ON learning_checkins(space_id, routine_id, local_date DESC, id DESC);
+`
+
 function checksum(sql) {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -1107,5 +1389,17 @@ export const MIGRATIONS = Object.freeze([
     name: 'validated_answers_and_citations',
     sql: migration013,
     checksum: checksum(migration013),
+  }),
+  Object.freeze({
+    version: 14,
+    name: 'professional_research_and_ai_workspaces',
+    sql: migration014,
+    checksum: checksum(migration014),
+  }),
+  Object.freeze({
+    version: 15,
+    name: 'frontier_learning_and_routine_workspaces',
+    sql: migration015,
+    checksum: checksum(migration015),
   }),
 ])

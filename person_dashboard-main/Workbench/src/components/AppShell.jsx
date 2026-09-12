@@ -13,6 +13,7 @@ import {
   IconLibrary,
   IconInbox,
   IconMenu2,
+  IconFlask,
   IconRadar2,
   IconRobot,
   IconSearch,
@@ -38,6 +39,12 @@ const primaryNavigation = [
     : []),
   ...(localWorkbench
     ? [{ to: "/runtime", label: "AI 运行中心", icon: IconRobot }]
+    : []),
+  ...(localWorkbench
+    ? [{ to: "/professional", label: "专业工作台", icon: IconFlask }]
+    : []),
+  ...(localWorkbench
+    ? [{ to: "/growth", label: "前沿与学习", icon: IconRadar2 }]
     : []),
   { to: "/graph", label: "知识星图", icon: IconTopologyStar3 },
   { to: "/wiki", label: "Wiki 层", icon: IconLibrary },

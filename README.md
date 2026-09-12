@@ -2,7 +2,7 @@
 
 DDUP 是一套本地优先、来源可追溯、权限感知的个人 AI 工作台。系统以“项目”为执行骨架，以“个人上下文知识库”为统一认知层，面向科研、AI 应用探索、科技前沿跟踪、学习提升、计划复盘和个人第二大脑等长期场景。
 
-> 当前阶段：G1–G6b 已确认。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮及其 Citation Manifest、持久化 AnswerAttempt 安全检查、无持久化提取式逐句预检、Native 确定性 Run 生命周期、Task Candidate Tool/Approval 首版，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。AnswerAttempt 只在本地固定用户明确提交的问题及 SHA-256、上下文版本、引用快照或拒答原因；读取时复核精确来源、范围和哈希，漂移即失败关闭。逐句预检只判断候选句能否在显式引用范围内原样定位，不保存输入，也不代表语义蕴含或事实正确。DeepSeek Harness G6a 已按 Windows 服务端发行缺口 Stop。Hermes G6b-P1 的来源与完整性审计通过，但当前版本/依赖公告和默认完整宿主工具面触发安装前 Stop；仍未安装、未连接。生成式回答、Runtime 私有 resume 及外部 Runtime 集成不应视为现有生产能力。
+> 当前阶段：G1–G6b 已确认，P0/P1 已取得 GitHub Actions 7/7 远端证据；科研工作台、AI 应用实验室、前沿雷达、学习提升和轻量习惯首版均已实现。核心项目闭环、受控 Markdown、权限优先全文检索、显式上下文篮及其 Citation Manifest、持久化 AnswerAttempt 安全检查、无持久化提取式逐句预检、Native 确定性 Run 生命周期、三类 Candidate 治理，以及正式运行中心、SSE、Checkpoint 与安全重试谱系已实现；受保护混合检索仍为默认关闭的实验路径。专业与成长工作台只保存人工输入，Research Claim 与 Radar Signal 固定来源版本和字符范围，AI/学习决定均为用户明确记录，不调用外部模型。DeepSeek Harness G6a 已按 Windows 服务端发行缺口 Stop；Hermes G6b-P1 在安装前 Stop，仍未安装、未连接。开放式生成、Runtime 私有 resume 及外部 Runtime 集成不应视为现有生产能力。
 
 ## 一、产品目标
 
@@ -79,7 +79,8 @@ flowchart TB
 | 混合与向量检索 | 权限前置、确定性意图拦截、稳定 chunk/字符定位、校准阈值、RRF、临时候选向量缓存、有界 busy、sidecar 身份校验与 FTS 回退 | 运行机制短样本修复通过，但边界 Top-1 质量门失败；默认关闭，BGE-M3 不进入生产依赖 |
 | 引用问答 | 固定来源版本 Citation Manifest；AnswerAttempt 本地持久化用户问题及 SHA-256、上下文版本、引用快照或确定性拒答；检查选中来源中的不可信指令，读取时复核来源、范围和哈希 | 安全准备切片已实现，来源指令与引用漂移都会失败关闭且不回显恶意片段；不保存答案正文或最终 Citation/Answer，生成式回答继续关闭并等待安全门 |
 | 媒体数据 | 可扩展渠道父级；抖音数据作为首个子项和合成演示面板 | 导航与抖音子页已实现 |
-| 科研 / AI Lab / 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
+| 科研 / AI Lab | `/professional` 正式页；研究问题/实验/固定证据 Claim；AI 机会/指标评测/Go-Stop；可选后续任务回链原项目 | 已实现首版；只处理人工输入与受控本地证据 |
+| 前沿 / 学习 | 产品设计、原型页面与项目模板路线 | 原型/设计方案 |
 | DeepSeek Harness | 固定包供应链与官方客户端 synthetic 传输预检通过；Windows 官方 SDK 服务端/Profile 缺失，Registry 中不可运行 | `client_preflight_passed_server_missing / poc_not_connected` |
 | Hermes | G6b 已确认；官方来源/完整性通过，当前版本与依赖安全及默认完整宿主工具面未通过安装门，已 Stop | `api_contract_reviewed_not_installed / candidate_not_connected` |
 | 飞书 / 移动连接器 | 高频捕获、任务、讨论、提醒和复盘 | 后续计划 |
@@ -121,6 +122,8 @@ npm run dev
 
 - 首页：<http://127.0.0.1:5173/>
 - 项目工作台：<http://127.0.0.1:5173/projects>
+- 专业工作台：<http://127.0.0.1:5173/professional>
+- 前沿与学习：<http://127.0.0.1:5173/growth>
 - 今日与复盘：<http://127.0.0.1:5173/today>
 - 上下文知识库：<http://127.0.0.1:5173/context>
 - 产品原型：<http://127.0.0.1:5173/prototype>
@@ -134,7 +137,7 @@ npm run build
 npm run privacy:scan
 ```
 
-当前验证快照：Node 24.19；2026-09-12 本地生产构建、265/265 测试、隐私扫描、生产依赖审计和 Windows SQLite 10 万对象/100 万关系全规模门通过；GitHub Actions 的 Windows/Linux 主验证、双平台全量 SQLite 与 Chromium/Firefox/WebKit 共 7/7 通过。Hermes G6b-P1 只执行来源、哈希、许可证、依赖和启动面静态审查，未执行安装或进程。构建仍有主包大于 500 kB 的非阻塞提示。
+当前验证快照：Node 24.19；2026-09-12 本地生产构建、271/271 测试、隐私扫描及 Chromium/Firefox/WebKit 全流程各 1/1 通过，覆盖 WP1–WP5；生产依赖审计和 Windows SQLite 10 万对象/100 万关系全规模门沿用本轮开发前已通过的专项证据。GitHub Actions 的 7/7 是已推送 P0/P1 基线，当前 WP1–WP5 尚未推送复跑。Hermes G6b-P1 只执行静态审查，未安装或运行。构建仍有主包大于 500 kB 的非阻塞提示。
 
 ## 六、仓库结构
 
@@ -160,6 +163,8 @@ DDUP/
 - [MVP 范围与验收标准](product/MVP范围与验收标准.md)
 - [需求追溯矩阵](product/需求追溯矩阵.md)
 - [MVP 垂直切片验收报告](product/MVP垂直切片验收报告.md)
+- [P2 专业工作台首切片实施决策](product/P2专业工作台首切片实施决策.md)
+- [P2 前沿、学习与轻量习惯实施决策](product/P2前沿学习与轻量习惯实施决策.md)
 
 ### 架构、数据与安全
 

@@ -33,7 +33,7 @@ test('context UI and machine contract expose citation readiness plus conservativ
   assert.match(page, /不代表语义蕴含或事实正确/)
   assert.match(styles, /\.context-draft-validator/)
 
-  assert.match(openapi, /version: 1\.18\.0/)
+  assert.match(openapi, /version: 1\.20\.0/)
   assert.match(openapi, /ContextCitationLocator:/)
   assert.match(openapi, /ContextAnswerReadiness:/)
   assert.match(openapi, /AnswerAttempt:/)
