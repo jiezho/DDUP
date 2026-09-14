@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -12,6 +13,7 @@ const host = '127.0.0.1:8787'
 const origin = `http://${host}`
 const bootstrapToken = 'synthetic-backup-bootstrap-token-0000000000000000000'
 const headers = (extra = {}) => ({ host, ...extra })
+const sha256 = (value) => createHash('sha256').update(value).digest('hex')
 
 test('verified backup restores database objects, relations and controlled source hashes into an empty instance', async () => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-backup-test-'))
@@ -72,6 +74,105 @@ test('verified backup restores database objects, relations and controlled source
     assert.match(await readFile(join(restored.sourceStoragePath, restoredFiles[0]), 'utf8'), /恢复后仍需保持哈希一致/)
   } finally {
     await app.close().catch(() => {})
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('restore rejects a damaged bundle before creating or changing the destination', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-damaged-test-'))
+  const bundle = join(root, 'bundle')
+  const destination = join(root, 'restored')
+  try {
+    await mkdir(join(bundle, 'sources'), { recursive: true })
+    await writeFile(join(bundle, 'workbench.db'), 'not-a-database')
+    await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+      format: 'ddup-backup-v1',
+      database: 'workbench.db',
+      source_root: 'sources',
+      files: [{ path: 'workbench.db', byte_size: 14, sha256: '0'.repeat(64) }],
+    }))
+
+    await assert.rejects(
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: destination }),
+      /backup integrity failure/,
+    )
+    await assert.rejects(readFile(join(destination, 'workbench.db')), /ENOENT/)
+
+    const invalidDatabase = await readFile(join(bundle, 'workbench.db'))
+    await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+      format: 'ddup-backup-v1',
+      database: 'workbench.db',
+      source_root: 'sources',
+      files: [{ path: 'workbench.db', byte_size: invalidDatabase.byteLength, sha256: sha256(invalidDatabase) }],
+    }))
+    await assert.rejects(
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: destination }),
+      /not a database|quick_check/i,
+    )
+    assert.equal((await readdir(root)).some((name) => name.startsWith('.restored.restore-')), false)
+
+    await mkdir(destination)
+    await writeFile(join(destination, 'keep.txt'), 'synthetic marker')
+    await assert.rejects(
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: destination }),
+      /restore destination must be empty/,
+    )
+    assert.equal(await readFile(join(destination, 'keep.txt'), 'utf8'), 'synthetic marker')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('restore rejects traversal, duplicate and unlisted backup entries', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-manifest-test-'))
+  const bundle = join(root, 'bundle')
+  const outside = join(root, 'outside.db')
+  try {
+    await mkdir(join(bundle, 'sources'), { recursive: true })
+    await writeFile(outside, 'synthetic outside file')
+    await copyFile(outside, join(bundle, 'workbench.db'))
+    const placeholder = await readFile(join(bundle, 'workbench.db'))
+    await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+      format: 'ddup-backup-v1',
+      database: 'workbench.db',
+      source_root: 'sources',
+      files: [{ path: '../outside.db', byte_size: 22, sha256: '0'.repeat(64) }],
+    }))
+    await assert.rejects(
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: join(root, 'traversal') }),
+      /unsupported backup manifest/,
+    )
+
+    await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+      format: 'ddup-backup-v1',
+      database: 'workbench.db',
+      source_root: 'sources',
+      files: [
+        { path: 'workbench.db', byte_size: placeholder.byteLength, sha256: sha256(placeholder) },
+        { path: 'workbench.db', byte_size: placeholder.byteLength, sha256: sha256(placeholder) },
+      ],
+    }))
+    await assert.rejects(
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: join(root, 'duplicate') }),
+      /unsupported backup manifest/,
+    )
+
+    await rm(join(bundle, 'workbench.db'))
+    const database = new DatabaseSync(join(bundle, 'workbench.db'))
+    database.exec('CREATE TABLE synthetic_release_check (id TEXT PRIMARY KEY) STRICT')
+    database.close()
+    const databaseBytes = await readFile(join(bundle, 'workbench.db'))
+    await writeFile(join(bundle, 'unlisted.txt'), 'must not be restored')
+    await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+      format: 'ddup-backup-v1',
+      database: 'workbench.db',
+      source_root: 'sources',
+      files: [{ path: 'workbench.db', byte_size: databaseBytes.byteLength, sha256: sha256(databaseBytes) }],
+    }))
+    const restored = join(root, 'listed-only')
+    await restoreBackupBundle({ bundleRoot: bundle, destinationRoot: restored })
+    await assert.rejects(readFile(join(restored, 'unlisted.txt')), /ENOENT/)
+  } finally {
     await rm(root, { recursive: true, force: true })
   }
 })

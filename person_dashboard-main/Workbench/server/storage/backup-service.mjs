@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto'
-import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { createHash, randomUUID } from 'node:crypto'
+import { cp, lstat, mkdir, readFile, readdir, rename, rm, rmdir, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
-import { backup as sqliteBackup } from 'node:sqlite'
+import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite'
 
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
 
@@ -148,22 +148,81 @@ export function createBackupService({ database, databasePath, sourceStoragePath,
 
 export async function restoreBackupBundle({ bundleRoot, destinationRoot } = {}) {
   if (!bundleRoot || !destinationRoot) throw new TypeError('bundleRoot and destinationRoot are required')
+  const bundle = resolve(bundleRoot)
   const destination = resolve(destinationRoot)
+  if (dirname(destination) === destination) throw new Error('restore destination must not be a filesystem root')
+  if (bundle === destination) throw new Error('restore destination must differ from the backup bundle')
   const existing = await stat(destination).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error))
   if (existing) {
+    if (!existing.isDirectory()) throw new Error('restore destination must be a directory')
     const entries = await readdir(destination)
     if (entries.length) throw new Error('restore destination must be empty')
-  } else {
-    await mkdir(destination, { recursive: true })
   }
-  const manifest = JSON.parse(await readFile(join(bundleRoot, 'manifest.json'), 'utf8'))
-  if (manifest.format !== 'ddup-backup-v1') throw new Error('unsupported backup manifest')
+
+  const manifest = JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8'))
+  if (
+    manifest.format !== 'ddup-backup-v1'
+    || manifest.database !== 'workbench.db'
+    || manifest.source_root !== 'sources'
+    || !Array.isArray(manifest.files)
+  ) throw new Error('unsupported backup manifest')
+
+  const verifiedFiles = []
+  const seenPaths = new Set()
   for (const record of manifest.files) {
-    const absolute = safeChild(bundleRoot, record.path)
+    if (
+      !record
+      || typeof record.path !== 'string'
+      || (!/^workbench\.db$/.test(record.path) && !/^sources\/.+/.test(record.path))
+      || !Number.isSafeInteger(record.byte_size)
+      || record.byte_size < 0
+      || !/^[a-f0-9]{64}$/.test(record.sha256)
+      || seenPaths.has(record.path)
+    ) throw new Error('unsupported backup manifest')
+    seenPaths.add(record.path)
+    const absolute = safeChild(bundle, record.path)
+    const details = await lstat(absolute)
+    if (!details.isFile()) throw new Error(`backup entry is not a regular file: ${record.path}`)
     const bytes = await readFile(absolute)
     if (bytes.byteLength !== record.byte_size || sha256(bytes) !== record.sha256) throw new Error(`backup integrity failure: ${record.path}`)
+    verifiedFiles.push({ path: record.path, bytes })
   }
-  await cp(join(bundleRoot, 'workbench.db'), join(destination, 'workbench.db'), { errorOnExist: true, force: false })
-  await cp(join(bundleRoot, 'sources'), join(destination, 'sources'), { recursive: true, errorOnExist: true, force: false })
-  return { databasePath: join(destination, 'workbench.db'), sourceStoragePath: join(destination, 'sources'), manifest }
+  if (!seenPaths.has('workbench.db')) throw new Error('backup manifest is missing the database')
+
+  const parent = dirname(destination)
+  const staging = safeChild(parent, `.${basename(destination)}.restore-${randomUUID()}`)
+  let destinationRemoved = false
+  await mkdir(parent, { recursive: true })
+  try {
+    await mkdir(join(staging, 'sources'), { recursive: true })
+    for (const file of verifiedFiles) {
+      const target = safeChild(staging, file.path)
+      await mkdir(dirname(target), { recursive: true })
+      await writeFile(target, file.bytes, { flag: 'wx' })
+    }
+
+    const restoredDatabase = new DatabaseSync(join(staging, 'workbench.db'), {
+      allowExtension: false,
+      enableDoubleQuotedStringLiterals: false,
+      enableForeignKeyConstraints: true,
+    })
+    try {
+      if (restoredDatabase.prepare('PRAGMA quick_check').get().quick_check !== 'ok') {
+        throw new Error('restored database failed quick_check')
+      }
+    } finally {
+      restoredDatabase.close()
+    }
+
+    if (existing) {
+      await rmdir(destination)
+      destinationRemoved = true
+    }
+    await rename(staging, destination)
+    return { databasePath: join(destination, 'workbench.db'), sourceStoragePath: join(destination, 'sources'), manifest }
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true }).catch(() => {})
+    if (existing && destinationRemoved) await mkdir(destination, { recursive: false }).catch(() => {})
+    throw error
+  }
 }
