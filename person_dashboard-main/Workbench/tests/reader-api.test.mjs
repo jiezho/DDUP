@@ -66,7 +66,7 @@ test("reader image endpoint resolves local Markdown images relative to the sourc
       src: "imgs/pixel.png",
     })}`,
   );
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 200, await response.clone().text());
   assert.equal(response.headers.get("content-type"), "image/png");
   assert.ok((await response.arrayBuffer()).byteLength > 0);
 
@@ -410,7 +410,7 @@ test("ordinary note writes cannot forge the reserved Codex explanation provenanc
       },
     }),
   });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 200, await response.clone().text());
   const payload = await response.json();
   assert.equal(payload.note.origin, "user");
   assert.equal(payload.note.sourceAnalysisId, null);

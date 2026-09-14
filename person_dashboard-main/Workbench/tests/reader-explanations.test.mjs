@@ -530,6 +530,7 @@ test("runs at most two Codex processes concurrently", async (t) => {
   await Promise.all(started.map((record) =>
     waitForStatus(service, record.id, READER_EXPLANATION_STATUS.COMPLETED),
   ));
+  await service.close();
 });
 
 test("recovers persisted running records as failed and closes the public mutation API", async (t) => {
