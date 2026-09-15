@@ -25,6 +25,7 @@
     "bench:release": "node scripts/benchmark-release-budget.mjs",
     "verify:bundle": "node scripts/verify-client-bundle-budget.mjs",
     "release:inventory": "node scripts/generate-release-inventory.mjs",
+    "release:manifest": "node scripts/generate-release-artifact-manifest.mjs",
     "demo:generate": "node scripts/generate-demo-douyin.mjs",
     "prebuild": "node scripts/check-runtime.mjs",
     "build": "node scripts/build-hosted.mjs",

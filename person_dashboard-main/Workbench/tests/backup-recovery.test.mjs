@@ -1,19 +1,46 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
 import { createWorkbenchApp } from '../server/app.mjs'
-import { restoreBackupBundle } from '../server/storage/backup-service.mjs'
+import { restoreBackupBundle, restoreBackupBundleForTest } from '../server/storage/backup-service.mjs'
 
 const host = '127.0.0.1:8787'
 const origin = `http://${host}`
 const bootstrapToken = 'synthetic-backup-bootstrap-token-0000000000000000000'
 const headers = (extra = {}) => ({ host, ...extra })
 const sha256 = (value) => createHash('sha256').update(value).digest('hex')
+
+async function createSyntheticBundle(root, { sourceCount = 1 } = {}) {
+  const bundle = join(root, 'bundle')
+  await mkdir(join(bundle, 'sources'), { recursive: true })
+  const databasePath = join(bundle, 'workbench.db')
+  const database = new DatabaseSync(databasePath)
+  database.exec('CREATE TABLE synthetic_release_check (id TEXT PRIMARY KEY) STRICT')
+  database.close()
+  const paths = ['workbench.db']
+  for (let index = 0; index < sourceCount; index += 1) {
+    const path = `sources/synthetic-${index + 1}.md`
+    await writeFile(join(bundle, path), `# 合成恢复文件 ${index + 1}\n`)
+    paths.push(path)
+  }
+  const files = []
+  for (const path of paths) {
+    const bytes = await readFile(join(bundle, path))
+    files.push({ path, byte_size: bytes.byteLength, sha256: sha256(bytes) })
+  }
+  await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+    format: 'ddup-backup-v1',
+    database: 'workbench.db',
+    source_root: 'sources',
+    files,
+  }))
+  return bundle
+}
 
 test('verified backup restores database objects, relations and controlled source hashes into an empty instance', async () => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-backup-test-'))
@@ -172,6 +199,50 @@ test('restore rejects traversal, duplicate and unlisted backup entries', async (
     const restored = join(root, 'listed-only')
     await restoreBackupBundle({ bundleRoot: bundle, destinationRoot: restored })
     await assert.rejects(readFile(join(restored, 'unlisted.txt')), /ENOENT/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('restore removes staging data after an interrupted copy and leaves the destination absent', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-interrupted-test-'))
+  const destination = join(root, 'restored')
+  try {
+    const bundle = await createSyntheticBundle(root, { sourceCount: 2 })
+    await assert.rejects(
+      restoreBackupBundleForTest(
+        { bundleRoot: bundle, destinationRoot: destination },
+        { afterFileWrite: ({ index }) => {
+          if (index === 0) throw new Error('synthetic interrupted copy')
+        } },
+      ),
+      /synthetic interrupted copy/,
+    )
+    await assert.rejects(stat(destination), /ENOENT/)
+    assert.equal((await readdir(root)).some((name) => name.startsWith('.restored.restore-')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('two restores racing for one destination publish exactly one verified result', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-race-test-'))
+  const destination = join(root, 'restored')
+  try {
+    const bundle = await createSyntheticBundle(root, { sourceCount: 2 })
+    const results = await Promise.allSettled([
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: destination }),
+      restoreBackupBundle({ bundleRoot: bundle, destinationRoot: destination }),
+    ])
+    assert.equal(results.filter(({ status }) => status === 'fulfilled').length, 1)
+    assert.equal(results.filter(({ status }) => status === 'rejected').length, 1)
+    const database = new DatabaseSync(join(destination, 'workbench.db'))
+    try {
+      assert.equal(database.prepare('PRAGMA quick_check').get().quick_check, 'ok')
+    } finally {
+      database.close()
+    }
+    assert.equal((await readdir(root)).some((name) => name.startsWith('.restored.restore-')), false)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

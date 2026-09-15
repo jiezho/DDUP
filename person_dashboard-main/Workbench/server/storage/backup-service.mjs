@@ -146,7 +146,7 @@ export function createBackupService({ database, databasePath, sourceStoragePath,
   return Object.freeze({ createBackup, listBackups, verifyBackup, backupRoot })
 }
 
-export async function restoreBackupBundle({ bundleRoot, destinationRoot } = {}) {
+async function restoreBackupBundleWithHooks({ bundleRoot, destinationRoot } = {}, hooks = {}) {
   if (!bundleRoot || !destinationRoot) throw new TypeError('bundleRoot and destinationRoot are required')
   const bundle = resolve(bundleRoot)
   const destination = resolve(destinationRoot)
@@ -195,10 +195,11 @@ export async function restoreBackupBundle({ bundleRoot, destinationRoot } = {}) 
   await mkdir(parent, { recursive: true })
   try {
     await mkdir(join(staging, 'sources'), { recursive: true })
-    for (const file of verifiedFiles) {
+    for (const [index, file] of verifiedFiles.entries()) {
       const target = safeChild(staging, file.path)
       await mkdir(dirname(target), { recursive: true })
       await writeFile(target, file.bytes, { flag: 'wx' })
+      await hooks.afterFileWrite?.({ index, path: file.path })
     }
 
     const restoredDatabase = new DatabaseSync(join(staging, 'workbench.db'), {
@@ -225,4 +226,15 @@ export async function restoreBackupBundle({ bundleRoot, destinationRoot } = {}) 
     if (existing && destinationRemoved) await mkdir(destination, { recursive: false }).catch(() => {})
     throw error
   }
+}
+
+export async function restoreBackupBundle(options) {
+  return restoreBackupBundleWithHooks(options)
+}
+
+export async function restoreBackupBundleForTest(options, hooks = {}) {
+  if (hooks.afterFileWrite !== undefined && typeof hooks.afterFileWrite !== 'function') {
+    throw new TypeError('afterFileWrite test hook must be a function')
+  }
+  return restoreBackupBundleWithHooks(options, hooks)
 }
