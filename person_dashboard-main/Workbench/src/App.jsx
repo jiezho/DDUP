@@ -1,35 +1,55 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
-import { DocumentDrawer } from "./components/DocumentDrawer";
-import { SearchPalette } from "./components/SearchPalette";
-import { CollectionPage } from "./pages/CollectionPage";
-import { DouyinPage } from "./pages/DouyinPage";
-import { DailyHotPage } from "./pages/DailyHotPage";
-import { GraphPage } from "./pages/GraphPage";
-import { MaterialsPage } from "./pages/MaterialsPage";
-import { BooksPage } from "./pages/BooksPage";
-import { OverviewPage } from "./pages/OverviewPage";
-import { SystemPage } from "./pages/SystemPage";
-import { TopicsPage } from "./pages/TopicsPage";
-import { SocialInsightsPage, SocialTrendDetailPage } from "./pages/SocialInsightsPage";
 import { useVaultSync } from "./hooks/useVaultSync";
-import { PrototypeApp } from "./prototype/PrototypeApp";
-import { ProjectsPage } from "./pages/ProjectsPage";
-import { CaptureInboxPage } from "./pages/CaptureInboxPage";
-import { TodayPage } from "./pages/TodayPage";
-import { ContextLibraryPage } from "./pages/ContextLibraryPage";
-import { RuntimePage } from "./pages/RuntimePage";
-import { ProfessionalPage } from "./pages/ProfessionalPage";
-import { GrowthPage } from "./pages/GrowthPage";
+
+const lazyNamed = (loader, exportName) => lazy(() => (
+  loader().then((module) => ({ default: module[exportName] }))
+));
+
+const CollectionPage = lazyNamed(() => import("./pages/CollectionPage"), "CollectionPage");
+const DouyinPage = lazyNamed(() => import("./pages/DouyinPage"), "DouyinPage");
+const DailyHotPage = lazyNamed(() => import("./pages/DailyHotPage"), "DailyHotPage");
+const GraphPage = lazyNamed(() => import("./pages/GraphPage"), "GraphPage");
+const MaterialsPage = lazyNamed(() => import("./pages/MaterialsPage"), "MaterialsPage");
+const BooksPage = lazyNamed(() => import("./pages/BooksPage"), "BooksPage");
+const OverviewPage = lazyNamed(() => import("./pages/OverviewPage"), "OverviewPage");
+const SystemPage = lazyNamed(() => import("./pages/SystemPage"), "SystemPage");
+const TopicsPage = lazyNamed(() => import("./pages/TopicsPage"), "TopicsPage");
+const socialInsightsLoader = () => import("./pages/SocialInsightsPage");
+const SocialInsightsPage = lazyNamed(socialInsightsLoader, "SocialInsightsPage");
+const SocialTrendDetailPage = lazyNamed(socialInsightsLoader, "SocialTrendDetailPage");
+const PrototypeApp = lazyNamed(() => import("./prototype/PrototypeApp"), "PrototypeApp");
+const ProjectsPage = lazyNamed(() => import("./pages/ProjectsPage"), "ProjectsPage");
+const CaptureInboxPage = lazyNamed(() => import("./pages/CaptureInboxPage"), "CaptureInboxPage");
+const TodayPage = lazyNamed(() => import("./pages/TodayPage"), "TodayPage");
+const ContextLibraryPage = lazyNamed(() => import("./pages/ContextLibraryPage"), "ContextLibraryPage");
+const RuntimePage = lazyNamed(() => import("./pages/RuntimePage"), "RuntimePage");
+const ProfessionalPage = lazyNamed(() => import("./pages/ProfessionalPage"), "ProfessionalPage");
+const GrowthPage = lazyNamed(() => import("./pages/GrowthPage"), "GrowthPage");
+const SearchPalette = lazyNamed(() => import("./components/SearchPalette"), "SearchPalette");
+const DocumentDrawer = lazyNamed(() => import("./components/DocumentDrawer"), "DocumentDrawer");
 
 const localWorkbench = import.meta.env.VITE_WORKBENCH_HOSTED !== "true";
+
+function RouteLoading() {
+  return (
+    <div className="empty-state" role="status" aria-live="polite">
+      <span className="project-spinner" aria-hidden="true" />
+      正在加载页面…
+    </div>
+  );
+}
 
 export function App() {
   const location = useLocation();
 
   if (location.pathname.startsWith("/prototype")) {
-    return <PrototypeApp />;
+    return (
+      <Suspense fallback={<RouteLoading />}>
+        <PrototypeApp />
+      </Suspense>
+    );
   }
 
   return <WorkbenchApp />;
@@ -90,7 +110,8 @@ function WorkbenchApp() {
   return (
     <>
       <AppShell onOpenSearch={appContext.openSearch} sync={vaultSync}>
-        <Routes key={routeRevision}>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes key={routeRevision}>
           <Route path="/" element={localWorkbench ? <TodayPage /> : <OverviewPage onOpenDocument={openDocument} />} />
           <Route path="/graph" element={<GraphPage onOpenDocument={openDocument} />} />
           <Route
@@ -169,31 +190,40 @@ function WorkbenchApp() {
           <Route path="/douyin" element={<DouyinPage />} />
           <Route path="/system" element={<SystemPage />} />
           <Route path="*" element={<Navigate replace to="/" />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </AppShell>
 
-      <SearchPalette
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onOpenContextResult={(_item, query) => {
-          navigate(`/context?q=${encodeURIComponent(query.trim())}`);
-          setSearchOpen(false);
-        }}
-        onOpenDocument={(document) => {
-          openDocument(document);
-          setSearchOpen(false);
-        }}
-      />
+      {searchOpen ? (
+        <Suspense fallback={<RouteLoading />}>
+          <SearchPalette
+            open
+            onClose={() => setSearchOpen(false)}
+            onOpenContextResult={(_item, query) => {
+              navigate(`/context?q=${encodeURIComponent(query.trim())}`);
+              setSearchOpen(false);
+            }}
+            onOpenDocument={(document) => {
+              openDocument(document);
+              setSearchOpen(false);
+            }}
+          />
+        </Suspense>
+      ) : null}
 
-      <DocumentDrawer
-        documentId={selectedDocumentId}
-        onNavigateDocument={openDocument}
-        onClose={() => {
-          setSelectedDocumentId(null);
-          setReaderContext(null);
-        }}
-        readingContext={readerContext}
-      />
+      {selectedDocumentId ? (
+        <Suspense fallback={<RouteLoading />}>
+          <DocumentDrawer
+            documentId={selectedDocumentId}
+            onNavigateDocument={openDocument}
+            onClose={() => {
+              setSelectedDocumentId(null);
+              setReaderContext(null);
+            }}
+            readingContext={readerContext}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

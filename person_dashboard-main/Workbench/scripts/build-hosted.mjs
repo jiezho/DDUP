@@ -11,4 +11,5 @@ const [{ build }, { default: config }] = await Promise.all([
 // Loading the checked-in config directly also avoids Vite's transient config
 // bundle under node_modules, which can be blocked in managed Windows sandboxes.
 await build({ ...config, configFile: false });
+await import("./verify-client-bundle-budget.mjs");
 await import("./prepare-sites-build.mjs");

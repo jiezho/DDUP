@@ -23,6 +23,7 @@
     "smoke:dense-sidecar": "node scripts/smoke-test-dense-sidecar.mjs",
     "bench:dense-sidecar": "node scripts/benchmark-dense-sidecar.mjs",
     "bench:release": "node scripts/benchmark-release-budget.mjs",
+    "verify:bundle": "node scripts/verify-client-bundle-budget.mjs",
     "demo:generate": "node scripts/generate-demo-douyin.mjs",
     "prebuild": "node scripts/check-runtime.mjs",
     "build": "node scripts/build-hosted.mjs",
