@@ -8,12 +8,28 @@ import test from 'node:test'
 
 import { createWorkbenchApp } from '../server/app.mjs'
 import { restoreBackupBundle, restoreBackupBundleForTest } from '../server/storage/backup-service.mjs'
+import { MIGRATIONS } from '../server/storage/migrations.mjs'
 
 const host = '127.0.0.1:8787'
 const origin = `http://${host}`
 const bootstrapToken = 'synthetic-backup-bootstrap-token-0000000000000000000'
 const headers = (extra = {}) => ({ host, ...extra })
 const sha256 = (value) => createHash('sha256').update(value).digest('hex')
+
+async function writeBundleManifest(bundle, paths, extra = {}) {
+  const files = []
+  for (const path of paths) {
+    const bytes = await readFile(join(bundle, path))
+    files.push({ path, byte_size: bytes.byteLength, sha256: sha256(bytes) })
+  }
+  await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
+    format: 'ddup-backup-v1',
+    database: 'workbench.db',
+    source_root: 'sources',
+    files,
+    ...extra,
+  }))
+}
 
 async function createSyntheticBundle(root, { sourceCount = 1 } = {}) {
   const bundle = join(root, 'bundle')
@@ -28,18 +44,71 @@ async function createSyntheticBundle(root, { sourceCount = 1 } = {}) {
     await writeFile(join(bundle, path), `# 合成恢复文件 ${index + 1}\n`)
     paths.push(path)
   }
-  const files = []
-  for (const path of paths) {
-    const bytes = await readFile(join(bundle, path))
-    files.push({ path, byte_size: bytes.byteLength, sha256: sha256(bytes) })
-  }
-  await writeFile(join(bundle, 'manifest.json'), JSON.stringify({
-    format: 'ddup-backup-v1',
-    database: 'workbench.db',
-    source_root: 'sources',
-    files,
-  }))
+  await writeBundleManifest(bundle, paths)
   return bundle
+}
+
+async function createHistoricalBundle(root, maximumMigrationVersion = 14) {
+  const bundle = join(root, 'historical-bundle')
+  await mkdir(join(bundle, 'sources'), { recursive: true })
+  const databasePath = join(bundle, 'workbench.db')
+  const database = new DatabaseSync(databasePath)
+  const appliedAt = '2026-09-01T00:00:00.000Z'
+  const principalId = '00000000-0000-7000-8000-000000000001'
+  const spaceId = '00000000-0000-7000-8000-000000000002'
+  const projectId = '00000000-0000-7000-8000-000000000003'
+  try {
+    database.exec(`
+      PRAGMA foreign_keys = ON;
+      CREATE TABLE schema_migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        checksum TEXT NOT NULL,
+        applied_at TEXT NOT NULL,
+        app_version TEXT NOT NULL
+      ) STRICT;
+    `)
+    for (const migration of MIGRATIONS.filter(({ version }) => version <= maximumMigrationVersion)) {
+      database.exec('BEGIN IMMEDIATE')
+      try {
+        database.exec(migration.sql)
+        database.prepare(`
+          INSERT INTO schema_migrations (version, name, checksum, applied_at, app_version)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(migration.version, migration.name, migration.checksum, appliedAt, '0.0.14-test')
+        database.exec('COMMIT')
+      } catch (error) {
+        database.exec('ROLLBACK')
+        throw error
+      }
+    }
+    database.prepare(`
+      INSERT INTO principals (id, kind, display_name, status, created_at)
+      VALUES (?, 'local_owner', '合成历史拥有者', 'active', ?)
+    `).run(principalId, appliedAt)
+    database.prepare(`
+      INSERT INTO spaces (
+        id, owner_id, name, classification, default_ai_policy, status,
+        created_at, created_by, updated_at, updated_by, version, deleted_at, deleted_by
+      ) VALUES (?, ?, '合成历史空间', 'public_demo', 'local_only', 'active', ?, ?, ?, ?, 1, NULL, NULL)
+    `).run(spaceId, principalId, appliedAt, principalId, appliedAt, principalId)
+    database.prepare(`
+      INSERT INTO projects (
+        id, space_id, name, summary, template_type, status, start_date, target_date,
+        context_policy, color_token, created_at, created_by, updated_at, updated_by,
+        version, deleted_at, deleted_by
+      ) VALUES (?, ?, '历史迁移保留项目', '只用于迁移恢复验收。', 'general', 'active', NULL, NULL,
+        'project_only', 'sky', ?, ?, ?, ?, 1, NULL, NULL)
+    `).run(projectId, spaceId, appliedAt, principalId, appliedAt, principalId)
+  } finally {
+    database.close()
+  }
+  await writeBundleManifest(bundle, ['workbench.db'], {
+    schema_migrations: MIGRATIONS
+      .filter(({ version }) => version <= maximumMigrationVersion)
+      .map(({ version, name, checksum }) => ({ version, name, checksum })),
+  })
+  return { bundle, principalId, projectId }
 }
 
 test('verified backup restores database objects, relations and controlled source hashes into an empty instance', async () => {
@@ -204,7 +273,28 @@ test('restore rejects traversal, duplicate and unlisted backup entries', async (
   }
 })
 
-test('restore removes staging data after an interrupted copy and leaves the destination absent', async () => {
+test('restore fails capacity preflight before staging and preserves an existing empty destination', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-capacity-test-'))
+  const destination = join(root, 'restored')
+  try {
+    const bundle = await createSyntheticBundle(root, { sourceCount: 2 })
+    await mkdir(destination)
+    await assert.rejects(
+      restoreBackupBundleForTest(
+        { bundleRoot: bundle, destinationRoot: destination },
+        { getAvailableBytes: () => 1n },
+      ),
+      (error) => error?.code === 'RESTORE_INSUFFICIENT_SPACE'
+        && BigInt(error.requiredBytes) > BigInt(error.availableBytes),
+    )
+    assert.deepEqual(await readdir(destination), [])
+    assert.equal((await readdir(root)).some((name) => name.startsWith('.restored.restore-')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('restore removes staging data after an ENOSPC write failure and leaves the destination absent', async () => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-backup-interrupted-test-'))
   const destination = join(root, 'restored')
   try {
@@ -213,14 +303,84 @@ test('restore removes staging data after an interrupted copy and leaves the dest
       restoreBackupBundleForTest(
         { bundleRoot: bundle, destinationRoot: destination },
         { afterFileWrite: ({ index }) => {
-          if (index === 0) throw new Error('synthetic interrupted copy')
+          if (index === 0) {
+            const error = new Error('synthetic disk full')
+            error.code = 'ENOSPC'
+            throw error
+          }
         } },
       ),
-      /synthetic interrupted copy/,
+      (error) => error?.code === 'ENOSPC' && /synthetic disk full/.test(error.message),
     )
     await assert.rejects(stat(destination), /ENOENT/)
     assert.equal((await readdir(root)).some((name) => name.startsWith('.restored.restore-')), false)
   } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('a restored historical database migrates forward and an unknown newer schema fails closed without data loss', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-migration-test-'))
+  const destination = join(root, 'restored')
+  let app
+  try {
+    const historical = await createHistoricalBundle(root, 14)
+    const restored = await restoreBackupBundle({ bundleRoot: historical.bundle, destinationRoot: destination })
+    app = createWorkbenchApp({
+      bootstrapToken: `${bootstrapToken}-historical`,
+      databasePath: restored.databasePath,
+      sourceStoragePath: restored.sourceStoragePath,
+      now: () => Date.UTC(2026, 8, 16, 8),
+    })
+    const boot = await app.inject({
+      method: 'POST', url: '/api/v1/session/bootstrap',
+      headers: headers({
+        'content-type': 'application/json',
+        origin,
+        'x-workbench-bootstrap': `${bootstrapToken}-historical`,
+      }),
+      payload: {},
+    })
+    assert.equal(boot.statusCode, 200, boot.body)
+    const project = await app.inject({
+      method: 'GET',
+      url: `/api/v1/projects/${historical.projectId}`,
+      headers: headers({ cookie: boot.headers['set-cookie'].split(';', 1)[0] }),
+    })
+    assert.equal(project.statusCode, 200, project.body)
+    assert.equal(project.json().data.name, '历史迁移保留项目')
+    await app.close()
+    app = null
+
+    const upgraded = new DatabaseSync(restored.databasePath)
+    try {
+      assert.equal(upgraded.prepare('SELECT max(version) AS version FROM schema_migrations').get().version, MIGRATIONS.at(-1).version)
+      assert.equal(upgraded.prepare("SELECT count(*) AS count FROM projects WHERE id = ?").get(historical.projectId).count, 1)
+      upgraded.prepare(`
+        INSERT INTO schema_migrations (version, name, checksum, applied_at, app_version)
+        VALUES (999, 'synthetic_future_schema', ?, '2026-09-17T00:00:00.000Z', '9.9.9-test')
+      `).run('f'.repeat(64))
+    } finally {
+      upgraded.close()
+    }
+
+    assert.throws(
+      () => createWorkbenchApp({
+        bootstrapToken: `${bootstrapToken}-rollback`,
+        databasePath: restored.databasePath,
+        sourceStoragePath: restored.sourceStoragePath,
+      }),
+      (error) => error?.code === 'MIGRATION_REQUIRED' && error?.statusCode === 503,
+    )
+    const preserved = new DatabaseSync(restored.databasePath, { readOnly: true })
+    try {
+      assert.equal(preserved.prepare('SELECT name FROM projects WHERE id = ?').get(historical.projectId).name, '历史迁移保留项目')
+      assert.equal(preserved.prepare('PRAGMA quick_check').get().quick_check, 'ok')
+    } finally {
+      preserved.close()
+    }
+  } finally {
+    await app?.close().catch(() => {})
     await rm(root, { recursive: true, force: true })
   }
 })

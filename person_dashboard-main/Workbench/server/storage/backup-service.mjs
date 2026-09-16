@@ -1,12 +1,33 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { cp, lstat, mkdir, readFile, readdir, rename, rm, rmdir, stat, writeFile } from 'node:fs/promises'
+import { cp, lstat, mkdir, readFile, readdir, rename, rm, rmdir, stat, statfs, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite'
 
 import { ERROR_CODES, publicError } from '../../shared/contracts/errors.mjs'
 
+const MINIMUM_RESTORE_RESERVE_BYTES = 64n * 1024n * 1024n
+
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function normalizeAvailableBytes(value) {
+  if (typeof value === 'bigint' && value >= 0n) return value
+  if (Number.isSafeInteger(value) && value >= 0) return BigInt(value)
+  throw new TypeError('available restore capacity must be a non-negative safe integer or bigint')
+}
+
+function requiredRestoreCapacity(fileBytes) {
+  const proportionalReserve = (fileBytes + 19n) / 20n
+  return fileBytes + (proportionalReserve > MINIMUM_RESTORE_RESERVE_BYTES
+    ? proportionalReserve
+    : MINIMUM_RESTORE_RESERVE_BYTES)
+}
+
+async function availableRestoreCapacity(parent, hooks) {
+  if (hooks.getAvailableBytes) return normalizeAvailableBytes(await hooks.getAvailableBytes({ parent }))
+  const filesystem = await statfs(parent, { bigint: true })
+  return normalizeAvailableBytes(filesystem.bavail * filesystem.bsize)
 }
 
 function safeChild(root, name) {
@@ -169,6 +190,7 @@ async function restoreBackupBundleWithHooks({ bundleRoot, destinationRoot } = {}
 
   const verifiedFiles = []
   const seenPaths = new Set()
+  let fileBytes = 0n
   for (const record of manifest.files) {
     if (
       !record
@@ -180,6 +202,7 @@ async function restoreBackupBundleWithHooks({ bundleRoot, destinationRoot } = {}
       || seenPaths.has(record.path)
     ) throw new Error('unsupported backup manifest')
     seenPaths.add(record.path)
+    fileBytes += BigInt(record.byte_size)
     const absolute = safeChild(bundle, record.path)
     const details = await lstat(absolute)
     if (!details.isFile()) throw new Error(`backup entry is not a regular file: ${record.path}`)
@@ -193,6 +216,15 @@ async function restoreBackupBundleWithHooks({ bundleRoot, destinationRoot } = {}
   const staging = safeChild(parent, `.${basename(destination)}.restore-${randomUUID()}`)
   let destinationRemoved = false
   await mkdir(parent, { recursive: true })
+  const availableBytes = await availableRestoreCapacity(parent, hooks)
+  const requiredBytes = requiredRestoreCapacity(fileBytes)
+  if (availableBytes < requiredBytes) {
+    const error = new Error('insufficient disk space for restore')
+    error.code = 'RESTORE_INSUFFICIENT_SPACE'
+    error.requiredBytes = requiredBytes.toString()
+    error.availableBytes = availableBytes.toString()
+    throw error
+  }
   try {
     await mkdir(join(staging, 'sources'), { recursive: true })
     for (const [index, file] of verifiedFiles.entries()) {
@@ -235,6 +267,9 @@ export async function restoreBackupBundle(options) {
 export async function restoreBackupBundleForTest(options, hooks = {}) {
   if (hooks.afterFileWrite !== undefined && typeof hooks.afterFileWrite !== 'function') {
     throw new TypeError('afterFileWrite test hook must be a function')
+  }
+  if (hooks.getAvailableBytes !== undefined && typeof hooks.getAvailableBytes !== 'function') {
+    throw new TypeError('getAvailableBytes test hook must be a function')
   }
   return restoreBackupBundleWithHooks(options, hooks)
 }
