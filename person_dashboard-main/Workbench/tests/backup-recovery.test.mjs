@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { createWorkbenchApp } from '../server/app.mjs'
 import { restoreBackupBundle, restoreBackupBundleForTest } from '../server/storage/backup-service.mjs'
@@ -15,6 +17,27 @@ const origin = `http://${host}`
 const bootstrapToken = 'synthetic-backup-bootstrap-token-0000000000000000000'
 const headers = (extra = {}) => ({ host, ...extra })
 const sha256 = (value) => createHash('sha256').update(value).digest('hex')
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+const historicalCommit = '6cb48ff607a3c1e1c0c93643fdcdebed5dbfaec6'
+
+async function extractHistoricalStorageModules(root) {
+  const files = [
+    'server/storage/database.mjs',
+    'server/storage/migrations.mjs',
+    'shared/contracts/errors.mjs',
+  ]
+  for (const file of files) {
+    const gitPath = `person_dashboard-main/Workbench/${file}`
+    const bytes = execFileSync('git', ['show', `${historicalCommit}:${gitPath}`], {
+      cwd: repositoryRoot,
+      maxBuffer: 1024 * 1024,
+    })
+    const target = join(root, file)
+    await mkdir(dirname(target), { recursive: true })
+    await writeFile(target, bytes)
+  }
+  return pathToFileURL(join(root, 'server/storage/database.mjs')).href
+}
 
 async function writeBundleManifest(bundle, paths, extra = {}) {
   const files = []
@@ -381,6 +404,69 @@ test('a restored historical database migrates forward and an unknown newer schem
     }
   } finally {
     await app?.close().catch(() => {})
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('actual v13 storage code rejects a v15 restored database and preserves its synthetic project', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-actual-rollback-test-'))
+  let app
+  try {
+    const historical = await createHistoricalBundle(root, 14)
+    const restored = await restoreBackupBundle({
+      bundleRoot: historical.bundle,
+      destinationRoot: join(root, 'restored'),
+    })
+    app = createWorkbenchApp({
+      bootstrapToken: `${bootstrapToken}-actual-rollback`,
+      databasePath: restored.databasePath,
+      sourceStoragePath: restored.sourceStoragePath,
+    })
+    await app.close()
+    app = null
+
+    const historicalModuleUrl = await extractHistoricalStorageModules(join(root, 'previous-version'))
+    const { openWorkbenchDatabase: openPreviousDatabase } = await import(historicalModuleUrl)
+    assert.throws(
+      () => openPreviousDatabase({ databasePath: restored.databasePath }),
+      (error) => error?.code === 'MIGRATION_REQUIRED' && error?.statusCode === 503,
+    )
+    const preserved = new DatabaseSync(restored.databasePath, { readOnly: true })
+    try {
+      assert.equal(preserved.prepare('SELECT max(version) AS version FROM schema_migrations').get().version, 15)
+      assert.equal(preserved.prepare('SELECT name FROM projects WHERE id = ?').get(historical.projectId).name, '历史迁移保留项目')
+      assert.equal(preserved.prepare('PRAGMA quick_check').get().quick_check, 'ok')
+    } finally {
+      preserved.close()
+    }
+  } finally {
+    await app?.close().catch(() => {})
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('offline restore CLI publishes a synthetic bundle from a separate process into a clean directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-backup-cli-test-'))
+  const destination = join(root, 'clean-instance')
+  try {
+    const bundle = await createSyntheticBundle(root, { sourceCount: 2 })
+    const output = execFileSync(process.execPath, [
+      join(repositoryRoot, 'person_dashboard-main/Workbench/scripts/restore-backup.mjs'),
+      '--backup', bundle,
+      '--destination', destination,
+    ], { cwd: root, encoding: 'utf8' })
+    const result = JSON.parse(output)
+    assert.equal(result.status, 'ok')
+    assert.equal(result.database_path, join(destination, 'workbench.db'))
+    assert.equal(result.source_storage_path, join(destination, 'sources'))
+    const database = new DatabaseSync(result.database_path, { readOnly: true })
+    try {
+      assert.equal(database.prepare('PRAGMA quick_check').get().quick_check, 'ok')
+    } finally {
+      database.close()
+    }
+    assert.equal((await readdir(result.source_storage_path)).length, 2)
+  } finally {
     await rm(root, { recursive: true, force: true })
   }
 })

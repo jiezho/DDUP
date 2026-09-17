@@ -37,6 +37,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # The rollback test loads the pinned, actual v13 storage modules.
+          fetch-depth: 0
 
       - name: Use Node.js 24.19.0
         uses: actions/setup-node@v4
