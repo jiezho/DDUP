@@ -17,5 +17,9 @@ const { writeDependencyInventory } = await import("./generate-release-inventory.
 const { inventory } = await writeDependencyInventory();
 console.log(`Prepared dependency inventory: ${inventory.summary.components} components, ${inventory.summary.review_required} require review.`);
 const { writeReleaseArtifactManifest } = await import("./generate-release-artifact-manifest.mjs");
-const { manifest } = await writeReleaseArtifactManifest();
+const { manifest, outputPath } = await writeReleaseArtifactManifest();
 console.log(`Prepared release manifest: ${manifest.bundle.file_count} files, SHA-256 ${manifest.bundle.sha256}.`);
+const { verifyReleaseArtifactManifest } = await import("./generate-release-artifact-manifest.mjs");
+const { dirname } = await import("node:path");
+await verifyReleaseArtifactManifest({ distRoot: dirname(dirname(outputPath)) });
+console.log("Verified release artifact against the generated manifest.");

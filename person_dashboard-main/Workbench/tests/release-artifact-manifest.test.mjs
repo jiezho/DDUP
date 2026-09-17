@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,7 +34,21 @@ test("release artifact manifest fixes the exact file set and detects later chang
     ]);
     assert.equal((await verifyReleaseArtifactManifest({ distRoot: root })).bundle.sha256, manifest.bundle.sha256);
 
+    const manifestPath = join(root, "release", "artifact-manifest.json");
+    const originalManifest = await readFile(manifestPath);
+    const verifyCli = () => spawnSync(process.execPath, [
+      join(workbenchRoot, "scripts", "verify-release-artifact.mjs"), "--dist", root,
+    ], { cwd: workbenchRoot, encoding: "utf8" });
+    const verified = verifyCli();
+    assert.equal(verified.status, 0, verified.stderr);
+    assert.match(verified.stdout, /Release artifact verified: 4 files/);
+    assert.deepEqual(await readFile(manifestPath), originalManifest);
+
     await writeFile(join(root, "client", "index.html"), "changed after manifest");
+    const rejected = verifyCli();
+    assert.equal(rejected.status, 1);
+    assert.match(rejected.stderr, /integrity failure/);
+    assert.deepEqual(await readFile(manifestPath), originalManifest);
     await assert.rejects(
       verifyReleaseArtifactManifest({ distRoot: root }),
       /integrity failure/,
@@ -60,4 +75,31 @@ test("current production build includes dependency inventory without local absol
   assert.equal(serialized.includes(workbenchRoot), false);
   assert.equal(serialized.includes("E:\\"), false);
   assert.match(await readFile(join(distRoot, "release", "dependency-inventory.json"), "utf8"), /ddup-release-dependency-inventory/);
+});
+
+test("copied production artifact verifies in a clean directory and tampering is rejected without rewriting the manifest", async () => {
+  const root = await mkdtemp(join(tmpdir(), "workbench-release-copy-test-"));
+  const copyRoot = join(root, "copied-dist");
+  try {
+    await cp(join(workbenchRoot, "dist"), copyRoot, { recursive: true, errorOnExist: true, force: false });
+    const manifestPath = join(copyRoot, "release", "artifact-manifest.json");
+    const originalManifest = await readFile(manifestPath);
+    const verified = spawnSync(process.execPath, [
+      join(workbenchRoot, "scripts", "verify-release-artifact.mjs"), "--dist", copyRoot,
+    ], { cwd: root, encoding: "utf8" });
+    assert.equal(verified.status, 0, verified.stderr);
+    const expectedCount = JSON.parse(originalManifest.toString("utf8")).bundle.file_count;
+    assert.match(verified.stdout, new RegExp(`Release artifact verified: ${expectedCount} files`));
+    assert.deepEqual(await readFile(manifestPath), originalManifest);
+
+    await writeFile(join(copyRoot, "client", "index.html"), "tampered synthetic copy");
+    const rejected = spawnSync(process.execPath, [
+      join(workbenchRoot, "scripts", "verify-release-artifact.mjs"), "--dist", copyRoot,
+    ], { cwd: root, encoding: "utf8" });
+    assert.equal(rejected.status, 1);
+    assert.match(rejected.stderr, /integrity failure/);
+    assert.deepEqual(await readFile(manifestPath), originalManifest);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
